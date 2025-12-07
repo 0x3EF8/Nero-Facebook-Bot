@@ -2,6 +2,33 @@
  * ╔══════════════════════════════════════════════════════════════════════════════╗
  * ║                    NERO - Advanced Human Behavior Engine                     ║
  * ║              Anti-Detection & Behavioral Simulation Module                   ║
+ * ╠══════════════════════════════════════════════════════════════════════════════╣
+ * ║  ⚠️  BETA STATUS - EXPERIMENTAL MODULE                                       ║
+ * ║                                                                              ║
+ * ║  This module is currently in BETA and under active development.              ║
+ * ║  Many features are implemented but NOT YET FULLY UTILIZED in the bot:        ║
+ * ║                                                                              ║
+ * ║  ✅ ACTIVE:                                                                  ║
+ * ║     - Basic typing delays                                                    ║
+ * ║     - Simple response timing                                                 ║
+ * ║     - Read receipts simulation                                               ║
+ * ║                                                                              ║
+ * ║  🔬 EXPERIMENTAL (implemented but testing):                                  ║
+ * ║     - Circadian rhythm patterns                                              ║
+ * ║     - Session fatigue simulation                                             ║
+ * ║     - Cognitive load modeling                                                ║
+ * ║     - Emotional state variations                                             ║
+ * ║                                                                              ║
+ * ║  📋 PLANNED (code exists, not connected):                                    ║
+ * ║     - Full behavioral DNA system                                             ║
+ * ║     - Advanced fingerprint spoofing                                          ║
+ * ║     - Device profile switching                                               ║
+ * ║     - Network latency simulation                                             ║
+ * ║     - Pattern breaking algorithms                                            ║
+ * ║     - Multi-tasking delay simulation                                         ║
+ * ║                                                                              ║
+ * ║  The goal is to make bot behavior indistinguishable from human users.        ║
+ * ║  Features will be enabled gradually after thorough testing.                  ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  *
  * This module implements a sophisticated human behavior simulation engine designed
@@ -23,7 +50,7 @@
  *
  * @module lib/utils/humanBehavior
  * @author 0x3EF8
- * @version 2.2.0
+ * @version 2.2.0-beta
  * @license MIT
  */
 
