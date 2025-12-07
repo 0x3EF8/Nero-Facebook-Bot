@@ -13,7 +13,7 @@ accounts/*.json
 # DEPENDENCIES
 # ═══════════════════════════════════════════════════════════════════════════════
 node_modules/
-package-lock.json
+# Note: package-lock.json is committed for CI reproducibility
 yarn.lock
 pnpm-lock.yaml
 
