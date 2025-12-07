@@ -17,6 +17,13 @@
 const path = require("path");
 const settings = require("./settings");
 
+// Load .env file if it exists
+try {
+    require("dotenv").config({ path: path.resolve(__dirname, "..", ".env") });
+} catch {
+    // dotenv not installed or .env not found - will use defaults
+}
+
 const config = {
     // ═══════════════════════════════════════════════════════════════════════════
     // BOT IDENTITY & BASIC SETTINGS
@@ -94,18 +101,17 @@ const config = {
     },
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // API KEYS (use environment variables for security)
+    // API KEYS (loaded from .env file - see .env.template for setup)
     // ═══════════════════════════════════════════════════════════════════════════
     apiKeys: {
-        // Primary Gemini API key
-        gemini: process.env.GEMINI_API_KEY || "AIzaSyBTRVAtceOVe15oOY4TcZ_rWlundxEonGM",
+        // Primary Gemini API key (from .env)
+        gemini: process.env.GEMINI_API_KEY || "",
         
-        // Backup Gemini API keys (auto-rotate on rate limit)
-        geminiBackups: [
-            "AIzaSyBI3HWOdeWjbbYXfXis7O6WO76-5mLeAhY",
-            "AIzaSyCZ_2wuFRyXIpcL_ENEgGFekXJEhM1Wtes"
-            // Add more backup keys here as needed
-        ],
+        // Backup Gemini API keys (comma-separated in .env, auto-rotate on rate limit)
+        geminiBackups: (process.env.GEMINI_BACKUP_KEYS || "")
+            .split(",")
+            .map(key => key.trim())
+            .filter(key => key.length > 0),
     },
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -120,7 +126,7 @@ const config = {
         
         // API SECURITY
         // ───────────────────────────────────────────────────────────────────────
-        apiKey: process.env.NERO_API_KEY || 'NERO-9F4B-7C2D-A1E8-6H3J-K0LM',
+        apiKey: process.env.NERO_API_KEY || '',
         requireAuth: true,                   // Require API key for sensitive endpoints
         publicEndpoints: ['/api/stats'],     // Endpoints accessible without API key
         

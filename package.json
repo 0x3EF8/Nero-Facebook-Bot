@@ -49,6 +49,7 @@
     "cheerio": "^1.0.0-rc.12",
     "cli-table3": "^0.6.3",
     "deepdash": "^5.3.9",
+    "dotenv": "^17.2.3",
     "figlet": "^1.7.0",
     "form-data": "^4.0.0",
     "https-proxy-agent": "^7.0.2",
