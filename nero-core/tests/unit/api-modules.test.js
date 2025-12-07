@@ -340,7 +340,7 @@ describe("Extra API Modules", () => {
 
 describe("API Module Count Summary", () => {
     const expectedCounts = {
-        messaging: 23, // Updated after adding handleMessageRequest, muteThread, createPoll, createNewGroup
+        messaging: 24, // handleMessageRequest, muteThread, createPoll, createNewGroup, changeAdminStatus
         mqtt: 6,
         threads: 3,
         users: 1,
