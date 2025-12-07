@@ -5,62 +5,65 @@ A modular, multi-account Facebook Messenger bot built with nero-core.
 ## 📁 Project Structure
 
 ```
-.
-├── index.js                  # Main bot entry point
-├── server.js                 # API server for cookie/appstate submission
-├── package.json              # Project metadata and dependencies
-├── LICENSE                   # MIT License
-├── README.md                 # Project documentation
-├── accounts/                 # Multi-account appstate files
-│   ├── README.md
+nero 3000/
+├── accounts/                # Appstate/cookie files for each account
 │   ├── example.json.template
-│   └── *.json
-├── accounts_backup/          # Backup of account files
-├── config/
-│   ├── config.js
-│   └── settings.js
+│   └── README.md
+├── accounts_backup/         # Backup for moved/old account files
 ├── commands/
-│   ├── admin/
-│   └── user/
-├── events/
-│   ├── AI/
-│   ├── welcome/
-│   └── otherEvents/
-├── handlers/
-│   ├── index.js
-│   ├── commandHandler.js
-│   └── eventHandler.js
-├── utils/
-│   ├── accountManager.js
-│   ├── cookieValidator.js
-│   ├── errors.js
-│   ├── logger.js
-│   ├── maintenanceManager.js
-│   ├── retry.js
-│   ├── statsTracker.js
-│   └── updater.js
-├── nero-core/                # Core API library
-│   ├── index.js
-│   ├── package.json
-│   ├── README.md
-│   ├── examples/
-│   └── src/
-├── extension/                # Browser extension files
-│   ├── manifest.json
-│   ├── popup.html
-│   └── popup.js
-├── logs/                     # Log files
+│   ├── admin/               # Admin commands (accounts.js, admin.js, eval.js, etc.)
+│   └── user/                # User commands (help.js, info.js, ping.js, etc.)
+├── config/
+│   ├── config.js            # Main bot config
+│   └── settings.js          # Runtime settings
 ├── data/
-│   └── temp/
-├── tests/                    # Test suite
-│   ├── runner.js
-│   ├── api/
-│   ├── e2e/
-│   ├── integration/
-│   ├── lib/
-│   └── unit/
-└── types/
-    └── index.d.ts
+│   └── temp/                # Temporary data
+├── events/
+│   ├── AI/                  # AI event handlers (beta.js)
+│   ├── otherEvents/         # Misc event handlers (antiSpam, mentionResponse, etc.)
+│   └── welcome/             # Welcome/goodbye events
+├── extension/               # Browser extension files (manifest, popup, etc.)
+├── handlers/                # Command/event handler logic
+│   ├── commandHandler.js
+│   ├── eventHandler.js
+│   └── index.js
+├── logs/                    # Log files (currently empty)
+├── nero-core/               # Core library (submodule or local package)
+│   ├── examples/
+│   ├── src/
+│   │   ├── api/
+│   │   │   ├── extra/
+│   │   │   ├── http/
+│   │   │   ├── login/
+│   │   │   ├── messaging/
+│   │   │   ├── mqtt/
+│   │   │   ├── posting/
+│   │   │   ├── threads/
+│   │   │   └── users/
+│   │   ├── core/
+│   │   │   ├── auth/
+│   │   │   └── client.js
+│   │   ├── lib/
+│   │   │   └── utils/
+│   │   │       ├── humanBehavior.js
+│   │   │       ├── logger.js
+│   │   │       └── ...
+│   ├── tests/
+│   │   ├── api/
+│   │   ├── e2e/
+│   │   ├── integration/
+│   │   ├── lib/
+│   │   └── unit/
+│   ├── package.json
+│   └── README.md
+├── utils/                   # Utility modules (accountManager, logger, etc.)
+├── index.js                 # Main bot entry point
+├── server.js                # API server for cookie/appstate submission
+├── LICENSE                  # MIT License
+├── package.json             # Project manifest
+├── README.md                # Project documentation
+├── .env, .env.template      # Environment config
+├── .editorconfig, .gitignore, .prettierrc, etc.
 ```
 
 ## 🚀 Getting Started
