@@ -654,6 +654,24 @@ const handlers = {
     },
 
     /**
+     * Root endpoint handler - API info
+     */
+    getRoot: (req, res) => {
+        sendJson(res, 200, {
+            success: true,
+            name: 'Nero Bot API',
+            version: '2.1.0',
+            status: 'online',
+            endpoints: [
+                'GET  /              - API info (public)',
+                'GET  /api/stats     - Bot statistics (public)',
+                'POST /api/cookies   - Upload/validate cookies (auth)',
+                'GET  /api/cookies/appstate - Retrieve appstate (auth)'
+            ]
+        });
+    },
+
+    /**
      * 404 handler for unknown routes
      */
     notFound: (req, res) => {
@@ -707,6 +725,7 @@ const router = async (req, res) => {
 
         // 3. Route matching
         const routes = {
+            'GET:/': handlers.getRoot,
             'GET:/api/stats': handlers.getStats,
             'POST:/api/cookies': handlers.handleCookies,
             'GET:/api/cookies/appstate': handlers.getAppstate

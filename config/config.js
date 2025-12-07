@@ -129,8 +129,9 @@ const config = {
     // ═══════════════════════════════════════════════════════════════════════════
     server: {
         enabled: true,                       // Enable/disable API server
-        port: 3000,                          // Server port
-        host: 'localhost',                   // Server host
+        port: 30174,                         // Server port
+        host: '0.0.0.0',                     // Server host (0.0.0.0 accepts connections on all interfaces)
+        // Public URL: http://176.100.37.91:30174/
         logStartup: false,                    // Log server startup info
         logRequests: false,                   // Log incoming API requests
         
@@ -138,7 +139,7 @@ const config = {
         // ───────────────────────────────────────────────────────────────────────
         apiKey: process.env.NERO_API_KEY || '',
         requireAuth: true,                   // Require API key for sensitive endpoints
-        publicEndpoints: ['/api/stats'],     // Endpoints accessible without API key
+        publicEndpoints: ['/api/stats', '/', '/favicon.ico'],     // Endpoints accessible without API key
         
         // API RATE LIMITING
         // ───────────────────────────────────────────────────────────────────────

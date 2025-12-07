@@ -1,131 +1,128 @@
-# Nero Messenger Bot
+# NΞRO Bot
 
-A modular, multi-account Facebook Messenger bot built with nero-core.
+<div align="center">
+
+A modular, multi-account Facebook Messenger chatbot framework featuring human-like behavior simulation, event-driven architecture, and a built-in REST API server.
+
+[Features](#-features) • [Installation](#-installation) • [Configuration](#-configuration) • [Commands](#-commands) • [API Server](#-api-server) • [License](#-license)
+
+</div>
+
+---
+
+## ✨ Features
+
+- **Multi-Account Support** - Run multiple Facebook accounts simultaneously
+- **Human Behavior Simulation** - Realistic delays and typing patterns to avoid detection
+- **REST API Server** - Built-in HTTP server for remote management and cookie submission
+- **Browser Extension** - Cookie extractor extension for easy appstate management
+- **Hot Reload** - Reload commands and events without restarting the bot
+- **Auto-Update** - Automatic update checking from GitHub
+- **Modular Architecture** - Easily add commands and events
+- **Anti-Spam Protection** - Rate limiting and spam detection
+- **Comprehensive Logging** - Colored console output with file logging support
+
+---
 
 ## 📁 Project Structure
 
 ```
-nero 3000/
-├── accounts/                # Appstate/cookie files for each account
-│   ├── 100044343889036.json
-│   ├── 100091687191806.json1
-│   ├── example.json.template
-│   └── README.md
-├── accounts_backup/         # Backup for moved/old account files
+nero/
+├── index.js                 # Main entry point
+├── server.js                # REST API server
+├── package.json             # Dependencies and scripts
+├── .env                     # Environment variables (API keys)
+├── accounts/                # Appstate JSON files for each account
 ├── commands/
-│   ├── admin/               # Admin commands (accounts.js, admin.js, eval.js, etc.)
-│   └── user/                # User commands (help.js, info.js, ping.js, etc.)
+│   ├── admin/               # Admin-only commands
+│   │   ├── accounts.js      # Account management
+│   │   ├── admin.js         # Admin user management
+│   │   ├── eval.js          # JavaScript evaluation
+│   │   ├── kick.js          # Kick users from groups
+│   │   ├── maintenance.js   # Maintenance mode
+│   │   ├── messagerequest.js# Handle message requests
+│   │   ├── reload.js        # Hot reload commands/events
+│   │   ├── restart.js       # Restart the bot
+│   │   ├── setprefix.js     # Change command prefix
+│   │   └── shell.js         # Execute shell commands
+│   └── user/                # User commands
+│       ├── help.js          # Command help
+│       ├── info.js          # Bot information
+│       ├── newgc.js         # Create new group chat
+│       ├── ping.js          # Latency check
+│       ├── poll.js          # Create polls
+│       ├── stalk.js         # User profile lookup
+│       ├── uid.js           # Get Facebook UID
+│       └── uptime.js        # Bot uptime
 ├── config/
-│   ├── config.js            # Main bot config
-│   └── settings.js          # Runtime settings
-├── data/
-│   └── temp/                # Temporary data
+│   ├── config.js            # Main configuration
+│   └── settings.js          # Runtime behavior settings
 ├── events/
-│   ├── AI/                  # AI event handlers (beta.js)
-│   ├── otherEvents/         # Misc event handlers (antiSpam, mentionResponse, etc.)
-│   └── welcome/             # Welcome/goodbye events
-├── extension/               # Browser extension files (manifest, popup, etc.)
-├── handlers/                # Command/event handler logic
-│   ├── commandHandler.js
-│   ├── eventHandler.js
-│   └── index.js
-├── logs/                    # Log files (currently empty)
-├── nero-core/               # Core library (submodule or local package)
-│   ├── examples/
-│   ├── src/
-│   │   ├── api/
-│   │   │   ├── extra/
-│   │   │   ├── http/
-│   │   │   ├── login/
-│   │   │   ├── messaging/
-│   │   │   ├── mqtt/
-│   │   │   ├── posting/
-│   │   │   ├── threads/
-│   │   │   └── users/
-│   │   ├── core/
-│   │   │   ├── auth/
-│   │   │   └── client.js
-│   │   ├── lib/
-│   │   │   └── utils/
-│   │   │       ├── humanBehavior.js
-│   │   │       ├── logger.js
-│   │   │       └── ...
-│   ├── tests/
-│   │   ├── api/
-│   │   ├── e2e/
-│   │   ├── integration/
-│   │   ├── lib/
-│   │   └── unit/
-│   ├── package.json
-│   └── README.md
-├── utils/                   # Utility modules (accountManager, logger, etc.)
-├── index.js                 # Main bot entry point
-├── server.js                # API server for cookie/appstate submission
-├── LICENSE                  # MIT License
-├── package.json             # Project manifest
-├── README.md                # Project documentation
-├── .env, .env.template      # Environment config
-├── .editorconfig, .gitignore, .prettierrc, etc.
+│   ├── AI/
+│   │   └── beta.js          # AI/Gemini integration
+│   ├── otherEvents/
+│   │   ├── antiLeave.js     # Prevent users from leaving
+│   │   ├── antiSpam.js      # Spam detection
+│   │   ├── antiUnsend.js    # Log unsent messages
+│   │   ├── mentionResponse.js # Respond to mentions
+│   │   └── typingIndicator.js # Typing status handler
+│   └── welcome/
+│       ├── goodbye.js       # Goodbye messages
+│       └── welcome.js       # Welcome messages
+├── extension/               # Browser cookie extractor
+│   ├── manifest.json
+│   ├── popup.html
+│   └── popup.js
+├── handlers/                # Command and event handlers
+├── nero-core/               # Core Facebook API library
+├── utils/                   # Utility modules
+│   ├── accountManager.js    # Multi-account management
+│   ├── cookieValidator.js   # Appstate validation
+│   ├── errors.js            # Error classes
+│   ├── logger.js            # Logging system
+│   ├── maintenanceManager.js# Maintenance mode
+│   ├── retry.js             # Retry logic
+│   ├── statsTracker.js      # Statistics tracking
+│   └── updater.js           # Auto-update system
+└── logs/                    # Log files
 ```
 
-## 🚀 Getting Started
+---
+
+## 🚀 Installation
 
 ### Prerequisites
 
-- Node.js 20.x or higher
-- npm or yarn
+- **Node.js** 20.x or higher
+- **npm** or **yarn**
 - Facebook account with valid session cookies
 
-### Installation
+### Quick Start
 
-1. **Clone or download the project**
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/0x3EF8/Nero.git
+   cd Nero
+   ```
 
 2. **Install dependencies**
    ```bash
    npm install
    ```
-3. **Configure your accounts**
 
-    **Option A: Using the Nero Cookie Extractor Extension (Recommended)**
+3. **Configure environment variables**
+   ```bash
+   cp .env.template .env
+   # Edit .env with your API keys (Gemini, etc.)
+   ```
 
-    1. Install the extension:
-        - Open your browser (Chrome, Edge, Brave).
-        - Go to `chrome://extensions` and enable Developer Mode.
-        - Click "Load unpacked" and select the `extension/` folder.
-        - The "Nero Cookie Extractor" icon will appear in your toolbar.
-
-    2. Extract cookies:
-        - Log in to Facebook at facebook.com.
-        - Click the extension icon.
-        - The popup will show your Facebook cookies, validate them, and display their health/status.
-
-    3. Send cookies to the bot:
-        - Use the popup form/button to send your cookies to the bot.
-        - The extension will POST your appstate (cookie array) to your bot’s API endpoint: `http://localhost:3000/api/appstate`.
-        - Choose an account name if prompted. The extension will handle formatting and submission.
-
-    4. Bot receives cookies:
-        - The bot will save the cookies in the `accounts/` folder and reload the account automatically.
-        - You’ll see confirmation in the bot logs.
-
-    **Note:** If no accounts are present, the bot will start in waiting mode and display a message with the host and port, ready to accept cookies via the API.
-
-    **Security:** Cookies are sent only to your local bot server, never to third parties. Never share your appstate with anyone else.
-
-    ---
-
-    **Option B: Single Account (Legacy)**
+4. **Add your Facebook account**
    
-   Place `appstate.json` in the root directory.
-
-4. **Configure the bot**
-   
-   Edit `config/config.js` to customize:
-   - Bot name and prefix
-   - Admin user IDs
-   - Feature flags
-   - Rate limiting settings
-   - And more!
+   Place your appstate JSON file in the `accounts/` folder:
+   ```
+   accounts/
+   └── 100044343889036.json    # Named with your Facebook UID
+   ```
 
 5. **Start the bot**
    ```bash
@@ -137,196 +134,304 @@ nero 3000/
    npm run dev
    ```
 
-## 🔐 Multi-Account Support
+---
 
-The bot supports running multiple Facebook accounts simultaneously!
+## 🔐 Account Setup
 
-### Setup
+### Option A: Using the Browser Extension (Recommended)
 
-1. Create the `accounts/` folder (auto-created on first run)
-2. Add your appstate JSON files (one per account)
-3. Each file should contain a valid cookie array
+1. **Install the extension**
+   - Open Chrome/Edge/Brave and go to `chrome://extensions`
+   - Enable "Developer Mode"
+   - Click "Load unpacked" and select the `extension/` folder
 
-### Account Management
+2. **Extract cookies**
+   - Log in to Facebook at facebook.com
+   - Click the Nero Cookie Extractor icon
+   - Click "Send to Bot" to submit cookies to your bot's API
 
-Use the `!accounts` command to manage your accounts:
+3. **Bot receives cookies**
+   - The bot will save cookies and restart automatically
 
+### Option B: Manual Setup
+
+1. Use a browser extension like "EditThisCookie" to export Facebook cookies
+2. Save as JSON array in `accounts/<your-uid>.json`
+3. Start the bot
+
+### Waiting Mode
+
+If no accounts are configured, the bot starts in **waiting mode**:
 ```
-!accounts            - Show all accounts status
-!accounts list       - List accounts with details
-!accounts stats      - View statistics
-!accounts info main  - Get info about specific account
+🌐 Server running at http://0.0.0.0:30174
+📌 Waiting for appstate submission via API...
+   POST http://0.0.0.0:30174/api/cookies
 ```
 
-### How It Works
+---
 
-- Each account gets its own API instance
-- All accounts share the same command/event handlers
-- Events include account info (`event.__account`)
-- Commands can access the account manager for cross-account operations
+## ⚙️ Configuration
 
-## 📝 Creating Commands
-
-Commands are placed in `commands/<category>/` directories.
-
-### Command Template
+### Main Config (`config/config.js`)
 
 ```javascript
-/**
- * Command description
- */
+bot: {
+    name: "Nero Bot",
+    prefix: "!",                    // Command prefix
+    botPrefix: ".",                 // Bot's own prefix (selfListen)
+    admins: ["100044343889036"],    // Admin Facebook UIDs
+    superAdmins: ["100044343889036"],
+    blockedUsers: [],
+    blockedThreads: [],
+}
+```
 
+### API Server Settings
+
+```javascript
+server: {
+    enabled: true,
+    port: 30174,                    // API server port
+    host: '0.0.0.0',                // Bind to all interfaces
+    apiKey: process.env.NERO_API_KEY,
+    requireAuth: true,
+    publicEndpoints: ['/api/stats', '/', '/favicon.ico'],
+}
+```
+
+### Environment Variables (`.env`)
+
+```env
+# Gemini AI API Keys
+GEMINI_API_KEY=your_primary_key
+GEMINI_BACKUP_KEYS=backup1,backup2,backup3
+
+# Nero API Authentication
+NERO_API_KEY=NERO-XXXX-XXXX-XXXX
+
+# Environment
+NODE_ENV=development
+DEBUG=false
+```
+
+---
+
+## 🌐 API Server
+
+The bot includes a REST API server for remote management.
+
+### Endpoints
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `GET` | `/` | Public | API info and status |
+| `GET` | `/api/stats` | Public | Bot statistics and accounts |
+| `POST` | `/api/cookies` | Required | Upload or validate cookies |
+| `GET` | `/api/cookies/appstate` | Required | Retrieve account appstate |
+
+### Authentication
+
+Protected endpoints require the `X-API-Key` header:
+```bash
+curl -H "X-API-Key: YOUR_API_KEY" http://localhost:30174/api/cookies/appstate
+```
+
+### Upload Cookies
+
+```bash
+curl -X POST http://localhost:30174/api/cookies \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -d '{"cookies": [...], "action": "upload"}'
+```
+
+---
+
+## 📝 Commands
+
+### Admin Commands
+
+| Command | Description | Permission |
+|---------|-------------|------------|
+| `!accounts` | Manage bot accounts | Admin |
+| `!admin` | Manage administrators | Super Admin |
+| `!eval <code>` | Execute JavaScript | Super Admin |
+| `!kick <@user>` | Kick user from group | Admin |
+| `!maintenance` | Toggle maintenance mode | Admin |
+| `!messagerequest` | Handle message requests | Admin |
+| `!reload <type> <name>` | Hot-reload command/event | Admin |
+| `!restart` | Restart the bot | Admin |
+| `!setprefix <prefix>` | Change command prefix | Admin |
+| `!shell <command>` | Execute shell command | Super Admin |
+
+### User Commands
+
+| Command | Description |
+|---------|-------------|
+| `!help [command]` | Show help or command details |
+| `!info` | Bot information and stats |
+| `!newgc <name>` | Create new group chat |
+| `!ping` | Check bot latency |
+| `!poll <question>` | Create a poll |
+| `!stalk <@user>` | User profile information |
+| `!uid [@user]` | Get Facebook UID |
+| `!uptime` | Bot uptime |
+
+---
+
+## 📡 Events
+
+### AI Events
+- **beta.js** - Gemini AI integration for intelligent responses
+
+### Protection Events
+- **antiLeave.js** - Prevent/track users leaving groups
+- **antiSpam.js** - Detect and block spam messages
+- **antiUnsend.js** - Log unsent/deleted messages
+
+### Interaction Events
+- **mentionResponse.js** - Respond when bot is mentioned
+- **typingIndicator.js** - Handle typing status
+
+### Welcome Events
+- **welcome.js** - Greet new group members
+- **goodbye.js** - Farewell messages for leaving members
+
+---
+
+## 🔧 Creating Commands
+
+Place commands in `commands/<category>/`:
+
+```javascript
 "use strict";
 
 module.exports.config = {
-    name: "commandname",           // Command name (required)
-    aliases: ["alias1", "alias2"], // Alternative names
-    description: "What it does",   // Description for help menu
-    usage: "commandname <args>",   // Usage syntax
-    category: "user",              // Category (matches folder)
-    cooldown: 5,                   // Cooldown in seconds
-    permissions: "user",           // "user", "admin", or "superadmin"
-    enabled: true,                 // Enable/disable command
-    dmOnly: false,                 // Only work in DMs
-    groupOnly: false,              // Only work in groups
+    name: "mycommand",
+    aliases: ["mc", "mycmd"],
+    description: "What the command does",
+    usage: "mycommand <args>",
+    category: "user",
+    cooldown: 5,
+    permissions: "user",  // "user", "admin", "superadmin"
+    enabled: true,
 };
 
 module.exports.execute = async function({ api, event, args, config, logger }) {
-    const threadID = event.threadID;
-    const messageID = event.messageID;
+    const { threadID, messageID } = event;
     
-    // Your command logic here
     api.sendMessage("Hello!", threadID, messageID);
-};
-
-// Optional: Called when command is loaded
-module.exports.onLoad = function() {
-    console.log("Command loaded!");
-};
-
-// Optional: Called when command is unloaded
-module.exports.onUnload = function() {
-    console.log("Command unloaded!");
 };
 ```
 
+---
+
 ## 📡 Creating Events
 
-Events are placed in `events/<category>/` directories.
-
-### Event Template
+Place events in `events/<category>/`:
 
 ```javascript
-/**
- * Event description
- */
-
 "use strict";
 
 module.exports.config = {
-    name: "eventname",              // Event handler name (required)
-    description: "What it does",    // Description
-    eventTypes: ["message"],        // Event types to listen for
-    priority: 10,                   // Higher = runs first
-    enabled: true,                  // Enable/disable handler
+    name: "myevent",
+    description: "What the event does",
+    eventTypes: ["message", "message_reply"],
+    priority: 10,  // Higher runs first
+    enabled: true,
 };
 
 module.exports.execute = async function({ api, event, config, logger }) {
-    // Your event logic here
+    // Your logic here
     
-    // To block further processing (e.g., in anti-spam):
+    // Block further processing:
     // event.__blocked = true;
 };
 ```
 
-### Event Types
+---
 
-- `message` - Regular messages
-- `message_reply` - Reply messages
-- `event` - Group events (join, leave, etc.)
-- `typ` - Typing indicators
-- `read` - Read receipts
-- `all` - All events
+## 📋 NPM Scripts
 
-## ⚙️ Configuration
-
-Edit `config/config.js` to customize the bot:
-
-### Bot Settings
-```javascript
-bot: {
-    name: "Nero Bot",
-    prefix: "!",
-    admins: ["your-facebook-uid"],
-    superAdmins: ["your-facebook-uid"],
-}
-```
-
-### Feature Flags
-```javascript
-features: {
-    mentionResponse: true,
-    welcomeMessages: true,
-    goodbyeMessages: true,
-    antiSpam: true,
-}
-```
-
-### Rate Limiting
-```javascript
-rateLimit: {
-    enabled: true,
-    maxMessages: 5,
-    windowSeconds: 10,
-    penaltySeconds: 30,
-}
-```
-
-## 🛠️ Admin Commands
-
-| Command | Description | Permission |
-|---------|-------------|------------|
-| `!admin` | Manage bot administrators | Super Admin |
-| `!eval <code>` | Execute JavaScript code | Super Admin |
-| `!reload <type> <name>` | Hot-reload command/event | Admin |
-| `!restart` | Restart the bot | Admin |
-| `!setprefix <prefix>` | Change command prefix | Admin |
-
-## 👤 User Commands
-
-| Command | Description |
-|---------|-------------|
-| `!help [command]` | Display command list or command details |
-| `!info` | Display bot information and statistics |
-| `!ping` | Check bot response time |
-| `!uid [@mention]` | Get Facebook User ID |
-| `!uptime` | Display bot uptime |
-
-## 📋 Logs
-
-The bot uses a custom logging system with colored output:
-
-- 🟦 **INFO** - General information
-- 🟨 **WARN** - Warnings
-- 🟥 **ERROR** - Errors
-- 🟩 **SUCCESS** - Success messages
-- ⬜ **DEBUG** - Debug information (when enabled)
-
-## 🔒 Security Notes
-
-1. **Never share your `appstate.json`** - It contains your Facebook session
-2. **Use `eval` carefully** - It can execute arbitrary code
-3. **Add trusted admins only** - Admin commands have significant power
-4. **Keep your bot updated** - Update dependencies regularly
-
-## 📄 License
-
-MIT License - See LICENSE file for details
-
-## 👨‍💻 Author
-
-Created by **0x3EF8**
+| Script | Description |
+|--------|-------------|
+| `npm start` | Start the bot |
+| `npm run dev` | Start with auto-restart on changes |
+| `npm run pm2` | Start with PM2 (production) |
+| `npm run pm2:stop` | Stop PM2 process |
+| `npm run pm2:restart` | Restart PM2 process |
+| `npm run pm2:logs` | View PM2 logs |
+| `npm run lint` | Run ESLint |
+| `npm run lint:fix` | Fix ESLint issues |
+| `npm run format` | Format code with Prettier |
+| `npm test` | Run tests |
+| `npm run clean` | Remove log files |
+| `npm run update` | Check for updates |
 
 ---
 
-**Built with ❤️ by 0x3EF8 using nero-core**
+## 🚀 PM2 Production Deployment
+
+PM2 is recommended for production deployment. It provides auto-restart, monitoring, and log management.
+
+### Installation
+
+```bash
+npm install -g pm2
+```
+
+### Quick Start with PM2
+
+```bash
+# Start the bot with PM2
+npm run pm2
+
+# Or directly with PM2
+pm2 start ecosystem.config.js
+```
+
+### PM2 Commands
+
+| Command | Description |
+|---------|-------------|
+| `pm2 start ecosystem.config.js` | Start the bot |
+| `pm2 stop nero` | Stop the bot |
+| `pm2 restart nero` | Restart the bot |
+| `pm2 logs nero` | View live logs |
+| `pm2 monit` | Open monitoring dashboard |
+| `pm2 status` | Check process status |
+| `pm2 delete nero` | Remove from PM2 |
+
+### Auto-Start on System Boot
+
+```bash
+# Generate startup script
+pm2 startup
+
+# Save current process list
+pm2 save
+```
+
+This ensures the bot automatically starts when your server/computer restarts.
+
+---
+
+## 🔒 Security Notes
+
+1. **Never share your appstate** - It contains your Facebook session
+2. **Secure your API key** - Use environment variables
+3. **Use `eval` carefully** - It executes arbitrary code
+4. **Add trusted admins only** - Admin commands have full access
+5. **Keep dependencies updated** - Run `npm update` regularly
+
+---
+
+## 📄 License
+
+MIT License - See [LICENSE](LICENSE) for details.
+
+<div align="center">
+
+[Report Bug](https://github.com/0x3EF8/Nero/issues) • [Request Feature](https://github.com/0x3EF8/Nero/issues)
+
+</div>
