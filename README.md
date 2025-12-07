@@ -7,6 +7,8 @@ A modular, multi-account Facebook Messenger bot built with nero-core.
 ```
 nero 3000/
 ├── accounts/                # Appstate/cookie files for each account
+│   ├── 100044343889036.json
+│   ├── 100091687191806.json1
 │   ├── example.json.template
 │   └── README.md
 ├── accounts_backup/         # Backup for moved/old account files
@@ -70,7 +72,7 @@ nero 3000/
 
 ### Prerequisites
 
-- Node.js 16.x or higher
+- Node.js 20.x or higher
 - npm or yarn
 - Facebook account with valid session cookies
 
@@ -82,20 +84,37 @@ nero 3000/
    ```bash
    npm install
    ```
-
 3. **Configure your accounts**
-   
-   **Option A: Multi-Account Setup (Recommended)**
-   
-   Place your appstate JSON files in the `accounts/` folder:
-   ```
-   accounts/
-   ├── main.json        # Primary bot account
-   ├── backup.json      # Backup account
-   └── helper.json      # Additional account
-   ```
 
-   **Option B: Single Account (Legacy)**
+    **Option A: Using the Nero Cookie Extractor Extension (Recommended)**
+
+    1. Install the extension:
+        - Open your browser (Chrome, Edge, Brave).
+        - Go to `chrome://extensions` and enable Developer Mode.
+        - Click "Load unpacked" and select the `extension/` folder.
+        - The "Nero Cookie Extractor" icon will appear in your toolbar.
+
+    2. Extract cookies:
+        - Log in to Facebook at facebook.com.
+        - Click the extension icon.
+        - The popup will show your Facebook cookies, validate them, and display their health/status.
+
+    3. Send cookies to the bot:
+        - Use the popup form/button to send your cookies to the bot.
+        - The extension will POST your appstate (cookie array) to your bot’s API endpoint: `http://localhost:3000/api/appstate`.
+        - Choose an account name if prompted. The extension will handle formatting and submission.
+
+    4. Bot receives cookies:
+        - The bot will save the cookies in the `accounts/` folder and reload the account automatically.
+        - You’ll see confirmation in the bot logs.
+
+    **Note:** If no accounts are present, the bot will start in waiting mode and display a message with the host and port, ready to accept cookies via the API.
+
+    **Security:** Cookies are sent only to your local bot server, never to third parties. Never share your appstate with anyone else.
+
+    ---
+
+    **Option B: Single Account (Legacy)**
    
    Place `appstate.json` in the root directory.
 
