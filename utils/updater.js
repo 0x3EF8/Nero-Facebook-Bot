@@ -66,7 +66,7 @@ class Updater {
     }
 
     /**
-     * Make HTTPS request to GitHub API
+     * Make HTTPS request to GitHub API with timeout
      */
     async fetchGitHub(endpoint) {
         return new Promise((resolve, reject) => {
@@ -77,9 +77,10 @@ class Updater {
                     "User-Agent": "Nero-Bot-Updater",
                     "Accept": "application/vnd.github.v3+json",
                 },
+                timeout: 10000, // 10 second timeout
             };
 
-            https.get(url, options, (res) => {
+            const req = https.get(url, options, (res) => {
                 let data = "";
                 
                 res.on("data", (chunk) => data += chunk);
@@ -96,7 +97,13 @@ class Updater {
                         reject(e);
                     }
                 });
-            }).on("error", reject);
+            });
+            
+            req.on("error", reject);
+            req.on("timeout", () => {
+                req.destroy();
+                reject(new Error("Request timeout"));
+            });
         });
     }
 

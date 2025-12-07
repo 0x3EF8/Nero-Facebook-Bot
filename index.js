@@ -85,10 +85,14 @@ let isRunning = false;
  */
 async function initialize() {
     try {
+        // Show startup message immediately
+        console.log("\x1b[36m[Nero]\x1b[0m Starting bot...");
+        
         // ═══════════════════════════════════════════════════════════════════
         // PHASE 0: CHECK FOR UPDATES (Before anything else)
         // ═══════════════════════════════════════════════════════════════════
         
+        console.log("\x1b[36m[Nero]\x1b[0m Checking for updates...");
         const updater = new Updater();
         const needsRestart = await updater.checkAndPrompt();
         
