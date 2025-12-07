@@ -129,10 +129,11 @@ async function initialize() {
         // Login accounts - nero framework will show its own logs
         const hasAccounts = await checkAndLoginAccounts();
         
-        // Check login result early
+        // This should always be true now since checkAndLoginAccounts waits
         if (!hasAccounts) {
             logger.options.console = originalConsole;
-            logger.error("Main", "No accounts available. Please add appstate files.");
+            logger.error("Main", "Failed to login any accounts.");
+            logger.info("Main", "Please check your appstate files and try again.");
             process.exit(1);
         }
         
@@ -233,6 +234,7 @@ async function loadHandlers() {
 /**
  * Check for accounts and login
  * Uses accounts/ folder with appstate files
+ * If no accounts found, waits for appstate files to be added
  * @returns {Promise<boolean>} Whether at least one account is online
  */
 async function checkAndLoginAccounts() {
@@ -251,11 +253,96 @@ async function checkAndLoginAccounts() {
         }
     }
     
-    // No accounts found
-    logger.error("Auth", "No appstate files found!");
-    logger.info("Auth", "Please add appstate JSON files to the 'accounts' folder");
+    // No accounts found - wait for appstate files
+    logger.warn("Auth", "No appstate files found!");
+    logger.info("Auth", "Waiting for appstate JSON files in the 'accounts' folder...");
+    logger.info("Auth", "Add a valid appstate JSON file to continue.");
     
-    return false;
+    // Wait for appstate files to appear
+    return await waitForAppstate();
+}
+
+/**
+ * Wait for appstate files to be added to the accounts folder
+ * @returns {Promise<boolean>} Whether accounts were found and logged in
+ */
+async function waitForAppstate() {
+    const accountsPath = path.join(__dirname, "accounts");
+    
+    // Ensure accounts folder exists
+    if (!fs.existsSync(accountsPath)) {
+        fs.mkdirSync(accountsPath, { recursive: true });
+    }
+    
+    return new Promise((resolve) => {
+        let checkInterval;
+        let watcher;
+        
+        const checkForAccounts = async () => {
+            const discovered = accountManager.discoverAccounts();
+            
+            if (discovered.length > 0) {
+                logger.info("Auth", `Detected ${discovered.length} new appstate file(s)!`);
+                
+                // Stop watching
+                if (watcher) watcher.close();
+                if (checkInterval) clearInterval(checkInterval);
+                
+                // Small delay to ensure file is fully written
+                await new Promise(r => { setTimeout(r, 1000); });
+                
+                // Re-discover and login
+                accountManager.discoverAccounts();
+                const result = await accountManager.loginAll();
+                
+                if (result.success > 0) {
+                    resolve(true);
+                } else {
+                    logger.error("Auth", "Failed to login with the new appstate. Please check the file.");
+                    logger.info("Auth", "Continuing to wait for valid appstate files...");
+                    
+                    // Continue waiting
+                    startWatching();
+                }
+            }
+        };
+        
+        const startWatching = () => {
+            // Use fs.watch for file system events
+            try {
+                watcher = fs.watch(accountsPath, { persistent: true }, (eventType, filename) => {
+                    if (filename && filename.endsWith(".json") && !filename.includes("template")) {
+                        logger.debug("Auth", `Detected file change: ${filename}`);
+                        checkForAccounts();
+                    }
+                });
+                
+                watcher.on("error", (err) => {
+                    logger.debug("Auth", `Watcher error: ${err.message}`);
+                });
+            } catch (err) {
+                logger.debug("Auth", `Could not start watcher: ${err.message}`);
+            }
+            
+            // Also poll every 5 seconds as backup
+            checkInterval = setInterval(checkForAccounts, 5000);
+        };
+        
+        // Start watching
+        startWatching();
+        
+        // Show reminder every 30 seconds
+        const reminderInterval = setInterval(() => {
+            logger.info("Auth", "Still waiting for appstate files... Add JSON files to 'accounts' folder.");
+        }, 30000);
+        
+        // Clean up reminder when resolved
+        const originalResolve = resolve;
+        resolve = (value) => {
+            clearInterval(reminderInterval);
+            originalResolve(value);
+        };
+    });
 }
 
 /**
