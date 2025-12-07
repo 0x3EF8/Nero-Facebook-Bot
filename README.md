@@ -5,51 +5,62 @@ A modular, multi-account Facebook Messenger bot built with nero-core.
 ## 📁 Project Structure
 
 ```
-core/
-├── index.js                    # Main entry point
-├── package.json                # Project dependencies
-├── appstate.json              # Facebook session cookies (legacy)
-├── accounts/                  # Multi-account appstate files
-│   ├── README.md              # Account setup instructions
-│   └── *.json                 # Account appstate files
+.
+├── index.js                  # Main bot entry point
+├── server.js                 # API server for cookie/appstate submission
+├── package.json              # Project metadata and dependencies
+├── LICENSE                   # MIT License
+├── README.md                 # Project documentation
+├── accounts/                 # Multi-account appstate files
+│   ├── README.md
+│   ├── example.json.template
+│   └── *.json
+├── accounts_backup/          # Backup of account files
 ├── config/
-│   ├── config.js              # Bot configuration
-│   └── settings.js            # Runtime behavior settings
+│   ├── config.js
+│   └── settings.js
 ├── commands/
-│   ├── admin/                 # Admin-level commands
-│   │   ├── accounts.js        # Multi-account management
-│   │   ├── admin.js           # Manage bot administrators
-│   │   ├── eval.js            # Execute JavaScript code
-│   │   ├── reload.js          # Hot-reload commands/events
-│   │   ├── restart.js         # Restart the bot
-│   │   └── setprefix.js       # Change command prefix
-│   └── user/                  # User-level commands
-│       ├── help.js            # Display command list
-│       ├── info.js            # Bot information/stats
-│       ├── ping.js            # Check bot latency
-│       ├── uid.js             # Get Facebook User ID
-│       └── uptime.js          # Display bot uptime
+│   ├── admin/
+│   └── user/
 ├── events/
-│   ├── welcome/               # Welcome/goodbye events
-│   │   ├── welcome.js         # New member welcome
-│   │   └── goodbye.js         # Member departure message
-│   └── otherEvents/           # Other event handlers
-│       ├── antiSpam.js        # Rate limiting/anti-spam
-│       ├── mentionResponse.js # Respond to bot mentions
-│       ├── messageLogger.js   # Debug message logging
-│       └── typingIndicator.js # Debug typing logging
+│   ├── AI/
+│   ├── welcome/
+│   └── otherEvents/
 ├── handlers/
-│   ├── index.js               # Handler exports
-│   ├── commandHandler.js      # Command loading & execution
-│   └── eventHandler.js        # Event loading & dispatch
+│   ├── index.js
+│   ├── commandHandler.js
+│   └── eventHandler.js
 ├── utils/
-│   ├── logger.js              # Custom logging utility
-│   └── accountManager.js      # Multi-account manager
-└── nero/                      # Nero framework core
-    ├── core/
-    ├── deltas/
-    ├── types/
-    └── utils/
+│   ├── accountManager.js
+│   ├── cookieValidator.js
+│   ├── errors.js
+│   ├── logger.js
+│   ├── maintenanceManager.js
+│   ├── retry.js
+│   ├── statsTracker.js
+│   └── updater.js
+├── nero-core/                # Core API library
+│   ├── index.js
+│   ├── package.json
+│   ├── README.md
+│   ├── examples/
+│   └── src/
+├── extension/                # Browser extension files
+│   ├── manifest.json
+│   ├── popup.html
+│   └── popup.js
+├── logs/                     # Log files
+├── data/
+│   └── temp/
+├── tests/                    # Test suite
+│   ├── runner.js
+│   ├── api/
+│   ├── e2e/
+│   ├── integration/
+│   ├── lib/
+│   └── unit/
+└── types/
+    └── index.d.ts
 ```
 
 ## 🚀 Getting Started
