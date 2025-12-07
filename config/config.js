@@ -115,6 +115,12 @@ const config = {
     },
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // GENIUS API (for lyrics - https://genius.com/api-clients)
+    // ═══════════════════════════════════════════════════════════════════════════
+    geniusClientId: process.env.GENIUS_CLIENT_ID || "",
+    geniusClientSecret: process.env.GENIUS_CLIENT_SECRET || "",
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // API SERVER SETTINGS
     // ═══════════════════════════════════════════════════════════════════════════
     server: {
