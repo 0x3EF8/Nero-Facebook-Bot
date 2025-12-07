@@ -1,6 +1,6 @@
-# NΞRO Bot Framework
+# Nero Messenger Bot
 
-A modular, extensible Messenger bot framework built with the Nero library.
+A modular, multi-account Facebook Messenger bot built with nero-core.
 
 ## 📁 Project Structure
 
@@ -296,4 +296,4 @@ Created by **0x3EF8**
 
 ---
 
-**Built with ❤️ using the Nero Framework**
+**Built with ❤️ by 0x3EF8 using nero-core**
