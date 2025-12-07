@@ -66,12 +66,10 @@ class Updater {
     }
 
     /**
-     * Make HTTPS request to GitHub API with timeout
+     * Make HTTPS request to GitHub API
      */
     async fetchGitHub(endpoint) {
-        const timeoutMs = 5000; // 5 second timeout
-        
-        const fetchPromise = new Promise((resolve, reject) => {
+        return new Promise((resolve, reject) => {
             const url = `${GITHUB_API}${endpoint}`;
             
             const options = {
@@ -81,10 +79,10 @@ class Updater {
                 },
             };
 
-            const req = https.get(url, options, (res) => {
+            https.get(url, options, (res) => {
                 let data = "";
                 
-                res.on("data", (chunk) => { data += chunk; });
+                res.on("data", (chunk) => data += chunk);
                 res.on("end", () => {
                     try {
                         if (res.statusCode === 200) {
@@ -98,16 +96,8 @@ class Updater {
                         reject(e);
                     }
                 });
-            });
-            
-            req.on("error", reject);
+            }).on("error", reject);
         });
-        
-        const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error("Request timeout")), timeoutMs);
-        });
-        
-        return Promise.race([fetchPromise, timeoutPromise]);
     }
 
     /**
