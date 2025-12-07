@@ -69,7 +69,9 @@ class Updater {
      * Make HTTPS request to GitHub API with timeout
      */
     async fetchGitHub(endpoint) {
-        return new Promise((resolve, reject) => {
+        const timeoutMs = 5000; // 5 second timeout
+        
+        const fetchPromise = new Promise((resolve, reject) => {
             const url = `${GITHUB_API}${endpoint}`;
             
             const options = {
@@ -77,13 +79,12 @@ class Updater {
                     "User-Agent": "Nero-Bot-Updater",
                     "Accept": "application/vnd.github.v3+json",
                 },
-                timeout: 10000, // 10 second timeout
             };
 
             const req = https.get(url, options, (res) => {
                 let data = "";
                 
-                res.on("data", (chunk) => data += chunk);
+                res.on("data", (chunk) => { data += chunk; });
                 res.on("end", () => {
                     try {
                         if (res.statusCode === 200) {
@@ -100,11 +101,13 @@ class Updater {
             });
             
             req.on("error", reject);
-            req.on("timeout", () => {
-                req.destroy();
-                reject(new Error("Request timeout"));
-            });
         });
+        
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error("Request timeout")), timeoutMs);
+        });
+        
+        return Promise.race([fetchPromise, timeoutPromise]);
     }
 
     /**
