@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "Nero Cookie Extractor",
+  "version": "2.0.0",
+  "description": "Extract Facebook cookies with cookie health monitoring and bot dashboard.",
+  "author": "0x3EF8",
+  "icons": {
+    "128": "cookie.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Nero Cookie Extractor",
+    "default_icon": "cookie.png"
+  },
+  "permissions": [
+    "cookies",
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "*://*.facebook.com/*",
+    "*://*.fbcdn.net/*"
+  ],
+  "incognito": "split"
+}

@@ -1,0 +1,38 @@
+[
+    {
+        "key": "c_user",
+        "value": "YOUR_USER_ID",
+        "domain": "facebook.com",
+        "path": "/",
+        "hostOnly": false,
+        "creation": "2024-01-01T00:00:00.000Z",
+        "lastAccessed": "2024-01-01T00:00:00.000Z"
+    },
+    {
+        "key": "xs",
+        "value": "YOUR_XS_VALUE",
+        "domain": "facebook.com",
+        "path": "/",
+        "hostOnly": false,
+        "creation": "2024-01-01T00:00:00.000Z",
+        "lastAccessed": "2024-01-01T00:00:00.000Z"
+    },
+    {
+        "key": "datr",
+        "value": "YOUR_DATR_VALUE",
+        "domain": "facebook.com",
+        "path": "/",
+        "hostOnly": false,
+        "creation": "2024-01-01T00:00:00.000Z",
+        "lastAccessed": "2024-01-01T00:00:00.000Z"
+    },
+    {
+        "key": "fr",
+        "value": "YOUR_FR_VALUE",
+        "domain": "facebook.com",
+        "path": "/",
+        "hostOnly": false,
+        "creation": "2024-01-01T00:00:00.000Z",
+        "lastAccessed": "2024-01-01T00:00:00.000Z"
+    }
+]
