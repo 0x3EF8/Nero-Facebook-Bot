@@ -134,23 +134,29 @@ async function initialize() {
         
         // Check login result - if no accounts, start server in waiting mode
         if (!hasAccounts) {
-            logger.blank();
-            logger.divider();
-            logger.warn("Main", "No accounts found. Starting server in waiting mode...");
-            logger.info("Main", "You can submit your appstate/cookies via the API.");
-            logger.divider();
+            // Load handlers silently (no output at all)
+            await validateConfig(true); // silent mode
             
-            // Validate config and load handlers anyway
-            await validateConfig();
+            // Temporarily disable logging for handler loading
+            const tempConsole = logger.options.console;
+            logger.options.console = false;
             await loadHandlers();
+            logger.options.console = tempConsole;
             
-            // Start API server to accept cookies
+            // Start API server to accept cookies (silently)
             try {
-                startServer();
-                logger.blank();
+                startServer(true); // silent mode
+                const serverConfig = config.server || {};
+                const host = serverConfig.host || 'localhost';
+                const port = serverConfig.port || 3000;
+                
+                // Only show the clean waiting message
+                console.log("");
+                logger.info("Server", "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+                logger.info("Server", `🌐 Server running at http://${host}:${port}`);
                 logger.info("Server", "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
                 logger.info("Server", "📌 Waiting for appstate submission via API...");
-                logger.info("Server", "   POST /api/cookies with your Facebook cookies");
+                logger.info("Server", `   POST http://${host}:${port}/api/cookies`);
                 logger.info("Server", "   The bot will auto-restart when cookies are received");
                 logger.info("Server", "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             } catch (serverErr) {
@@ -212,9 +218,10 @@ async function initialize() {
 
 /**
  * Validates the configuration and ensures required files exist
+ * @param {boolean} silent - Whether to suppress log messages
  */
-async function validateConfig() {
-    logger.info("Config", "Validating configuration...");
+async function validateConfig(silent = false) {
+    if (!silent) logger.info("Config", "Validating configuration...");
     
     // Ensure required directories exist
     const directories = [
@@ -231,11 +238,11 @@ async function validateConfig() {
     for (const dir of directories) {
         if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir, { recursive: true });
-            logger.debug("Config", `Created directory: ${dir}`);
+            if (!silent) logger.debug("Config", `Created directory: ${dir}`);
         }
     }
     
-    logger.success("Config", "Configuration validated successfully");
+    if (!silent) logger.success("Config", "Configuration validated successfully");
 }
 
 /**

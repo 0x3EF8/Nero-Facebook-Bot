@@ -17,9 +17,13 @@
 const path = require("path");
 const settings = require("./settings");
 
-// Load .env file if it exists
+// Load .env file if it exists (silently)
 try {
-    require("dotenv").config({ path: path.resolve(__dirname, "..", ".env") });
+    // Suppress dotenv v17+ output messages
+    process.env.DOTENV_CONFIG_QUIET = 'true';
+    require("dotenv").config({ 
+        path: path.resolve(__dirname, "..", ".env")
+    });
 } catch {
     // dotenv not installed or .env not found - will use defaults
 }

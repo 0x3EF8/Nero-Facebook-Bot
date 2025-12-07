@@ -736,11 +736,13 @@ const server = http.createServer(router);
 
 /**
  * Start the server
+ * @param {boolean} silent - Whether to suppress startup logs
  */
-const startServer = () => {
+const startServer = (silent = false) => {
     server.listen(CONFIG.port, CONFIG.host, () => {
         // Use logger for server startup (respects logging config)
-        if (config.server?.logStartup !== false) {
+        // Skip logging if silent mode or config says no startup logs
+        if (!silent && config.server?.logStartup !== false) {
             logger.divider();
             logger.info('Server', 'API Server starting...');
             logger.info('Server', `Status: ONLINE`);
