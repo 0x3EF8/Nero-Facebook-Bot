@@ -79,7 +79,6 @@ const settings = {
         enabled: true,                       // Enable/disable command system
         defaultCooldown: 3,                  // Default cooldown in seconds
         ignoreCooldownForAdmins: true,       // Ignore cooldown for admins
-        showTyping: true,                    // Show typing indicator while processing
         deleteCommandMessage: false,         // Delete command message after execution
         caseSensitive: false,                // Case sensitive commands
         allowInDM: true,                     // Allow commands in DMs
@@ -91,6 +90,8 @@ const settings = {
     // ═══════════════════════════════════════════════════════════════════════════
     events: {
         enabled: true,                       // Enable/disable event system
+        allowInDM: true,                     // Allow events in DMs
+        allowInGroups: true,                 // Allow events in groups
     },
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -134,21 +135,6 @@ const settings = {
         maxMessages: 5,                      // Maximum messages per window
         windowSeconds: 10,                   // Time window in seconds
         penaltySeconds: 30,                  // Penalty time when rate limited
-        warningMessage: "⚠️ You're sending too many commands. Please wait a moment.",
-    },
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // FEATURE FLAGS
-    // ═══════════════════════════════════════════════════════════════════════════
-    features: {
-        mentionResponse: true,               // Enable auto-response to mentions
-        welcomeMessages: true,               // Enable welcome messages
-        goodbyeMessages: true,               // Enable goodbye messages
-        antiLeave: true,                     // Enable anti-leave (re-add users who leave)
-        antiUnsend: true,                    // Enable anti-unsend (reveal deleted messages)
-        commandStats: true,                  // Enable command statistics tracking
-        activityTracking: false,             // Enable user activity tracking
-        antiSpam: true,                      // Enable anti-spam protection
     },
 };
 
@@ -158,6 +144,5 @@ Object.freeze(settings.commands);
 Object.freeze(settings.events);
 Object.freeze(settings.logging);
 Object.freeze(settings.rateLimit);
-Object.freeze(settings.features);
 
 module.exports = settings;

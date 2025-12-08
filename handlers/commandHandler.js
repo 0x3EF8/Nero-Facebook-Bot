@@ -57,6 +57,34 @@ class CommandHandler {
         
         /** @type {Map<string, Object>} Per-user activity statistics */
         this.userActivity = new Map();
+        
+        // Start periodic cleanup for cooldowns and stats (every 60 seconds)
+        this._cleanupInterval = setInterval(() => this._periodicCleanup(), 60000);
+    }
+    
+    /**
+     * Periodic cleanup of expired cooldowns and old stats
+     * @private
+     */
+    _periodicCleanup() {
+        const now = Date.now();
+        
+        // Clean expired cooldowns
+        for (const [key, data] of this.cooldowns) {
+            if (now >= data.expires) {
+                this.cooldowns.delete(key);
+            }
+        }
+        
+        // Limit user activity to 10000 entries max
+        if (this.userActivity.size > 10000) {
+            const entries = [...this.userActivity.entries()];
+            entries.sort((a, b) => (a[1].lastActive || 0) - (b[1].lastActive || 0));
+            const toDelete = entries.slice(0, entries.length - 10000);
+            for (const [key] of toDelete) {
+                this.userActivity.delete(key);
+            }
+        }
     }
 
     /**
@@ -271,11 +299,7 @@ class CommandHandler {
             expires: Date.now() + (seconds * 1000),
             commandName,
         });
-        
-        // Auto-cleanup after cooldown expires
-        setTimeout(() => {
-            this.cooldowns.delete(key);
-        }, seconds * 1000);
+        // Cleanup is handled by _periodicCleanup interval
     }
 
     /**
@@ -285,6 +309,11 @@ class CommandHandler {
      * @returns {Promise<boolean>} Whether a command was executed
      */
     async handle(api, event) {
+        // Check if command system is enabled
+        if (!config.commands.enabled) {
+            return false;
+        }
+        
         // Only process message events
         if (event.type !== "message" && event.type !== "message_reply") {
             return false;
@@ -337,7 +366,7 @@ class CommandHandler {
         );
         
         if (!command) {
-            api.sendMessage(`❌ Command not found. Use ${usedPrefix || config.bot.prefix}help to see available commands.`, event.threadID);
+            // Silently ignore unknown commands to prevent spam
             return false;
         }
         
@@ -451,10 +480,8 @@ class CommandHandler {
             // Track in global stats
             statsTracker.recordCommand(command.config.name, userId, true);
             
-            // Track command stats if enabled
-            if (config.features.commandStats) {
-                this.trackCommandStats(command.config.name, userId, duration);
-            }
+            // Track command stats
+            this.trackCommandStats(command.config.name, userId, duration);
             
             // Delete command message if configured
             if (config.commands.deleteCommandMessage) {
@@ -544,10 +571,8 @@ class CommandHandler {
         stats.lastUsed = new Date();
         stats.users.add(userId);
         
-        // Track user activity if enabled
-        if (config.features.activityTracking) {
-            this.trackUserActivity(userId, commandName);
-        }
+        // Track user activity
+        this.trackUserActivity(userId, commandName);
     }
 
     /**

@@ -46,10 +46,12 @@ module.exports = {
       env: {
         NODE_ENV: "production",
         FORCE_COLOR: "1",
+        PM2_DISCRETE_MODE: "true",  // Disable PM2 monitoring to avoid wmic errors on Windows
       },
       env_development: {
         NODE_ENV: "development",
         FORCE_COLOR: "1",
+        PM2_DISCRETE_MODE: "true",
       },
       
       // Logging - disable log files to see colors in pm2 logs

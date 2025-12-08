@@ -53,12 +53,7 @@ function getRandomWelcome(name) {
  * @param {Object} context.config - Bot configuration
  * @param {Object} context.logger - Logger utility
  */
-module.exports.execute = async function({ api, event, config, logger }) {
-    // Check if welcome messages are enabled
-    if (!config.features.welcomeMessages) {
-        return;
-    }
-    
+module.exports.execute = async function({ api, event, logger }) {
     // Only handle participant addition events
     if (event.logMessageType !== "log:subscribe") {
         return;

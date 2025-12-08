@@ -151,11 +151,6 @@ const config = {
             message: 'Too many requests, please try again later',
         },
     },
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // FEATURE FLAGS (from settings.js)
-    // ═══════════════════════════════════════════════════════════════════════════
-    features: settings.features,
 };
 
 /**

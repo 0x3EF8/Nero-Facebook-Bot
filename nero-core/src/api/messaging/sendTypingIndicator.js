@@ -1,56 +1,81 @@
 "use strict";
 
-const utils = require("../../lib/utils");
-
 /**
  * @param {Object} defaultFuncs
- * @param {Object} api
+ * @param {Object} _api
  * @param {Object} ctx
  */
-module.exports = function (defaultFuncs, api, ctx) {
-    /**
-     * Sends a typing indicator to a specific thread.
-     * @param {boolean} sendTyping - True to show typing indicator, false to hide.
-     * @param {string} threadID - The ID of the thread to send the typing indicator to.
-     * @param {Function} [callback] - An optional callback function.
-     * @returns {Promise<void>}
-     */
-    return async function sendTypingIndicatorV2(
-        sendTyping,
-        threadID,
-        callback,
-        skipHumanBehavior = false
-    ) {
-        // Human behavior: add natural delay before showing typing indicator
-        // Skip if called from within beforeSendMessage (which handles its own human behavior)
-        if (sendTyping && !skipHumanBehavior && ctx.globalOptions.humanBehavior) {
-            await utils.humanBehavior.beforeAction(ctx, "typing");
-        }
+module.exports = function (defaultFuncs, _api, ctx) {
+	/**
+	 * Sends a typing indicator to a specific thread.
+	 * @param {boolean} sendTyping - True to show typing indicator, false to hide.
+	 * @param {string} threadID - The ID of the thread to send the typing indicator to.
+	 * @param {Function} [callback] - An optional callback function.
+	 * @returns {Promise<void>}
+	 */
+	return function sendTypingIndicator(sendTyping, threadID, callback) {
+		let resolveFunc = function () {};
+		let rejectFunc = function () {};
 
-        let count_req = 0;
+		const returnPromise = new Promise(function (resolve, reject) {
+			resolveFunc = resolve;
+			rejectFunc = reject;
+		});
 
-        const wsContent = {
-            app_id: 2220391788200892,
-            payload: JSON.stringify({
-                label: 3,
-                payload: JSON.stringify({
-                    thread_key: threadID.toString(),
-                    is_group_thread: +(threadID.toString().length >= 16),
-                    is_typing: +sendTyping,
-                    attribution: 0,
-                }),
-                version: 5849951561777440,
-            }),
-            request_id: ++count_req,
-            type: 4,
-        };
-        await new Promise((resolve, reject) =>
-            ctx.mqttClient.publish("/ls_req", JSON.stringify(wsContent), {}, (err, _packet) =>
-                err ? reject(err) : resolve()
-            )
-        );
-        if (callback) {
-            callback();
-        }
-    };
+		if (!callback) {
+			callback = function (err, data) {
+				if (err) return rejectFunc(err);
+				resolveFunc(data);
+			};
+		}
+
+		// Use MQTT to publish typing state directly
+		if (ctx.mqttClient) {
+			const isGroup = threadID.toString().length > 15;
+			
+			// Typing indicator payload for MQTT
+			const typingPayload = {
+				state: sendTyping ? 1 : 0,
+				sender_fbid: ctx.userID,
+				thread: threadID.toString(),
+				type: isGroup ? 1 : 0
+			};
+
+			// Publish to the typing topic
+			ctx.mqttClient.publish(
+				"/typing",
+				JSON.stringify(typingPayload),
+				{ qos: 0, retain: false },
+				() => {
+					callback(null);
+				}
+			);
+		} else {
+			// Fallback to HTTP GraphQL endpoint
+			const form = {
+				fb_api_req_friendly_name: "MessengerTypingMutation",
+				variables: JSON.stringify({
+					input: {
+						thread_id: threadID.toString(),
+						is_typing: sendTyping,
+						attribution: 0,
+						actor_id: ctx.userID,
+						client_mutation_id: Math.floor(Math.random() * 1000000).toString()
+					}
+				}),
+				doc_id: "5765875586815225"
+			};
+
+			defaultFuncs
+				.post("https://www.facebook.com/api/graphql/", ctx.jar, form)
+				.then(function () {
+					callback(null);
+				})
+				.catch(function () {
+					callback(null);
+				});
+		}
+
+		return returnPromise;
+	};
 };

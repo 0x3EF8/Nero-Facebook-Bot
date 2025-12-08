@@ -52,11 +52,6 @@ function cleanupOldEntries() {
  * @param {Object} context - Event context
  */
 module.exports.execute = async function({ api, event, config, logger }) {
-    // Check if anti-leave is enabled in settings
-    if (!config.features.antiLeave) {
-        return;
-    }
-    
     // Debug: Log all event types we receive
     if (event.logMessageType) {
         logger.debug("AntiLeave", `Received event type: ${event.type}, logMessageType: ${event.logMessageType}`);

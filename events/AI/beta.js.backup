@@ -674,24 +674,63 @@ async function fetchLyrics(songTitle, artist) {
     }
 
     lyrics = lyrics.trim();
-    lyrics = lyrics.replace(/^\d+\s+Contributors?.*?Lyrics/i, '');
+    
+    // Remove all metadata/junk from Genius
+    lyrics = lyrics.replace(/^\d+\s+Contributors?.*?Lyrics/gis, '');
     lyrics = lyrics.replace(/^.*?Read More\s*/is, '');
+    lyrics = lyrics.replace(/\d+\s*Contributors?/gi, '');
+    lyrics = lyrics.replace(/Translations?/gi, '');
+    lyrics = lyrics.replace(/Italiano|Afrikaans|Français|srpski|Türkçe|Español|Português|Polski|Magyar|Українська|Tiếng Việt|Česky|Deutsch|Slovenščina|한국어|日本語|中文|العربية|עברית|ไทย|Indonesia|Nederlands|Русский|Ελληνικά|Română|Svenska|Norsk|Dansk|Suomi|Čeština/gi, '');
+    lyrics = lyrics.replace(/^You might also like.*$/gim, '');
+    lyrics = lyrics.replace(/See.*Live.*Get tickets as low as \$\d+/gi, '');
+    lyrics = lyrics.replace(/Embed$/gim, '');
+    lyrics = lyrics.replace(/\[.*?\]\s*$/gm, function(match) {
+      // Keep section markers like [Verse], [Chorus], etc.
+      if (/\[(Verse|Chorus|Intro|Bridge|Pre-Chorus|Outro|Refrain|Hook|Interlude)/i.test(match)) {
+        return match;
+      }
+      return '';
+    });
     
     const lines = lyrics.split('\n');
     let startIndex = 0;
     
+    // Find where actual lyrics start
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
       if (
-        line.match(/^\[(?:Verse|Chorus|Intro|Bridge|Pre-Chorus|Outro|Refrain)/i) ||
-        (line.length > 0 && !line.includes('Read More') && !line.includes('Lyrics') && i < 10)
+        line.match(/^\[(?:Verse|Chorus|Intro|Bridge|Pre-Chorus|Outro|Refrain|Hook|Interlude)/i) ||
+        (line.length > 0 && 
+         !line.includes('Read More') && 
+         !line.includes('Lyrics') && 
+         !line.includes('Contributors') &&
+         !line.includes('Translations') &&
+         !/^(Italiano|Afrikaans|Français|srpski|Türkçe|Español|Português)$/i.test(line) &&
+         i < 15)
       ) {
         startIndex = i;
         break;
       }
     }
     
-    lyrics = lines.slice(startIndex).join('\n').trim();
+    // Clean up and filter empty lines
+    lyrics = lines.slice(startIndex)
+      .map(line => line.trim())
+      .filter(line => {
+        // Remove lines that are just language names or metadata
+        if (/^(Italiano|Afrikaans|Français|srpski|Türkçe|Español|Português|Polski|Magyar|Українська|Tiếng Việt|Česky|Deutsch|Slovenščina|한국어|日本語|中文)$/i.test(line)) return false;
+        if (/^\d+\s*Contributors?$/i.test(line)) return false;
+        if (/^Translations?$/i.test(line)) return false;
+        if (/^Embed$/i.test(line)) return false;
+        if (/^You might also like$/i.test(line)) return false;
+        return true;
+      })
+      .join('\n')
+      .trim();
+    
+    // Remove multiple consecutive empty lines
+    lyrics = lyrics.replace(/\n{3,}/g, '\n\n');
+    
     return lyrics;
   } catch (error) {
     console.error("Error fetching lyrics:", error.message);
@@ -1021,45 +1060,17 @@ Return ONLY valid JSON, no markdown.`;
         console.warn(chalk.yellow("⚠ AI lyrics analysis failed"));
       }
       
-      // Generate enhanced AI lyrics intro with context
-      let lyricsIntro = `📝 Lyrics\n\n🎵 ${videoTitle}\n👤 ${channelName}`;
-      try {
-        const contextInfo = lyricsContext 
-          ? `This is a ${lyricsContext.mood} song about ${lyricsContext.theme}. ${lyricsContext.funFact}`
-          : '';
-        const lyricsPrompt = `Introducing lyrics for "${videoTitle}" by ${channelName}. ${contextInfo} Generate a very short intro (1 sentence) for the lyrics. Be casual and friendly. Use emojis.`;
-        const lyricsResult = await model.generateContent(lyricsPrompt);
-        lyricsIntro = lyricsResult?.response && typeof lyricsResult.response.text === "function"
-          ? await lyricsResult.response.text()
-          : lyricsIntro;
-      } catch {
-        console.warn(chalk.yellow("⚠ Failed to generate lyrics intro"));
-      }
-      
+      // Send lyrics with simple header - just the lyrics, no extra fluff
       await api.sendMessage(
-        `${lyricsIntro.trim()}\n\n${lyrics}`,
+        `📝 **${videoTitle}**\n👤 ${channelName}\n\n${lyrics}`,
         threadID
       );
     }
 
-    // AI-POWERED MUSIC CAPTION with CONTEXT
-    let musicCaption = `🎵 ${videoTitle}\nArtist: ${channelName}`;
-    try {
-      const contextInfo = lyricsContext 
-        ? `This is a ${lyricsContext.mood} ${lyricsContext.theme} song. ${lyricsContext.funFact}`
-        : '';
-      const captionPrompt = `Sending music file "${videoTitle}" by ${channelName}. ${contextInfo} Generate a very short caption (1 sentence) for the music. Be casual and friendly. Use emojis.`;
-      const captionResult = await model.generateContent(captionPrompt);
-      musicCaption = captionResult?.response && typeof captionResult.response.text === "function"
-        ? await captionResult.response.text()
-        : musicCaption;
-    } catch {
-      console.warn(chalk.yellow("⚠ Failed to generate music caption"));
-    }
-    
+    // Send music with simple caption
     await api.sendMessage(
       {
-        body: musicCaption.trim(),
+        body: `🎵 ${videoTitle}\n👤 ${channelName}`,
         attachment: fs.createReadStream(audioPath),
       },
       threadID
@@ -1068,23 +1079,6 @@ Return ONLY valid JSON, no markdown.`;
     console.log(chalk.green(` ├─✓ Music sent: ${videoTitle.substring(0, 40)}... (${fileSizeMB.toFixed(2)} MB)`));
 
     api.setMessageReaction("✅", messageID, () => {}, true);
-
-    // AI-POWERED CONTEXTUAL MUSIC COMMENTARY
-    try {
-      const contextInfo = lyricsContext 
-        ? `The song has a ${lyricsContext.mood} mood and is about ${lyricsContext.theme}. Fun fact: ${lyricsContext.funFact}`
-        : '';
-      const musicPrompt = `You just successfully sent a music file to the chat! The song is "${videoTitle}" by ${channelName}. ${contextInfo} Generate a short, fun message (1-2 sentences) about the song. Keep it casual and friendly. You can comment on the song, artist, mood, or just say enjoy!`;
-      
-      const musicResult = await model.generateContent(musicPrompt);
-      const musicMessage = musicResult?.response && typeof musicResult.response.text === "function"
-        ? await musicResult.response.text()
-        : `🎵 Here's your music! Enjoy listening! 🎧`;
-      
-      await api.sendMessage(musicMessage.trim(), threadID, messageID);
-    } catch {
-      console.warn(chalk.yellow("⚠ Failed to generate music message"));
-    }
 
     setTimeout(() => {
       try {
@@ -1667,21 +1661,10 @@ Return ONLY valid JSON array, no markdown.`;
     console.log(chalk.cyan(` ├─🔃 Uploading video...`));
     api.setMessageReaction("🔃", messageID, () => {}, true);
 
-    // Generate AI video caption
-    let videoCaption = `🎬 ${videoTitle}\nChannel: ${channelName}`;
-    try {
-      const captionPrompt = `Sending video "${videoTitle}" from ${channelName}. Generate a very short caption (1 sentence) for the video. Be casual and friendly. Use emojis.`;
-      const captionResult = await model.generateContent(captionPrompt);
-      videoCaption = captionResult?.response && typeof captionResult.response.text === "function"
-        ? await captionResult.response.text()
-        : videoCaption;
-    } catch {
-      console.warn(chalk.yellow("⚠ Failed to generate video caption"));
-    }
-
+    // Send video with simple caption
     await api.sendMessage(
       {
-        body: videoCaption.trim(),
+        body: `🎬 ${videoTitle}\n👤 ${channelName}`,
         attachment: fs.createReadStream(videoPath),
       },
       threadID
@@ -1690,23 +1673,6 @@ Return ONLY valid JSON array, no markdown.`;
     console.log(chalk.green(` ├─✓ Video sent: ${videoTitle.substring(0, 40)}... (${fileSizeMB.toFixed(2)} MB)`));
 
     api.setMessageReaction("✅", messageID, () => {}, true);
-
-    // AI-POWERED VIDEO COMMENTARY with CONTEXT
-    try {
-      const contextInfo = searchStrategy?.contentType 
-        ? `This is a ${searchStrategy.contentType} video.`
-        : '';
-      const videoPrompt = `You just successfully sent a video to the chat! The video is "${videoTitle}" from ${channelName}. ${contextInfo} Generate a short, fun message (1-2 sentences) about the video. Keep it casual and friendly. You can comment on the video, channel, content type, or just say enjoy watching!`;
-      
-      const videoResult = await model.generateContent(videoPrompt);
-      const videoMessage = videoResult?.response && typeof videoResult.response.text === "function"
-        ? await videoResult.response.text()
-        : `🎬 Here's your video! Enjoy watching! 🍿`;
-      
-      await api.sendMessage(videoMessage.trim(), threadID, messageID);
-    } catch {
-      console.warn(chalk.yellow("⚠ Failed to generate video message"));
-    }
 
     setTimeout(() => {
       try {
@@ -2053,22 +2019,27 @@ When users ask for: video, watch, clip, movie, film, vlog, youtube, mv, music vi
 You can suggest and automatically play music when:
 1. Users express emotions (sad, happy, stressed, excited, angry, lonely, etc.)
 2. Users mention activities (studying, working out, relaxing, party, sleep, etc.)
-3. Users ask for suggestions ("suggest music", "what should I listen to")
+3. Users ask for suggestions ("suggest music", "what should I listen to", "recommend a song")
 4. Context suggests they might enjoy music
 
 When suggesting music, use this EXACT format:
 MUSIC_SUGGESTION: <ACTUAL SONG TITLE by ARTIST> | <1-2 sentence explanation>
 
-⚠️ CRITICAL: Always use REAL song titles with artist names, NOT generic descriptions!
+⚠️ CRITICAL RULES FOR SUGGESTIONS:
+- You MUST generate your OWN creative suggestions - NEVER copy the format examples below!
+- Use your vast knowledge of music to suggest songs YOU think are good
+- Consider different genres: pop, rock, hip-hop, R&B, indie, classical, electronic, K-pop, OPM, etc.
+- Suggest lesser-known gems too, not just the same popular songs every time
+- Be CREATIVE and VARIED - if asked multiple times, give DIFFERENT songs each time
+- Match the song to the user's mood, context, or request
+- If they ask for "music with lyrics", suggest lyrical songs with meaningful words
 
-Examples:
-- User: "i'm so sad today" → MUSIC_SUGGESTION: Lewis Capaldi Someone You Loved | This beautiful ballad might help express what you're feeling 💔
-- User: "need to study" → MUSIC_SUGGESTION: Lofi Girl study beats hip hop mix | Perfect focus music for your study session! 📚
-- User: "i'm so happy!" → MUSIC_SUGGESTION: Pharrell Williams Happy | Let's match that energy! 🎉
-- User: "beta suggest some music" → MUSIC_SUGGESTION: Dua Lipa Levitating | Here's a banger to brighten your day! ✨
-- User: "can't sleep" → MUSIC_SUGGESTION: Marconi Union Weightless | This is scientifically proven to be relaxing 😴
-- User: "feeling romantic" → MUSIC_SUGGESTION: Bruno Mars Just The Way You Are | Perfect love song vibes 💕
-- User: "need workout music" → MUSIC_SUGGESTION: Eminem Lose Yourself | Let's get pumped! 💪
+FORMAT EXAMPLES (DO NOT COPY THESE SONGS - generate your own!):
+- User asks for sad music → MUSIC_SUGGESTION: [YOUR OWN CHOICE] | [your explanation]
+- User asks for study music → MUSIC_SUGGESTION: [YOUR OWN CHOICE] | [your explanation]
+- User asks for suggestions → MUSIC_SUGGESTION: [YOUR OWN CHOICE] | [your explanation]
+
+The examples above show the FORMAT only. You must pick your OWN songs based on your music knowledge!
 
 CRITICAL RULES for all media:
 - ⚠️ MAX 10 MINUTES - Never suggest/search for content over 10 minutes
@@ -2344,28 +2315,10 @@ Reply as Beta, detecting language automatically and responding appropriately.
         // Send the explanation first
         await api.sendMessage(explanation, threadID, event.messageID);
         
-        // Generate AI "please wait" message
-        let waitMessage = `⏳ Please wait, downloading "${searchQuery}" for you...`;
-        try {
-          const waitPrompt = `You're about to download the song "${searchQuery}" for the user. Generate a short, friendly "please wait" message (1 sentence) telling them you're downloading it. Be casual and use emojis. Examples: "Hold on, downloading it for you! 🎶", "Give me a sec, grabbing that track! ⏳🎵"`;
-          const waitResult = await model.generateContent(waitPrompt);
-          const waitText = waitResult?.response && typeof waitResult.response.text === "function"
-            ? await waitResult.response.text()
-            : null;
-          if (waitText) {
-            waitMessage = waitText.trim();
-          }
-        } catch {
-          console.warn(chalk.yellow("⚠ Failed to generate wait message"));
-        }
-        
-        // Send wait message
-        await api.sendMessage(waitMessage, threadID, event.messageID);
-        
         // Check if user wants lyrics (keywords: lyrics, lyric, letra, lirika)
         const wantsLyrics = /\b(lyrics?|letra|lirika)\b/i.test(text);
         
-        // Then download the music
+        // Download the music directly (no wait message)
         await downloadMusic(api, threadID, event.messageID, searchQuery, model, wantsLyrics);
         return;
       }
@@ -2376,27 +2329,10 @@ Reply as Beta, detecting language automatically and responding appropriately.
         const searchQuery = musicMatch[1].trim();
         console.log(chalk.cyan(` ├─🎵 Music download request: "${searchQuery}"`));
         
-        // Generate AI "please wait" message
-        let waitMessage = `⏳ Please wait, downloading "${searchQuery}" for you...`;
-        try {
-          const waitPrompt = `You're about to download the song "${searchQuery}" for the user. Generate a short, friendly "please wait" message (1 sentence) telling them you're downloading it. Be casual and use emojis. Examples: "Hold on, downloading it for you! 🎶", "Give me a sec, grabbing that track! ⏳🎵"`;
-          const waitResult = await model.generateContent(waitPrompt);
-          const waitText = waitResult?.response && typeof waitResult.response.text === "function"
-            ? await waitResult.response.text()
-            : null;
-          if (waitText) {
-            waitMessage = waitText.trim();
-          }
-        } catch {
-          console.warn(chalk.yellow("⚠ Failed to generate wait message"));
-        }
-        
-        // Send wait message
-        await api.sendMessage(waitMessage, threadID, event.messageID);
-        
         // Check if user wants lyrics (keywords: lyrics, lyric, letra, lirika)
         const wantsLyrics = /\b(lyrics?|letra|lirika)\b/i.test(text);
         
+        // Download directly (no wait message)
         await downloadMusic(api, threadID, event.messageID, searchQuery, model, wantsLyrics);
         return;
       }

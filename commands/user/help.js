@@ -56,7 +56,6 @@ function formatCategoryName(category) {
  */
 module.exports.execute = async function({ api, event, args, prefix, config, commandHandler, isAdmin }) {
     const threadID = event.threadID;
-    const messageID = event.messageID ? String(event.messageID) : null;
     
     // If a specific command is requested
     if (args.length > 0) {
@@ -67,8 +66,7 @@ module.exports.execute = async function({ api, event, args, prefix, config, comm
             return api.sendMessage(
                 `❌ Command "${commandName}" not found.\n\n` +
                 `Use ${prefix}help to see all available commands.`,
-                threadID,
-                messageID
+                threadID
             );
         }
         
@@ -77,8 +75,7 @@ module.exports.execute = async function({ api, event, args, prefix, config, comm
             return api.sendMessage(
                 `❌ Command "${commandName}" not found.\n\n` +
                 `Use ${prefix}help to see all available commands.`,
-                threadID,
-                messageID
+                threadID
             );
         }
         
@@ -117,8 +114,7 @@ module.exports.execute = async function({ api, event, args, prefix, config, comm
             `║    COMMAND INFO    ║\n` +
             `╚════════════════════╝\n\n` +
             details.join("\n"),
-            threadID,
-            messageID
+            threadID
         );
     }
     
@@ -164,5 +160,5 @@ module.exports.execute = async function({ api, event, args, prefix, config, comm
         `━━━━━━━━━━━━━━━━━━━━\n` +
         `📊 Total: ${stats.totalCommands} commands`;
     
-    api.sendMessage(helpMessage, threadID, messageID);
+    api.sendMessage(helpMessage, threadID);
 };

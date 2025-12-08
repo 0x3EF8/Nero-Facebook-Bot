@@ -67,8 +67,8 @@ function cleanup() {
  * @param {Object} context - Event context
  */
 module.exports.execute = async function({ api, event, config, logger }) {
-    // Check if anti-spam is enabled
-    if (!config.features.antiSpam || !config.rateLimit.enabled) {
+    // Check if rate limiting is enabled
+    if (!config.rateLimit.enabled) {
         return;
     }
     
@@ -121,7 +121,7 @@ module.exports.execute = async function({ api, event, config, logger }) {
             userData.warned = true;
             
             try {
-                api.sendMessage(config.rateLimit.warningMessage, threadID);
+                api.sendMessage("⚠️ You're sending too many commands. Please wait a moment.", threadID);
                 logger.warn("AntiSpam", `Rate limited user ${userID} in thread ${threadID}`);
             } catch (error) {
                 logger.error("AntiSpam", `Failed to send warning: ${error.message}`);

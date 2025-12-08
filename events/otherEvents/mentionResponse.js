@@ -29,11 +29,6 @@ module.exports.config = {
  * @param {Object} context - Event context
  */
 module.exports.execute = async function({ api, event, config, logger }) {
-    // Check if mention response is enabled
-    if (!config.features.mentionResponse) {
-        return;
-    }
-    
     // Get bot's user ID
     const botID = api.getCurrentUserID ? api.getCurrentUserID() : null;
     

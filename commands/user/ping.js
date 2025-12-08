@@ -60,14 +60,11 @@ function getStatusText(ping) {
 module.exports.execute = async function({ api, event }) {
     const threadID = event.threadID;
     
-    // Record start time BEFORE sending the message
+    // Measure API latency with a lightweight operation
     const startTime = Date.now();
-    
-    // Send initial "Pinging..." message and measure the round-trip time
-    // await api.sendMessage("🏓 Pinging...", threadID);
-    
-    // Calculate ping AFTER the message is sent (measures actual API latency)
+    await api.getUserInfo(event.senderID);
     const ping = Date.now() - startTime;
+    
     const status = getStatusEmoji(ping);
     const statusText = getStatusText(ping);
     
@@ -85,7 +82,7 @@ module.exports.execute = async function({ api, event }) {
         `🕐 Uptime: ${uptimeStr}\n` +
         `💾 Memory: ${memUsedMB} MB`;
     
-    // Send the result
+    // Send the result directly
     await api.sendMessage(response, threadID);
 };
 

@@ -103,11 +103,6 @@ function formatTime(timestamp) {
  * Event execution
  */
 module.exports.execute = async function({ api, event, config, logger }) {
-    // Check if anti-unsend is enabled in config
-    if (!config.features?.antiUnsend) {
-        return;
-    }
-    
     const { threadID, messageID, senderID, deletionTimestamp } = event;
     
     // Don't reveal bot's own unsent messages

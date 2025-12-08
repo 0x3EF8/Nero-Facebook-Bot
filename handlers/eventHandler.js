@@ -92,13 +92,22 @@ class EventHandler {
      * @returns {Promise<void>}
      */
     async loadDirectory(category, dirPath) {
-        const files = fs.readdirSync(dirPath).filter(file => file.endsWith(".js"));
+        const entries = fs.readdirSync(dirPath, { withFileTypes: true });
         
-        for (const file of files) {
+        for (const entry of entries) {
             try {
-                await this.loadEvent(category, path.join(dirPath, file));
+                if (entry.isFile() && entry.name.endsWith(".js")) {
+                    // Load .js file directly
+                    await this.loadEvent(category, path.join(dirPath, entry.name));
+                } else if (entry.isDirectory()) {
+                    // Check for index.js in subdirectory (modular event support)
+                    const indexPath = path.join(dirPath, entry.name, "index.js");
+                    if (fs.existsSync(indexPath)) {
+                        await this.loadEvent(category, indexPath);
+                    }
+                }
             } catch (error) {
-                logger.error("EventHandler", `Failed to load event ${file}: ${error.message}`);
+                logger.error("EventHandler", `Failed to load event ${entry.name}: ${error.message}`);
             }
         }
     }
@@ -216,6 +225,16 @@ class EventHandler {
         // Skip events during maintenance mode (silent - no notification)
         if (maintenanceManager.isEnabled()) {
             return;
+        }
+        
+        // Check global DM/Group settings from config
+        // isGroup is true for group chats, false/undefined for DMs
+        const isGroup = event.isGroup === true;
+        if (!isGroup && config.events.allowInDM === false) {
+            return; // Silently ignore DM events
+        }
+        if (isGroup && config.events.allowInGroups === false) {
+            return; // Silently ignore group events
         }
         
         const eventType = event.type;

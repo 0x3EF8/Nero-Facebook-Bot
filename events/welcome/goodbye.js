@@ -48,12 +48,7 @@ function getRandomGoodbye(name) {
  * Event execution function
  * @param {Object} context - Event context
  */
-module.exports.execute = async function({ api, event, config, logger }) {
-    // Check if goodbye messages are enabled
-    if (!config.features.goodbyeMessages) {
-        return;
-    }
-    
+module.exports.execute = async function({ api, event, _config, logger }) {
     // Only handle participant removal events
     if (event.logMessageType !== "log:unsubscribe") {
         return;

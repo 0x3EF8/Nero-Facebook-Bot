@@ -54,8 +54,8 @@ const {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const CONFIG = {
-    port: config.server?.port || 3000,
-    host: config.server?.host || 'localhost',
+    port: config.server?.port || 30174,
+    host: config.server?.host || '0.0.0.0',
     accountsDir: path.join(__dirname, 'accounts'),
     cors: {
         origin: '*',
