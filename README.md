@@ -59,8 +59,8 @@ nero/
 │   └── settings.js          # Runtime behavior settings
 ├── events/
 │   ├── AI/
-│   │   └── beta.js          # AI/Gemini integration
-│   ├── otherEvents/
+│   │   └── beta/            # AI/Gemini integration
+│   ├── protection/
 │   │   ├── antiLeave.js     # Prevent users from leaving
 │   │   ├── antiSpam.js      # Spam detection
 │   │   ├── antiUnsend.js    # Log unsent messages

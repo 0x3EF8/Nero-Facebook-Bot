@@ -11,14 +11,7 @@ const prettierConfig = require("eslint-config-prettier");
 module.exports = [
     // Global ignores
     {
-        ignores: [
-            "node_modules/",
-            "logs/",
-            "accounts/",
-            "**/*.min.js",
-            "coverage/",
-            "dist/",
-        ],
+        ignores: ["node_modules/", "logs/", "accounts/", "**/*.min.js", "coverage/", "dist/"],
     },
 
     // Base JS recommended rules
@@ -43,16 +36,19 @@ module.exports = [
         },
         rules: {
             // Error prevention
-            "no-unused-vars": ["warn", { 
-                argsIgnorePattern: "^_",
-                varsIgnorePattern: "^_",
-                caughtErrorsIgnorePattern: "^_"
-            }],
+            "no-unused-vars": [
+                "warn",
+                {
+                    argsIgnorePattern: "^_",
+                    varsIgnorePattern: "^_",
+                    caughtErrorsIgnorePattern: "^_",
+                },
+            ],
             "no-console": "off",
             "prefer-const": "warn",
             "no-var": "error",
-            "eqeqeq": ["warn", "always"],
-            "curly": ["warn", "multi-line"],
+            eqeqeq: ["warn", "always"],
+            curly: ["warn", "multi-line"],
             "no-control-regex": "off",
             "no-prototype-builtins": "warn",
 
@@ -98,14 +94,14 @@ module.exports = [
         rules: {
             // Relax rules for framework code (has legacy patterns)
             "no-var": "off",
-            "eqeqeq": "off",
+            eqeqeq: "off",
             "no-unused-vars": "off",
             "no-prototype-builtins": "off",
             "prefer-const": "off",
             "no-empty": "warn",
             "no-unreachable": "off",
             "no-undef": "off",
-            "curly": "off",
+            curly: "off",
             "no-useless-catch": "off",
             "no-case-declarations": "off",
             "no-irregular-whitespace": "off",
