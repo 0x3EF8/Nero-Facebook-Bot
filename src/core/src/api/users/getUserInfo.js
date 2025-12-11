@@ -155,32 +155,8 @@ module.exports = (defaultFuncs, api, ctx) => {
             ids.forEach((v, i) => {
                 form[`ids[${i}]`] = v;
             });
-            // Normalize gender from numeric codes or string values
-            const getGenderString = (code) => {
-                if (code === 1 || code === "1") return "male";
-                if (code === 2 || code === "2") return "female";
-                if (typeof code === "string") {
-                    const g = code.toLowerCase().trim();
-                    // Check female FIRST (since "female" contains "male")
-                    if (
-                        g === "female" ||
-                        g === "female_singular" ||
-                        g === "f" ||
-                        g.startsWith("female")
-                    ) {
-                        return "female";
-                    }
-                    if (
-                        g === "male" ||
-                        g === "male_singular" ||
-                        g === "m" ||
-                        g.startsWith("male")
-                    ) {
-                        return "male";
-                    }
-                }
-                return "unknown";
-            };
+            const getGenderString = (code) =>
+                code === 1 ? "male" : code === 2 ? "female" : "no specific gender";
             defaultFuncs
                 .post("https://www.facebook.com/chat/user_info/", ctx.jar, form)
                 .then((resData) => utils.parseAndCheckLogin(ctx, defaultFuncs)(resData))
@@ -250,35 +226,6 @@ module.exports = (defaultFuncs, api, ctx) => {
                     };
                     const name = mainUserObject.name;
                     const nameParts = name ? name.split(" ") : [];
-                    // Normalize gender from various Facebook formats
-                    const normalizeGender = (g) => {
-                        if (!g) return "unknown";
-                        const gender = String(g).toLowerCase().trim();
-                        // Check female FIRST (since "female" contains "male")
-                        if (
-                            gender === "2" ||
-                            gender === "female" ||
-                            gender === "female_singular" ||
-                            gender === "female_plural" ||
-                            gender === "f" ||
-                            gender.startsWith("female")
-                        ) {
-                            return "female";
-                        }
-                        // Then check male
-                        if (
-                            gender === "1" ||
-                            gender === "male" ||
-                            gender === "male_singular" ||
-                            gender === "male_plural" ||
-                            gender === "m" ||
-                            gender.startsWith("male")
-                        ) {
-                            return "male";
-                        }
-                        return "unknown";
-                    };
-
                     const result = {
                         id: mainUserObject.id,
                         name: name,
@@ -293,7 +240,7 @@ module.exports = (defaultFuncs, api, ctx) => {
                             null,
                         profileUrl: mainUserObject.url,
                         profilePicUrl: `https://graph.facebook.com/${userID}/picture?width=720&height=720&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`,
-                        gender: normalizeGender(mainUserObject.gender),
+                        gender: mainUserObject.gender,
                         type: mainUserObject.__typename,
                         isFriend: mainUserObject.is_viewer_friend,
                         isBirthday: !!mainUserObject.is_birthday,

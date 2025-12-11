@@ -542,11 +542,11 @@ function logAuth(step, success = null) {
 
 /**
  * Human behavior simulation log
- * Only outputs when debugLevel is 'normal' or 'verbose'
+ * Only outputs when debugLevel is 'verbose'
  * @param {...any} args - Log arguments
  */
 function human(...args) {
-    if (!shouldLog("normal")) return;
+    if (!shouldLog("verbose")) return;
 
     const formattedArgs = args.map((arg) => {
         if (typeof arg === "object") return JSON.stringify(arg);

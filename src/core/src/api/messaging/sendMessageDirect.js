@@ -131,9 +131,9 @@ module.exports = (defaultFuncs, api, ctx) => {
         }
 
         const messageInfo = resData.payload.actions.reduce((p, v) => {
-            return (
-                { threadID: v.thread_fbid, messageID: v.message_id, timestamp: v.timestamp } || p
-            );
+            return p || (v.thread_fbid && v.message_id && v.timestamp
+                ? { threadID: v.thread_fbid, messageID: v.message_id, timestamp: v.timestamp }
+                : null);
         }, null);
 
         return messageInfo;

@@ -95,7 +95,7 @@ module.exports = (defaultFuncs, api, ctx) => {
         }
     }
 
-    async function sendContent(form, threadID, isSingleUser, messageAndOTID, _callback) {
+    async function sendContent(form, threadID, isSingleUser, messageAndOTID, callback) {
         // There are three cases here:
         // 1. threadID is of type array, where we're starting a new group chat with users
         //    specified in the array.
@@ -150,9 +150,9 @@ module.exports = (defaultFuncs, api, ctx) => {
             throw new Error(errMsg);
         }
         const messageInfo = resData.payload.actions.reduce((p, v) => {
-            return v && v.thread_fbid && v.message_id && v.timestamp
-                ? { threadID: v.thread_fbid, messageID: v.message_id, timestamp: v.timestamp }
-                : p;
+            return (
+                { threadID: v.thread_fbid, messageID: v.message_id, timestamp: v.timestamp } || p
+            );
         }, null);
         return messageInfo;
     }
@@ -178,17 +178,14 @@ module.exports = (defaultFuncs, api, ctx) => {
         const msgType = utils.getType(msg);
         const threadIDType = utils.getType(threadID);
         const messageIDType = utils.getType(replyToMessage);
-        if (msgType !== "String" && msgType !== "Object") {
+        if (msgType !== "String" && msgType !== "Object")
             throw new Error("Message should be of type string or object and not " + msgType + ".");
-        }
-        if (threadIDType !== "Array" && threadIDType !== "Number" && threadIDType !== "String") {
+        if (threadIDType !== "Array" && threadIDType !== "Number" && threadIDType !== "String")
             throw new Error(
                 "ThreadID should be of type number, string, or array and not " + threadIDType + "."
             );
-        }
-        if (replyToMessage && messageIDType !== "String") {
+        if (replyToMessage && messageIDType !== "String")
             throw new Error("MessageID should be of type string and not " + messageIDType + ".");
-        }
         if (msgType === "String") {
             msg = { body: msg };
         }
@@ -241,9 +238,8 @@ module.exports = (defaultFuncs, api, ctx) => {
         };
 
         if (msg.location) {
-            if (!msg.location.latitude || !msg.location.longitude) {
+            if (!msg.location.latitude || !msg.location.longitude)
                 throw new Error("location property needs both latitude and longitude");
-            }
             form["location_attachment[coordinates][latitude]"] = msg.location.latitude;
             form["location_attachment[coordinates][longitude]"] = msg.location.longitude;
             form["location_attachment[is_current_location]"] = !!msg.location.current;
@@ -318,12 +314,11 @@ module.exports = (defaultFuncs, api, ctx) => {
                     throw new Error("Mention tags must be strings.");
                 }
                 const offset = msg.body.indexOf(tag, mention.fromIndex || 0);
-                if (offset < 0) {
+                if (offset < 0)
                     utils.warn(
                         "handleMention",
                         'Mention for "' + tag + '" not found in message string.'
                     );
-                }
                 if (!mention.id) utils.warn("handleMention", "Mention id should be non-null.");
                 const id = mention.id || 0;
                 const emptyChar = "\u200E";

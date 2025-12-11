@@ -94,12 +94,6 @@ module.exports = function (defaultFuncs, api, ctx) {
                     "Accept-Language": "en-US,en;q=0.9",
                 };
 
-                utils.log(
-                    `📤 Headers for WebSocket handshake:\n${Object.entries(baseHeaders)
-                        .map(([k, v]) => `${k}: ${v}`)
-                        .join("\n")}`
-                );
-
                 const wsOptions = { headers: baseHeaders };
                 if (ctx.globalOptions.proxy) {
                     wsOptions.agent = new HttpsProxyAgent(ctx.globalOptions.proxy);

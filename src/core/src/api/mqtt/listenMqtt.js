@@ -381,14 +381,6 @@ module.exports = (defaultFuncs, api, ctx) => {
                 utils.log(`Reconnecting MQTT with new clientID...`);
                 if (ctx.mqttClient) ctx.mqttClient.end(true);
                 ctx.clientID = generateUUID();
-
-                // Emit reconnect event for session persistence (auto-save appstate)
-                msgEmitter.emit("reconnect", {
-                    userID: ctx.userID,
-                    timestamp: new Date(),
-                    reason: "scheduled",
-                });
-
                 listenMqtt(defaultFuncs, api, ctx, globalCallback, getSeqID);
                 scheduleReconnect();
             }, time);

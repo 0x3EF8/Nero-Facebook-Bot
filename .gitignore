@@ -43,8 +43,6 @@ build/
 .env.local
 .env.*.local
 *.local.js
-config.local.js
-src/config/config.js
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # IDE & EDITOR

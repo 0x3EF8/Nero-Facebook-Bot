@@ -15,7 +15,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "node nero-core/tests/runner.js",
+    "test": "node src/core/tests/runner.js",
     "clean": "node -e \"require('fs').rmSync('logs', {recursive:true,force:true})\"",
     "update": "node -e \"require('./utils/updater').checkAndPrompt()\""
   },
