@@ -366,18 +366,22 @@ function getTimeUntilClass(nextClass) {
  * @returns {string}
  */
 function buildScheduleContext() {
-    const now = getManilaTime();
+    const now = getManilaTime(); // Used for internal calculations like getHours(), getMinutes()
     const today = getTodayName();
-    const currentDate = now.toLocaleDateString('en-US', {
+
+    // Use a fresh Date object and explicit timeZone for display formatting
+    const actualCurrentDate = new Date().toLocaleDateString('en-US', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
-        day: 'numeric'
+        day: 'numeric',
+        timeZone: TIMEZONE
     });
-    const currentTime = now.toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
+    const actualCurrentTime = new Date().toLocaleTimeString('en-US', {
+        hour: '2-digit',
         minute: '2-digit',
-        hour12: true
+        hour12: true,
+        timeZone: TIMEZONE
     });
     
     const timeOfDay = getTimeGreeting();
@@ -390,7 +394,7 @@ function buildScheduleContext() {
     // Build concise data for AI
     let scheduleData = `
 [SYSTEM TIME AWARENESS]
-Current: ${currentDate}, ${currentTime} (Manila)
+Current: ${actualCurrentDate}, ${actualCurrentTime} (Manila)
 Day Period: ${timeOfDay}
 
 [CLASS STATUS]
@@ -425,9 +429,9 @@ TThS: IT 314 8:30AM (Marnuld Climaco/ILLC), IT 311 2PM (Evangeline Javier/ILLC),
 When user asks about schedule/class/time, respond NATURALLY like this:
 
 Example responses:
-- "Hey! It's ${currentTime} right now. ${nextClass ? `Your next class is ${nextClass.subject} at ${nextClass.time}${timeUntil ? ` - that's ${timeUntil} from now` : ''}. Good luck! 🍀` : `No more classes today! Rest well! 🎉`}"
+- "Hey! It's ${actualCurrentTime} right now. ${nextClass ? `Your next class is ${nextClass.subject} at ${nextClass.time}${timeUntil ? ` - that's ${timeUntil} from now` : ''}. Good luck! 🍀` : `No more classes today! Rest well! 🎉`}"
 - "Oh! ${timeOfDay === 'morning' ? 'Good morning!' : timeOfDay === 'afternoon' ? 'Good afternoon!' : timeOfDay === 'evening' ? 'Good evening!' : 'Still awake?'} ${remainingToday.length > 0 ? `You still have ${remainingToday.length} class${remainingToday.length > 1 ? 'es' : ''} today.` : `You're done for today! 🎉`}"
-- "It's ${currentDate}. ${currentClass ? `You're in ${currentClass.subject} right now - stay focused! 📚` : nextClass ? `Next up: ${nextClass.subject} at ${nextClass.time}. You got this! 💪` : `Free time! Enjoy! 🌟`}"
+- "It's ${actualCurrentDate}. ${currentClass ? `You're in ${currentClass.subject} right now - stay focused! 📚` : nextClass ? `Next up: ${nextClass.subject} at ${nextClass.time}. You got this! 💪` : `Free time! Enjoy! 🌟`}"
 
 IMPORTANT RESPONSE STYLE:
 - Sound like a friendly AI assistant, NOT a schedule bot
