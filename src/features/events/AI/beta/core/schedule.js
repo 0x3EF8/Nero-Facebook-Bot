@@ -11,6 +11,8 @@
 
 "use strict";
 
+const config = require('../../../../../config/config');
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // SCHEDULE DATA
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -76,18 +78,58 @@ const SUBJECTS = {
 /**
  * Timezone for schedule calculations
  */
-const TIMEZONE = 'Asia/Manila';
+const TIMEZONE = config.bot.timeZone;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // UTILITY FUNCTIONS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Get current Manila time
+ * Get time parts for a specific timezone
+ * @param {string} timeZone 
+ * @returns {Object}
+ */
+function getTimeParts(timeZone) {
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        year: 'numeric',
+        month: 'numeric', // 1-12
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+        second: 'numeric',
+        hour12: false,
+        weekday: 'long'
+    });
+
+    const parts = formatter.formatToParts(now);
+    const partMap = {};
+    parts.forEach(({ type, value }) => partMap[type] = value);
+
+    return {
+        year: parseInt(partMap.year, 10),
+        month: parseInt(partMap.month, 10) - 1, // 0-11 for Date constructor
+        day: parseInt(partMap.day, 10),
+        hour: parseInt(partMap.hour, 10) % 24,
+        minute: parseInt(partMap.minute, 10),
+        second: parseInt(partMap.second, 10),
+        weekday: partMap.weekday
+    };
+}
+
+/**
+ * Get current Manila time as a Date object (shifted to match Manila wall time)
+ * This allows using .getHours(), .getDay() etc. naturally
  * @returns {Date}
  */
 function getManilaTime() {
-    return new Date(new Date().toLocaleString('en-US', { timeZone: TIMEZONE }));
+    const parts = getTimeParts(TIMEZONE);
+    const d = new Date();
+    // Set components to match Manila time exactly
+    d.setFullYear(parts.year, parts.month, parts.day);
+    d.setHours(parts.hour, parts.minute, parts.second, 0);
+    return d;
 }
 
 /**
@@ -111,7 +153,7 @@ function timeToMinutes(time12h) {
  * @returns {string}
  */
 function getTodayName() {
-    return getManilaTime().toLocaleDateString('en-US', { weekday: 'long', timeZone: TIMEZONE });
+    return getTimeParts(TIMEZONE).weekday;
 }
 
 /**
@@ -119,9 +161,9 @@ function getTodayName() {
  * @returns {string}
  */
 function getTomorrowName() {
-    const tomorrow = getManilaTime();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toLocaleDateString('en-US', { weekday: 'long', timeZone: TIMEZONE });
+    const today = getManilaTime();
+    today.setDate(today.getDate() + 1);
+    return today.toLocaleDateString('en-US', { weekday: 'long' }); // Already shifted, so default locale ok
 }
 
 /**
@@ -330,14 +372,12 @@ function buildScheduleContext() {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
-        day: 'numeric',
-        timeZone: TIMEZONE
+        day: 'numeric'
     });
     const currentTime = now.toLocaleTimeString('en-US', { 
         hour: '2-digit', 
         minute: '2-digit',
-        hour12: true,
-        timeZone: TIMEZONE 
+        hour12: true
     });
     
     const timeOfDay = getTimeGreeting();
