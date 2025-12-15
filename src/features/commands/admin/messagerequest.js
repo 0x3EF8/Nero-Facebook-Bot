@@ -13,12 +13,112 @@
 
 "use strict";
 
+/**
+ * Fetches pending message requests
+ * @param {Object} api - The API instance
+ * @returns {Promise<Array>} List of pending threads
+ */
+async function getPendingRequests(api) {
+    try {
+        // Try to get threads from PENDING folder (message requests)
+        let pendingThreads = await api.getThreadList(20, null, ["PENDING"]);
+        
+        // Filter out threads where bot has left
+        if (pendingThreads) {
+            pendingThreads = pendingThreads.filter(t => {
+                if (t.isSubscribed === false) return false;
+                if (t.snippet && t.snippet.includes("You left the group")) return false;
+                return true;
+            });
+        }
+        
+        return pendingThreads || [];
+    } catch {
+        // If PENDING doesn't work, try OTHER folder
+        try {
+            let otherThreads = await api.getThreadList(20, null, ["OTHER"]);
+            
+            if (otherThreads) {
+                otherThreads = otherThreads.filter(t => {
+                    if (t.isSubscribed === false) return false;
+                    if (t.snippet && t.snippet.includes("You left the group")) return false;
+                    return true;
+                });
+            }
+            
+            return otherThreads || [];
+        } catch {
+            return [];
+        }
+    }
+}
+
+/**
+ * Gets the display name for a thread
+ * @param {Object} thread - Thread object
+ * @returns {string} Display name
+ */
+function getThreadDisplayName(thread) {
+    // For groups, use threadName
+    if (thread.isGroup) {
+        return thread.threadName || thread.name || "Unnamed Group";
+    }
+
+    // For DMs, get name from userInfo array (excludes bot's own ID)
+    if (thread.userInfo && thread.userInfo.length > 0) {
+        // Find the other user (not the bot) - usually the first one in single chats
+        // Or just get the first user's name
+        for (const user of thread.userInfo) {
+            if (user.name && user.id === thread.threadID) {
+                return user.name;
+            }
+        }
+        // Fallback: get first user with a name
+        const userWithName = thread.userInfo.find((u) => u.name);
+        if (userWithName) {
+            return userWithName.name;
+        }
+    }
+
+    // Last fallback
+    return thread.threadName || thread.name || "Unknown";
+}
+
+/**
+ * Formats thread info for display
+ * @param {Object} thread - Thread object
+ * @param {number} index - Index number
+ * @returns {string} Formatted string
+ */
+function formatThreadInfo(thread, index) {
+    const name = getThreadDisplayName(thread);
+    const id = thread.threadID;
+    const isGroup = thread.isGroup;
+
+    const typeLabel = isGroup ? "Group" : "User";
+    const participants = thread.participantIDs ? thread.participantIDs.length : 0;
+    const snippet = thread.snippet
+        ? thread.snippet.substring(0, 25) + (thread.snippet.length > 25 ? "..." : "")
+        : "No message";
+
+    let info = `${index}. **${name}** (${typeLabel})\n`;
+    info += `   ID: ${id}`;
+    
+    if (isGroup) {
+        info += ` | ${participants} members`;
+    }
+    
+    info += ` | "${snippet}"`;
+
+    return info;
+}
+
 module.exports = {
     config: {
         name: "messagerequest",
         aliases: ["msgreq", "request", "mr"],
         description: "View, accept or decline message requests",
-        usage: "messagerequest [accept|decline] [1,2,3... or all]",
+        usage: "messagerequest [accept|decline|list] [1,2,3... or all]",
         category: "admin",
         cooldown: 3,
         permissions: "admin",
@@ -28,95 +128,18 @@ module.exports = {
     },
 
     /**
-     * Fetches pending message requests
-     * @param {Object} api - The API instance
-     * @returns {Promise<Array>} List of pending threads
-     */
-    async getPendingRequests(api) {
-        try {
-            // Try to get threads from PENDING folder (message requests)
-            const pendingThreads = await api.getThreadList(20, null, ["PENDING"]);
-            return pendingThreads || [];
-        } catch {
-            // If PENDING doesn't work, try OTHER folder
-            try {
-                const otherThreads = await api.getThreadList(20, null, ["OTHER"]);
-                return otherThreads || [];
-            } catch {
-                return [];
-            }
-        }
-    },
-
-    /**
-     * Gets the display name for a thread
-     * @param {Object} thread - Thread object
-     * @returns {string} Display name
-     */
-    getThreadDisplayName(thread) {
-        // For groups, use threadName
-        if (thread.isGroup) {
-            return thread.threadName || thread.name || "Unnamed Group";
-        }
-
-        // For DMs, get name from userInfo array (excludes bot's own ID)
-        if (thread.userInfo && thread.userInfo.length > 0) {
-            // Find the other user (not the bot) - usually the first one in single chats
-            // Or just get the first user's name
-            for (const user of thread.userInfo) {
-                if (user.name && user.id === thread.threadID) {
-                    return user.name;
-                }
-            }
-            // Fallback: get first user with a name
-            const userWithName = thread.userInfo.find((u) => u.name);
-            if (userWithName) {
-                return userWithName.name;
-            }
-        }
-
-        // Last fallback
-        return thread.threadName || thread.name || "Unknown";
-    },
-
-    /**
-     * Formats thread info for display
-     * @param {Object} thread - Thread object
-     * @param {number} index - Index number
-     * @returns {string} Formatted string
-     */
-    formatThreadInfo(thread, index) {
-        const name = this.getThreadDisplayName(thread);
-        const id = thread.threadID;
-        const isGroup = thread.isGroup;
-
-        const typeEmoji = isGroup ? "👥 Group" : "👤 User";
-        const participants = thread.participantIDs ? thread.participantIDs.length : 0;
-        const snippet = thread.snippet
-            ? thread.snippet.substring(0, 30) + (thread.snippet.length > 30 ? "..." : "")
-            : "No message";
-
-        let info = `${index}. ${typeEmoji}: ${name}\n`;
-        info += `   📋 ID: ${id}\n`;
-        if (isGroup) {
-            info += `   👥 Members: ${participants}\n`;
-        }
-        info += `   💬 Last: "${snippet}"`;
-
-        return info;
-    },
-
-    /**
      * Command execution function
      * @param {Object} context - Command context
      */
-    async execute({ api, event, args }) {
+    async execute({ api, event, args, config }) {
     const threadID = event.threadID;
+    const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+    const commandName = this.config.name;
 
     // If no arguments, show list of pending message requests
     if (!args[0]) {
         try {
-            const pendingRequests = await this.getPendingRequests(api);
+            const pendingRequests = await getPendingRequests(api);
 
             if (pendingRequests.length === 0) {
                 return api.sendMessage(
@@ -126,18 +149,13 @@ module.exports = {
                 );
             }
 
-            let response = `📬 **Pending Message Requests** (${pendingRequests.length})\n`;
-            response += `━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+            let response = `📬 **Pending Message Requests** (${pendingRequests.length})\n\n`;
 
             pendingRequests.forEach((thread, index) => {
-                response += this.formatThreadInfo(thread, index + 1) + "\n\n";
+                response += formatThreadInfo(thread, index + 1) + "\n\n";
             });
 
-            response += `━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-            response += `📖 **Commands:**\n`;
-            response += `• msgreq accept 1 - Accept #1\n`;
-            response += `• msgreq decline 1,2,3 - Decline multiple\n`;
-            response += `• msgreq accept all - Accept all requests`;
+            response += `📖 **Usage:** ${actualPrefix}${commandName} <accept/decline/list> <number/all>`;
 
             return api.sendMessage(response, threadID);
         } catch (error) {
@@ -153,17 +171,16 @@ module.exports = {
     // Handle "list" action explicitly
     if (action === "list" || action === "l") {
         try {
-            const pendingRequests = await this.getPendingRequests(api);
+            const pendingRequests = await getPendingRequests(api);
 
             if (pendingRequests.length === 0) {
                 return api.sendMessage(`📭 No pending message requests!`, threadID);
             }
 
-            let response = `📬 **Pending Message Requests** (${pendingRequests.length})\n`;
-            response += `━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+            let response = `📬 **Pending Message Requests** (${pendingRequests.length})\n\n`;
 
             pendingRequests.forEach((thread, index) => {
-                response += this.formatThreadInfo(thread, index + 1) + "\n\n";
+                response += formatThreadInfo(thread, index + 1) + "\n\n";
             });
 
             return api.sendMessage(response, threadID);
@@ -176,15 +193,14 @@ module.exports = {
     }
 
     // Validate action
-    if (!["accept", "decline", "a", "d"].includes(action)) {
+    if (!["accept", "decline", "a", "d", "list", "l"].includes(action)) {
         return api.sendMessage(
             `❌ Invalid action: "${action}"\n\n` +
-                `Valid actions:\n` +
-                `• (no args) - Show pending requests\n` +
-                `• list (or l) - Show pending requests\n` +
-                `• accept (or a) - Accept message request\n` +
-                `• decline (or d) - Decline message request`,
-            threadID
+                            `Valid actions:\n` +
+                            `• (no args) - Show pending requests\n` +
+                            `• ${actualPrefix}${commandName} list (or l) - Show pending requests\n` +
+                            `• ${actualPrefix}${commandName} accept (or a) - Accept message request\n` +
+                            `• ${actualPrefix}${commandName} decline (or d) - Decline message request`,            threadID
         );
     }
 
@@ -194,7 +210,7 @@ module.exports = {
     // Fetch pending requests first (we need them to map numbers to IDs)
     let pendingRequests;
     try {
-        pendingRequests = await this.getPendingRequests(api);
+        pendingRequests = await getPendingRequests(api);
     } catch (error) {
         return api.sendMessage(
             `❌ Failed to fetch pending requests!\n\n` + `Error: ${error.message || error}`,
@@ -212,15 +228,19 @@ module.exports = {
     // Handle "accept all" or "decline all"
     if (targetArgs.length === 1 && targetArgs[0].toLowerCase() === "all") {
         targetThreadIDs = pendingRequests.map((t) => t.threadID);
-        selectedNames = pendingRequests.map((t) => this.getThreadDisplayName(t));
+        selectedNames = pendingRequests.map((t) => getThreadDisplayName(t));
     } else if (targetArgs.length === 0) {
         return api.sendMessage(
             `❌ Please provide at least one number!\n\n` +
-                `Usage:\n` +
-                `• msgreq ${action} 1 - Single\n` +
-                `• msgreq ${action} 1,2,3 - Multiple\n` +
-                `• msgreq ${action} 1 2 3 - Multiple\n` +
-                `• msgreq ${action} all - All requests`,
+                `Usage:
+` +
+                `• ${actualPrefix}${commandName} ${action} 1 - Single
+` +
+                `• ${actualPrefix}${commandName} ${action} 1,2,3 - Multiple
+` +
+                `• ${actualPrefix}${commandName} ${action} 1 2 3 - Multiple
+` +
+                `• ${actualPrefix}${commandName} ${action} all - All requests`,
             threadID
         );
     } else {
@@ -247,7 +267,7 @@ module.exports = {
             return api.sendMessage(
                 `❌ Invalid number(s): ${invalidNumbers.join(", ")}\n\n` +
                     `Valid range: 1 to ${pendingRequests.length}\n` +
-                    `Use "msgreq" to see the list.`,
+                    `Use "${actualPrefix}${commandName}" to see the list.`,
                 threadID
             );
         }
@@ -257,7 +277,7 @@ module.exports = {
         for (const num of uniqueNumbers) {
             const thread = pendingRequests[num - 1];
             targetThreadIDs.push(thread.threadID);
-            selectedNames.push(this.getThreadDisplayName(thread));
+            selectedNames.push(getThreadDisplayName(thread));
         }
     }
 
