@@ -233,7 +233,7 @@ class Updater {
             }
 
             // Check if this is a git repository
-            const rootDir = path.join(__dirname, "..");
+            const rootDir = path.join(__dirname, "..", "..");
             const gitDir = path.join(rootDir, ".git");
 
             if (!fs.existsSync(gitDir)) {
