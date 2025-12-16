@@ -14,7 +14,7 @@
  * - Graceful shutdown handling
  *
  * @author 0x3EF8
- * @version 1.1.4
+ * @version 1.1.5
  */
 
 "use strict";
