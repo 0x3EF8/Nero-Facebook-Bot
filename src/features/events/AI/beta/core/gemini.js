@@ -163,29 +163,39 @@ function isKeyError(error) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Generate content with smart API key rotation
+ * Generate content with aggressive API key rotation (Multi-pass)
  * @param {string} prompt - The prompt text
  * @param {Array} imageParts - Optional image parts
- * @param {number} maxRetries - Maximum retry attempts
+ * @param {number} _maxRetries - Ignored (uses key count based logic)
  * @returns {Promise<Object>} Generation result
  */
-async function generate(prompt, imageParts = [], maxRetries = MODEL_CONFIG.maxRetries) {
+async function generate(prompt, imageParts = [], _maxRetries = 3) {
     const allKeys = getAllKeys();
-    const totalAttempts = Math.min(maxRetries, allKeys.length + 1);
     
+    if (allKeys.length === 0) {
+        throw new Error("No Gemini API keys available - check your .env file");
+    }
+
     stats.requests++;
     stats.lastRequest = Date.now();
     
     let lastError = null;
     
-    for (let attempt = 1; attempt <= totalAttempts; attempt++) {
-        const apiKey = getNextApiKey();
-        
-        if (!apiKey) {
-            throw new Error("No Gemini API keys available - check your .env file");
-        }
+    // Strategy: Try every key, then try every key AGAIN (2 full passes)
+    const maxAttempts = allKeys.length * 2;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        // Round-robin index based on attempt number
+        const keyIndex = attempt % allKeys.length;
+        const apiKey = allKeys[keyIndex];
+        const isRetryPass = attempt >= allKeys.length;
         
         try {
+            // Log which key we are trying
+            const keyType = keyIndex === 0 ? "PRIMARY" : `BACKUP-${keyIndex}`;
+            const passLabel = isRetryPass ? "(RETRY PASS)" : "";
+            console.log(chalk.cyan(`► Attempt ${attempt + 1}/${maxAttempts} using ${keyType} key ${passLabel}...`));
+
             const genAI = new GoogleGenerativeAI(apiKey);
             const model = genAI.getGenerativeModel({ model: MODEL_CONFIG.name });
             
@@ -194,32 +204,38 @@ async function generate(prompt, imageParts = [], maxRetries = MODEL_CONFIG.maxRe
                 : await model.generateContent(prompt);
             
             stats.success++;
-            console.log(chalk.green(`✓ Gemini response received`));
+            
+            // If we succeeded on a retry pass or backup, log it clearly
+            if (keyIndex > 0 || isRetryPass) {
+                console.log(chalk.green(`✓ Success using ${keyType} key on attempt ${attempt + 1}!`));
+            } else {
+                console.log(chalk.green(`✓ Gemini response received`));
+            }
+            
             return result;
             
         } catch (error) {
             lastError = error;
             stats.failures++;
             
-            // Classify and handle failure
-            if (isKeyError(error)) {
-                markKeyFailed(apiKey, "key_error");
-            } else if (isRetryable(error)) {
-                markKeyFailed(apiKey, "rate_limit");
-            } else {
-                markKeyFailed(apiKey, "other");
-            }
+            // Classify failure
+            let reason = "other";
+            if (isKeyError(error)) reason = "key_error";
+            else if (isRetryable(error)) reason = "rate_limit";
             
-            // Retry with backoff
-            if (attempt < totalAttempts) {
-                const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
-                console.log(chalk.yellow(`⚠ Attempt ${attempt}/${totalAttempts} failed. Retrying in ${delay}ms...`));
+            markKeyFailed(apiKey, reason);
+            
+            console.log(chalk.yellow(`⚠ Key failed (${reason}). Moving to next key...`));
+            
+            // Small delay between attempts, longer delay between passes
+            const delay = isRetryPass ? 2000 : 500;
+            if (attempt < maxAttempts - 1) {
                 await sleep(delay);
             }
         }
     }
     
-    console.log(chalk.red(`✗ All ${totalAttempts} attempts failed`));
+    console.log(chalk.red(`✗ All keys failed after ${maxAttempts} attempts (2 full passes)`));
     throw lastError;
 }
 

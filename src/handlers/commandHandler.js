@@ -45,18 +45,28 @@ function getUnsendCommand() {
 }
 
 /**
- * Wrap API to track sent messages for unsend command
+ * Wrap API to track sent messages for unsend command and auto-detect DMs
  * @param {Object} api - Original API object
  * @param {string} threadID - Thread ID for tracking
- * @returns {Object} Wrapped API with message tracking
+ * @param {Object} event - Event object containing isGroup info
+ * @returns {Object} Wrapped API with message tracking and DM support
  */
-function wrapApiWithTracking(api, threadID) {
+function wrapApiWithTracking(api, threadID, event) {
     const originalSendMessage = api.sendMessage.bind(api);
     
     return {
         ...api,
-        sendMessage: async (...args) => {
-            const result = await originalSendMessage(...args);
+        sendMessage: async (message, targetThreadID, replyToMessage, isSingleUser) => {
+            // Auto-detect if it's a DM when isSingleUser is not explicitly set
+            // If sending to the same thread as the event and it's not a group, it's a DM
+            if (isSingleUser === undefined) {
+                const isTargetSameThread = targetThreadID === threadID || targetThreadID === event?.threadID;
+                if (isTargetSameThread && event?.isGroup === false) {
+                    isSingleUser = true;
+                }
+            }
+            
+            const result = await originalSendMessage(message, targetThreadID, replyToMessage, isSingleUser);
             
             // Track the sent message for potential unsending
             if (result?.messageID) {
@@ -378,34 +388,41 @@ class CommandHandler {
         const botID = api.getCurrentUserID ? api.getCurrentUserID() : null;
         const isSelfMessage = botID && senderID === botID;
 
-        // Check if prefix is enabled
-        const prefixEnabled = config.bot.prefixEnabled !== false;
-
         let usedPrefix = null;
         let commandText = body;
 
-        if (prefixEnabled) {
-            // Determine which prefixes to check based on who sent the message
-            let allPrefixes;
-
-            if (isSelfMessage) {
-                // Self-listen: only use bot prefix to avoid spam loops
-                allPrefixes = config.bot.botPrefix ? [config.bot.botPrefix] : [];
+        // Logic for Self (Bot) - ALWAYS requires specific bot prefix
+        if (isSelfMessage) {
+            const botPrefix = config.bot.botPrefix || ".";
+            if (body.startsWith(botPrefix)) {
+                usedPrefix = botPrefix;
+                commandText = body.slice(usedPrefix.length).trim();
             } else {
-                // Normal users: use regular prefixes
-                allPrefixes = [config.bot.prefix, ...(config.bot.alternativePrefixes || [])];
+                // Bot message without prefix -> Ignore
+                return false;
             }
-
-            // Check if message starts with any prefix
-            for (const p of allPrefixes) {
-                if (body.toLowerCase().startsWith(p.toLowerCase())) {
-                    usedPrefix = p;
-                    break;
+        } 
+        // Logic for Users
+        else {
+            const prefixEnabled = config.bot.prefixEnabled !== false;
+            
+            if (prefixEnabled) {
+                // Prefix IS required for users
+                // Handle case where prefix might be an array or string
+                const mainPrefix = Array.isArray(config.bot.prefix) ? config.bot.prefix : [config.bot.prefix];
+                const userPrefixes = [...mainPrefix, ...(config.bot.alternativePrefixes || [])].filter(Boolean);
+                
+                for (const p of userPrefixes) {
+                    if (body.toLowerCase().startsWith(p.toLowerCase())) {
+                        usedPrefix = p;
+                        break;
+                    }
                 }
+                
+                if (!usedPrefix) return false; // User didn't use required prefix
+                commandText = body.slice(usedPrefix.length).trim();
             }
-
-            if (!usedPrefix) return false;
-            commandText = body.slice(usedPrefix.length).trim();
+            // If prefixEnabled is false, usedPrefix remains null, commandText remains body (No prefix mode)
         }
 
         // Parse command and arguments
@@ -450,8 +467,8 @@ class CommandHandler {
             return false;
         }
 
-        // Check if thread is blocked
-        if (config.isThreadBlocked(threadId)) {
+        // Check if thread is blocked (Admins bypass)
+        if (config.isThreadBlocked(threadId) && !config.isAdmin(userId)) {
             this.stats.blocked++;
             statsTracker.recordBlockedCommand();
             return false;
@@ -506,9 +523,12 @@ class CommandHandler {
                 `Executing: ${command.config.name} │ user:${userId} │ thread:${threadId} │ ${argsStr}`
             );
 
+            // Wrap API with tracking and auto DM detection
+            const wrappedApi = wrapApiWithTracking(api, threadId, event);
+
             // Build context object
             const context = {
-                api,
+                api: wrappedApi,
                 event,
                 args,
                 prefix: usedPrefix,

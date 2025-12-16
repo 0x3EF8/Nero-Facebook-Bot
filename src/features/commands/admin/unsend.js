@@ -128,7 +128,7 @@ module.exports = {
      * @param {Array} context.args - Command arguments
      * @param {Object} context.logger - Logger utility
      */
-    async execute({ api, event, args, logger }) {
+    async execute({ api, event, args, config, logger }) {
         const threadID = event.threadID;
         const messageID = event.messageID;
         const messageReply = event.messageReply;
@@ -195,10 +195,12 @@ module.exports = {
 
         // Single message unsend (requires reply)
         if (!messageReply) {
+            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+            const commandName = this.config.name;
             return api.sendMessage(
                 "📝 **Unsend Command Usage**\n\n" +
-                "• Reply to a bot message and type `unsend` to unsend it\n" +
-                "• Type `unsend all` to unsend all recent bot messages\n\n" +
+                `• Reply to a bot message and type \`${actualPrefix}${commandName}\` to unsend it\n` +
+                `• Type \`${actualPrefix}${commandName} all\` to unsend all recent bot messages\n\n` +
                 "Note: Only bot messages can be unsent.",
                 threadID,
                 messageID

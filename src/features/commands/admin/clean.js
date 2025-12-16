@@ -106,7 +106,7 @@ module.exports = {
         name: "clean",
         aliases: ["clear", "deleteall", "cleaninbox"],
         description: "Delete all conversations from inbox",
-        usage: "clean <all|groups|dms> [confirm]",
+        usage: "clean <all|groups|dms|list> [confirm]",
         category: "admin",
         cooldown: 60,
         permissions: "superadmin",
@@ -123,7 +123,7 @@ module.exports = {
      * @param {Array} context.args - Command arguments
      * @param {Object} context.logger - Logger utility
      */
-    async execute({ api, event, args, logger }) {
+    async execute({ api, event, args, config, logger }) {
         const threadID = event.threadID;
         const messageID = event.messageID;
         const senderID = event.senderID;
@@ -139,15 +139,17 @@ module.exports = {
 
         // Show usage if no arguments
         if (args.length === 0) {
+            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+            const commandName = this.config.name;
             return api.sendMessage(
                 "🧹 **Clean Command**\n\n" +
                 "Delete conversations from your inbox.\n\n" +
                 "⚠️ **WARNING:** This is destructive and cannot be undone!\n\n" +
                 "**Usage:**\n" +
-                "• `clean all confirm` - Delete ALL threads\n" +
-                "• `clean groups confirm` - Delete groups only\n" +
-                "• `clean dms confirm` - Delete DMs only\n" +
-                "• `clean list` - Preview threads before deleting\n\n" +
+                `• \`${actualPrefix}${commandName} all confirm\` - Delete ALL threads\n` +
+                `• \`${actualPrefix}${commandName} groups confirm\` - Delete groups only\n` +
+                `• \`${actualPrefix}${commandName} dms confirm\` - Delete DMs only\n` +
+                `• \`${actualPrefix}${commandName} list\` - Preview threads before deleting\n\n` +
                 "**Protected Threads:**\n" +
                 "School GCs are protected and won't be deleted.",
                 threadID,
@@ -161,14 +163,16 @@ module.exports = {
 
         // List threads
         if (filterArg === "list") {
-            return await this.listThreads(api, event, args[1] || "all");
+            return await this.listThreads(api, event, args[1] || "all", config);
         }
 
         // Validate filter
         if (!["all", "groups", "dms"].includes(filterArg)) {
+            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+            const commandName = this.config.name;
             return api.sendMessage(
                 "❌ Invalid option.\n\n" +
-                "Use: `clean all`, `clean groups`, or `clean dms`",
+                `Use: \`${actualPrefix}${commandName} all\`, \`${actualPrefix}${commandName} groups\`, or \`${actualPrefix}${commandName} dms\``,
                 threadID,
                 messageID
             );
@@ -178,13 +182,15 @@ module.exports = {
         if (confirmArg !== "confirm") {
             const filterText = filterArg === "all" ? "ALL threads" : 
                 filterArg === "groups" ? "all GROUPS" : "all DMs";
+            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+            const commandName = this.config.name;
 
             return api.sendMessage(
                 `⚠️ **Confirmation Required**\n\n` +
                 `You are about to delete ${filterText}.\n\n` +
                 `This action CANNOT be undone!\n\n` +
                 `To confirm, type:\n` +
-                `\`clean ${filterArg} confirm\``,
+                `\`${actualPrefix}${commandName} ${filterArg} confirm\``,
                 threadID,
                 messageID
             );
@@ -313,7 +319,7 @@ module.exports = {
      * @param {Object} event - Event object
      * @param {string} filter - Filter type
      */
-    async listThreads(api, event, filter) {
+    async listThreads(api, event, filter, config) {
         const threadID = event.threadID;
         const messageID = event.messageID;
 

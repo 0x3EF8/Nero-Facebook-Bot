@@ -62,6 +62,7 @@ module.exports = {
         isAdmin,
     }) {
     const threadID = event.threadID;
+    const displayPrefix = prefix || config.bot.prefix || "";
 
     // If a specific command is requested
     if (args.length > 0) {
@@ -71,7 +72,7 @@ module.exports = {
         if (!command) {
             return api.sendMessage(
                 `❌ Command "${commandName}" not found.\n\n` +
-                    `Use ${prefix}help to see all available commands.`,
+                    `Use ${displayPrefix}help to see all available commands.`,
                 threadID
             );
         }
@@ -80,14 +81,14 @@ module.exports = {
         if (command.config.permissions === "admin" && !isAdmin) {
             return api.sendMessage(
                 `❌ Command "${commandName}" not found.\n\n` +
-                    `Use ${prefix}help to see all available commands.`,
+                    `Use ${displayPrefix}help to see all available commands.`,
                 threadID
             );
         }
 
         // Build detailed command info
-        const aliases =
-            command.config.aliases.length > 0 ? command.config.aliases.join(", ") : "None";
+        // Show only first alias or None
+        const alias = command.config.aliases.length > 0 ? command.config.aliases[0] : "None";
 
         const permissionLabels = {
             user: "Everyone",
@@ -95,32 +96,24 @@ module.exports = {
             superadmin: "Super Admins",
         };
 
-        const details = [
-            `📌 Command: ${command.config.name}`,
-            `📝 Description: ${command.config.description}`,
-            `💡 Usage: ${prefix}${command.config.usage}`,
-            `🏷️ Aliases: ${aliases}`,
-            `📁 Category: ${formatCategoryName(command.config.category)}`,
-            `⏱️ Cooldown: ${command.config.cooldown}s`,
-            `🔒 Permission: ${permissionLabels[command.config.permissions] || command.config.permissions}`,
-            `✅ Enabled: ${command.config.enabled ? "Yes" : "No"}`,
-        ];
+        let details = `📖 **COMMAND INFO**\n\n`;
+        details += `📌 **Name:** ${command.config.name}\n`;
+        details += `📝 **Desc:** ${command.config.description}\n`;
+        details += `💡 **Usage:** ${displayPrefix}${command.config.usage}\n`;
+        details += `🏷️ **Alias:** ${alias}\n`;
+        details += `📁 **Group:** ${formatCategoryName(command.config.category)}\n`;
+        details += `⏱️ **Cooldown:** ${command.config.cooldown}s\n`;
+        details += `🔒 **Access:** ${permissionLabels[command.config.permissions] || command.config.permissions}`;
 
         if (command.config.dmOnly) {
-            details.push("📱 DM Only: Yes");
+            details += "\n📱 **DM Only:** Yes";
         }
 
         if (command.config.groupOnly) {
-            details.push("👥 Group Only: Yes");
+            details += "\n👥 **Group Only:** Yes";
         }
 
-        return api.sendMessage(
-            `╔════════════════════╗\n` +
-                `║    COMMAND INFO    ║\n` +
-                `╚════════════════════╝\n\n` +
-                details.join("\n"),
-            threadID
-        );
+        return api.sendMessage(details, threadID);
     }
 
     // Show all commands grouped by category
@@ -146,23 +139,27 @@ module.exports = {
     }
 
     // Build the help message
-    let helpMessage =
-        `📚 ${config.bot.name.toUpperCase()} HELP\n` +
-        `━━━━━━━━━━━━━━━━━━━━\n` +
-        `📝 Prefix: ${prefix}\n` +
-        `💡 Use ${prefix}help <command> for details\n\n`;
+    let helpMessage = `📚 **${config.bot.name.toUpperCase()} HELP**\n`;
+    
+    if (config.bot.prefixEnabled) {
+        helpMessage += `Prefix: \`${displayPrefix || "(None)"}\`\n\n`;
+    } else {
+        helpMessage += `\n`;
+    }
 
     // Add categories
     for (const [category, commands] of commandsByCategory) {
         if (commands.length === 0) continue;
 
         helpMessage += `${formatCategoryName(category)}\n`;
-        helpMessage += `   ${commands.join(", ")}\n\n`;
+        // Join with newlines and bullet points
+        helpMessage += commands.map(cmd => `• ${cmd}`).join("\n") + "\n\n";
     }
 
-    // Add stats
+    // Add stats and tip
     const stats = commandHandler.getStats();
-    helpMessage += `━━━━━━━━━━━━━━━━━━━━\n` + `📊 Total: ${stats.totalCommands} commands`;
+    helpMessage += `📊 ${stats.totalCommands} commands available\n`;
+    helpMessage += `💡 Type \`${displayPrefix}help <command>\` for details`;
 
     api.sendMessage(helpMessage, threadID);
     },

@@ -15,6 +15,7 @@
 "use strict";
 
 const path = require("path");
+const fs = require("fs");
 const settings = require("./settings");
 
 // Load .env file if it exists (silently)
@@ -28,6 +29,34 @@ try {
     // dotenv not installed or .env not found - will use defaults
 }
 
+// Load dynamic config
+const dynamicConfigPath = path.resolve(__dirname, "dynamic.json");
+let dynamicConfig = {
+    admins: [],
+    blockedUsers: [],
+    blockedThreads: []
+};
+
+try {
+    if (fs.existsSync(dynamicConfigPath)) {
+        const fileContent = fs.readFileSync(dynamicConfigPath, 'utf8');
+        dynamicConfig = JSON.parse(fileContent);
+    }
+} catch (error) {
+    console.error("Failed to load dynamic config:", error);
+}
+
+// Helper to save dynamic config
+function saveDynamicConfig(newConfig) {
+    try {
+        fs.writeFileSync(dynamicConfigPath, JSON.stringify(newConfig, null, 2));
+        return true;
+    } catch (error) {
+        console.error("Failed to save dynamic config:", error);
+        return false;
+    }
+}
+
 const config = {
     // ═══════════════════════════════════════════════════════════════════════════
     // BOT IDENTITY & BASIC SETTINGS
@@ -36,19 +65,17 @@ const config = {
         name: "Nero Bot",                    // Bot name displayed in responses
         version: "1.0.0",                    // Bot version
         description: "A lightweight, modular Messenger chatbot framework with multi-account support, event handling, and extensible command system",
-        prefixEnabled: true,                // Enable/disable prefix requirement
-        prefix: "",                         // Command prefix (string or array)
+        timeZone: "Asia/Manila",             // Global Timezone
+        prefixEnabled: false,                // Enable/disable prefix requirement
+        prefix: "!",                         // Command prefix (string or array)
         botPrefix: ".",                      // Bot's own prefix when selfListen enabled
         alternativePrefixes: ["/", "-"],     // Alternative prefixes (optional)
-        admins: [                            // Bot owner/admin user IDs (Facebook UIDs)
-            "100044343889036",
-            "100091687191806"
-        ],
-        superAdmins: [                       // Super admins with full access
+        admins: dynamicConfig.admins || [],  // Bot owner/admin user IDs (Facebook UIDs)
+        superAdmins: [                       // Super admins with full access (Hardcoded for security)
             "100044343889036"
         ],
-        blockedUsers: [],                    // Blocked/banned user IDs
-        blockedThreads: [],                  // Blocked thread IDs
+        blockedUsers: dynamicConfig.blockedUsers || [],    // Blocked/banned user IDs
+        blockedThreads: dynamicConfig.blockedThreads || [],// Blocked thread IDs
     },
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -92,7 +119,7 @@ const config = {
     // ═══════════════════════════════════════════════════════════════════════════
     events: {
         ...settings.events,
-        directories: ["welcome", "protection", "AI"],  // Directories to load events from
+        directories: ["welcome", "protection", "AI", "timeline"],  // Directories to load events from
     },
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -225,6 +252,105 @@ config.isBlocked = function(userId) {
  */
 config.isThreadBlocked = function(threadId) {
     return this.bot.blockedThreads.includes(threadId);
+};
+
+/**
+ * Add a user as admin
+ * @param {string} userId - The user's Facebook UID
+ * @returns {boolean} True if added, false if already exists
+ */
+config.addAdmin = function(userId) {
+    if (this.bot.admins.includes(userId)) return false;
+    this.bot.admins.push(userId);
+    saveDynamicConfig({
+        admins: this.bot.admins,
+        blockedUsers: this.bot.blockedUsers,
+        blockedThreads: this.bot.blockedThreads
+    });
+    return true;
+};
+
+/**
+ * Remove a user from admins
+ * @param {string} userId - The user's Facebook UID
+ * @returns {boolean} True if removed, false if not found
+ */
+config.removeAdmin = function(userId) {
+    const index = this.bot.admins.indexOf(userId);
+    if (index === -1) return false;
+    this.bot.admins.splice(index, 1);
+    saveDynamicConfig({
+        admins: this.bot.admins,
+        blockedUsers: this.bot.blockedUsers,
+        blockedThreads: this.bot.blockedThreads
+    });
+    return true;
+};
+
+/**
+ * Block a thread (Mute bot)
+ * @param {string} threadId - The thread ID
+ * @returns {boolean} True if blocked, false if already blocked
+ */
+config.blockThread = function(threadId) {
+    if (this.bot.blockedThreads.includes(threadId)) return false;
+    this.bot.blockedThreads.push(threadId);
+    saveDynamicConfig({
+        admins: this.bot.admins,
+        blockedUsers: this.bot.blockedUsers,
+        blockedThreads: this.bot.blockedThreads
+    });
+    return true;
+};
+
+/**
+ * Unblock a thread (Unmute bot)
+ * @param {string} threadId - The thread ID
+ * @returns {boolean} True if unblocked, false if not blocked
+ */
+config.unblockThread = function(threadId) {
+    const index = this.bot.blockedThreads.indexOf(threadId);
+    if (index === -1) return false;
+    this.bot.blockedThreads.splice(index, 1);
+    saveDynamicConfig({
+        admins: this.bot.admins,
+        blockedUsers: this.bot.blockedUsers,
+        blockedThreads: this.bot.blockedThreads
+    });
+    return true;
+};
+
+/**
+ * Block a user (Ignore commands)
+ * @param {string} userId - The user's Facebook UID
+ * @returns {boolean} True if blocked, false if already blocked
+ */
+config.blockUser = function(userId) {
+    if (this.bot.blockedUsers.includes(userId)) return false;
+    this.bot.blockedUsers.push(userId);
+    saveDynamicConfig({
+        admins: this.bot.admins,
+        blockedUsers: this.bot.blockedUsers,
+        blockedThreads: this.bot.blockedThreads
+    });
+    return true;
+};
+
+/**
+ * Unblock a user
+ * @param {string} userId - The user's Facebook UID
+ * @returns {boolean} True if unblocked, false if not blocked
+ */
+config.unblockUser = function(userId) {
+    const index = this.bot.blockedUsers.indexOf(userId);
+    if (index === -1) return false;
+    this.bot.blockedUsers.splice(index, 1);
+    saveDynamicConfig({
+        admins: this.bot.admins,
+        blockedUsers: this.bot.blockedUsers,
+        blockedThreads: this.bot.blockedThreads
+    });
+    return true;
 };
 
 // Freeze the config object to prevent accidental modifications

@@ -37,11 +37,13 @@ module.exports = {
 
     // Check if new prefix was provided
     if (args.length === 0) {
+        const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+        const commandName = this.config.name;
         return api.sendMessage(
             `📝 Current prefix: ${config.bot.prefix}\n\n` +
-                `Usage: setprefix <new_prefix>\n\n` +
-                `Example: setprefix !\n` +
-                `Example: setprefix /`,
+                `Usage: ${actualPrefix}${commandName} <new_prefix>\n\n` +
+                `Example: ${actualPrefix}${commandName} !\n` +
+                `Example: ${actualPrefix}${commandName} /`,
             threadID,
             messageID
         );

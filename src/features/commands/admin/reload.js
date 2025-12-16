@@ -31,7 +31,7 @@ module.exports = {
      * Command execution function
      * @param {Object} context - Command context
      */
-    async execute({ api, event, args, logger, commandHandler }) {
+    async execute({ api, event, args, config, logger, commandHandler }) {
     const threadID = event.threadID;
     const messageID = event.messageID ? String(event.messageID) : null;
     const eventHandler = require("../../handlers/eventHandler");
@@ -40,16 +40,18 @@ module.exports = {
 
     // Check arguments
     if (args.length < 1) {
+        const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+        const commandName = this.config.name;
         return api.sendMessage(
             "❌ Please specify what to reload.\n\n" +
                 "Usage:\n" +
-                "• !reload all\n" +
-                "• !reload <name>\n\n" +
+                `• ${actualPrefix}${commandName} all\n` +
+                `• ${actualPrefix}${commandName} <name>\n\n` +
                 "Examples:\n" +
-                "• !reload all\n" +
-                "• !reload help\n" +
-                "• !reload shell.js\n" +
-                "• !reload welcome",
+                `• ${actualPrefix}${commandName} all\n` +
+                `• ${actualPrefix}${commandName} help\n` +
+                `• ${actualPrefix}${commandName} shell.js\n` +
+                `• ${actualPrefix}${commandName} welcome`,
             threadID,
             messageID
         );

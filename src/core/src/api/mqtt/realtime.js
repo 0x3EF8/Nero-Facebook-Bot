@@ -7,18 +7,27 @@ const HttpsProxyAgent = require("https-proxy-agent");
 
 function formatNotification(data) {
     if (!data.data || !data.data.viewer) return null;
-    const notifEdge = data.data.viewer.notifications_page?.edges?.[1]?.node?.notif;
-    if (!notifEdge) return null;
-
-    return {
-        type: "notification",
-        notifID: notifEdge.notif_id,
-        body: notifEdge.body?.text,
-        senderID: Object.keys(notifEdge.tracking.from_uids || {})[0],
-        url: notifEdge.url,
-        timestamp: notifEdge.creation_time.timestamp,
-        seenState: notifEdge.seen_state,
-    };
+    
+    const edges = data.data.viewer.notifications_page?.edges;
+    if (!edges || !Array.isArray(edges) || edges.length === 0) return null;
+    
+    // Find the first valid notification edge
+    for (const edge of edges) {
+        const notifEdge = edge?.node?.notif;
+        if (notifEdge) {
+            return {
+                type: "notification",
+                notifID: notifEdge.notif_id,
+                body: notifEdge.body?.text,
+                senderID: Object.keys(notifEdge.tracking?.from_uids || {})[0],
+                url: notifEdge.url,
+                timestamp: notifEdge.creation_time?.timestamp,
+                seenState: notifEdge.seen_state,
+            };
+        }
+    }
+    
+    return null;
 }
 
 module.exports = function (defaultFuncs, api, ctx) {

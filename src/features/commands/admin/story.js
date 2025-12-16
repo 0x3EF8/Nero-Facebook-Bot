@@ -1,13 +1,12 @@
 /**
  * ╔═══════════════════════════════════════════════════════════════════════════════╗
- * ║                             POST COMMAND                                      ║
- * ║              Create posts on the bot's Facebook timeline                      ║
+ * ║                             STORY COMMAND                                     ║
+ * ║              Create stories on the bot's Facebook profile                     ║
  * ╚═══════════════════════════════════════════════════════════════════════════════╝
  *
- * This command allows admins to create posts on the bot's timeline:
- * - Text posts
- * - Posts with images (by replying to an image)
- * - Posts with URLs
+ * This command allows admins to create stories on the bot's profile:
+ * - Text stories with custom fonts and backgrounds
+ * - Photo stories (by replying to an image)
  *
  * @author 0x3EF8
  * @version 1.0.0
@@ -96,10 +95,10 @@ function extractImageUrls(attachments) {
 
 module.exports = {
     config: {
-        name: "post",
-        aliases: ["fb", "timeline", "status"],
-        description: "Create a post on the bot's Facebook timeline",
-        usage: "post <message> | [reply to image] <caption>",
+        name: "story",
+        aliases: ["st", "mystory", "fbstory"],
+        description: "Create a story on the bot's Facebook profile",
+        usage: "story <text> | [reply to image] [caption]",
         category: "admin",
         cooldown: 30,
         permissions: "admin",
@@ -126,49 +125,72 @@ module.exports = {
             const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
             const commandName = this.config.name;
             return api.sendMessage(
-                "📝 **Post Command**\n\n" +
-                "Create a post on the bot's Facebook timeline.\n\n" +
+                "📖 **Story Command**\n\n" +
+                "Create a story on the bot's Facebook profile.\n\n" +
                 "**Usage:**\n" +
-                `• \`${actualPrefix}${commandName} <message>\` - Text post\n` +
-                `• \`${actualPrefix}${commandName} <message>\` (reply to image) - Post with image\n\n` +
+                `• \`${actualPrefix}${commandName} <text>\` - Text story\n` +
+                `• \`${actualPrefix}${commandName} <text> -font <name>\` - Text story with font\n` +
+                `• \`${actualPrefix}${commandName} <text> -bg <color>\` - Text story with background\n` +
+                `• Reply to image with \`${actualPrefix}${commandName}\` - Photo story\n` +
+                `• Reply to image with \`${actualPrefix}${commandName} <caption>\` - Photo story with caption\n\n` +
+                "**Fonts:** headline, classic, casual, fancy\n" +
+                "**Backgrounds:** orange, blue, green, modern\n\n" +
                 "**Examples:**\n" +
                 `• \`${actualPrefix}${commandName} Hello world!\`\n` +
-                `• Reply to a photo with \`${actualPrefix}${commandName} My vacation photo\``,
+                `• \`${actualPrefix}${commandName} Good morning! -font headline -bg orange\`\n` +
+                `• Reply to a photo with \`${actualPrefix}${commandName} My vacation 🌴\``,
                 threadID,
                 messageID
             );
         }
 
-        // Check if createPost API exists
-        if (!api.createPost) {
+        // Check if story API exists
+        if (!api.story) {
             return api.sendMessage(
-                "❌ Post API not available.\n\n" +
+                "❌ Story API not available.\n\n" +
                 "The bot needs to be restarted to load the new API.",
                 threadID,
                 messageID
             );
         }
 
-        // Get message content
-        const postMessage = args.join(" ").trim();
+        // Parse arguments for font and background options
+        let storyText = "";
+        let fontName = "classic";
+        let backgroundName = "blue";
 
-        // Check for image in reply
-        const imageStreams = [];
+        // Parse -font and -bg flags
+        const argsStr = args.join(" ");
+        const fontMatch = argsStr.match(/-font\s+(\w+)/i);
+        const bgMatch = argsStr.match(/-bg\s+(\w+)/i);
+
+        if (fontMatch) {
+            fontName = fontMatch[1].toLowerCase();
+        }
+        if (bgMatch) {
+            backgroundName = bgMatch[1].toLowerCase();
+        }
+
+        // Remove flags from text
+        storyText = argsStr
+            .replace(/-font\s+\w+/gi, "")
+            .replace(/-bg\s+\w+/gi, "")
+            .trim();
+
+        // Check for image in reply (photo story)
         if (messageReply && messageReply.attachments) {
             const imageUrls = extractImageUrls(messageReply.attachments);
 
             if (imageUrls.length > 0) {
-                // Send "uploading" status
+                // Photo story mode
                 const statusMsg = await api.sendMessage(
-                    `📤 Downloading ${imageUrls.length} image(s)...`,
+                    `📤 Downloading image for story...`,
                     threadID
                 );
 
+                let imageStream;
                 try {
-                    for (const url of imageUrls) {
-                        const stream = await downloadStream(url);
-                        imageStreams.push(stream);
-                    }
+                    imageStream = await downloadStream(imageUrls[0]);
 
                     // Unsend status
                     if (statusMsg?.messageID) {
@@ -179,9 +201,61 @@ module.exports = {
                         }
                     }
                 } catch (error) {
-                    logger?.error?.("Post", `Failed to download image: ${error.message}`);
+                    logger?.error?.("Story", `Failed to download image: ${error.message}`);
                     return api.sendMessage(
                         `❌ Failed to download image: ${error.message}`,
+                        threadID,
+                        messageID
+                    );
+                }
+
+                // Send "creating story" status
+                const creatingMsg = await api.sendMessage(
+                    `📷 Creating photo story...`,
+                    threadID
+                );
+
+                try {
+                    // Create photo story
+                    const result = await api.story.createPhoto(imageStream, storyText);
+
+                    // Unsend "creating" status
+                    if (creatingMsg?.messageID) {
+                        try {
+                            await api.unsendMessage(creatingMsg.messageID);
+                        } catch {
+                            // Ignore
+                        }
+                    }
+
+                    logger?.success?.("Story", `Created photo story: ${result.storyID || "success"}`);
+
+                    let successMessage = `✅ **Photo Story Created!**\n\n`;
+                    successMessage += `📷 Image story uploaded successfully\n`;
+                    if (storyText) {
+                        successMessage += `📝 Caption: "${storyText.substring(0, 50)}${storyText.length > 50 ? "..." : ""}"\n`;
+                    }
+                    if (result.storyID) {
+                        successMessage += `\n🔗 Story ID: ${result.storyID}`;
+                    }
+
+                    return api.sendMessage(successMessage, threadID, messageID);
+
+                } catch (error) {
+                    // Unsend "creating" status
+                    if (creatingMsg?.messageID) {
+                        try {
+                            await api.unsendMessage(creatingMsg.messageID);
+                        } catch {
+                            // Ignore
+                        }
+                    }
+
+                    logger?.error?.("Story", `Failed to create photo story: ${error.message}`);
+
+                    return api.sendMessage(
+                        `❌ Failed to create photo story!\n\n` +
+                        `Error: ${error.message || "Unknown error"}`,
                         threadID,
                         messageID
                     );
@@ -189,70 +263,60 @@ module.exports = {
             }
         }
 
-        // Require message or image
-        if (!postMessage && imageStreams.length === 0) {
+        // Text story mode
+        if (!storyText) {
             return api.sendMessage(
-                "❌ Please provide a message or reply to an image.",
+                "❌ Please provide text for the story or reply to an image.",
                 threadID,
                 messageID
             );
         }
 
-        // Send "posting" status
-        const postingMsg = await api.sendMessage(
-            `📝 Creating post...`,
+        // Send "creating story" status
+        const creatingMsg = await api.sendMessage(
+            `📝 Creating text story...`,
             threadID
         );
 
         try {
-            // Create the post
-            const options = {};
-            if (imageStreams.length > 0) {
-                options.attachment = imageStreams.length === 1 
-                    ? imageStreams[0] 
-                    : imageStreams;
-            }
+            // Create text story
+            const result = await api.story.create(storyText, fontName, backgroundName);
 
-            const result = await api.createPost(postMessage || "", options);
-
-            // Unsend "posting" status
-            if (postingMsg?.messageID) {
+            // Unsend "creating" status
+            if (creatingMsg?.messageID) {
                 try {
-                    await api.unsendMessage(postingMsg.messageID);
+                    await api.unsendMessage(creatingMsg.messageID);
                 } catch {
                     // Ignore
                 }
             }
 
-            logger?.success?.("Post", `Created post: ${result.postID || "success"}`);
+            logger?.success?.("Story", `Created text story: ${result.storyID || "success"}`);
 
-            let successMessage = `✅ **Post Created Successfully!**\n\n`;
-            if (postMessage) {
-                successMessage += `📝 Message: "${postMessage.substring(0, 50)}${postMessage.length > 50 ? "..." : ""}"\n`;
-            }
-            if (imageStreams.length > 0) {
-                successMessage += `📷 Images: ${imageStreams.length}\n`;
-            }
-            if (result.url) {
-                successMessage += `\n🔗 ${result.url}`;
+            let successMessage = `✅ **Text Story Created!**\n\n`;
+            successMessage += `📝 Text: "${storyText.substring(0, 50)}${storyText.length > 50 ? "..." : ""}"\n`;
+            successMessage += `🎨 Font: ${fontName}\n`;
+            successMessage += `🖼️ Background: ${backgroundName}\n`;
+            if (result.storyID) {
+                successMessage += `\n🔗 Story ID: ${result.storyID}`;
             }
 
             return api.sendMessage(successMessage, threadID, messageID);
 
         } catch (error) {
-            // Unsend "posting" status
-            if (postingMsg?.messageID) {
+            // Unsend "creating" status
+            if (creatingMsg?.messageID) {
                 try {
-                    await api.unsendMessage(postingMsg.messageID);
+                    await api.unsendMessage(creatingMsg.messageID);
                 } catch {
                     // Ignore
                 }
             }
 
-            logger?.error?.("Post", `Failed to create post: ${error.message}`);
+            logger?.error?.("Story", `Failed to create text story: ${error.message}`);
 
             return api.sendMessage(
-                `❌ Failed to create post!\n\n` +
+                `❌ Failed to create text story!\n\n` +
                 `Error: ${error.message || "Unknown error"}`,
                 threadID,
                 messageID

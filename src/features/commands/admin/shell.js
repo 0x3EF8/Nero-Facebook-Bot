@@ -76,18 +76,20 @@ module.exports = {
     /**
      * Command execution function
      */
-    async execute({ api, event, args, logger }) {
+    async execute({ api, event, args, config, logger }) {
     const threadID = event.threadID;
     const messageID = event.messageID ? String(event.messageID) : null;
 
     if (args.length === 0) {
+        const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+        const commandName = this.config.name;
         const platform = os.platform();
         const shell = platform === "win32" ? "cmd.exe" : "/bin/bash";
 
         return api.sendMessage(
             `🖥️ SHELL COMMAND\n` +
                 `━━━━━━━━━━━━━━━━━━━━\n\n` +
-                `Usage: !shell <command>\n\n` +
+                `Usage: ${actualPrefix}${commandName} <command>\n\n` +
                 `📋 System Info:\n` +
                 `   Platform: ${platform}\n` +
                 `   Shell: ${shell}\n` +
@@ -95,10 +97,10 @@ module.exports = {
                 `   User: ${os.userInfo().username}\n\n` +
                 `⚠️ Warning: Use with caution!\n\n` +
                 `Examples:\n` +
-                `   !shell dir\n` +
-                `   !shell echo Hello\n` +
-                `   !shell node -v\n` +
-                `   !shell npm list --depth=0`,
+                `   ${actualPrefix}${commandName} dir\n` +
+                `   ${actualPrefix}${commandName} echo Hello\n` +
+                `   ${actualPrefix}${commandName} node -v\n` +
+                `   ${actualPrefix}${commandName} npm list --depth=0`,
             threadID,
             messageID
         );

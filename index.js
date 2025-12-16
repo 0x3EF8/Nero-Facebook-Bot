@@ -388,7 +388,7 @@ async function handleEvent(api, event, account) {
         if (event.senderID && config.isBlocked(event.senderID)) {
             return;
         }
-        if (event.threadID && config.isThreadBlocked(event.threadID)) {
+        if (event.threadID && config.isThreadBlocked(event.threadID) && !config.isAdmin(event.senderID)) {
             return;
         }
 

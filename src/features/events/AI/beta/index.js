@@ -28,6 +28,7 @@ require("./services/music");
 require("./services/video");
 require("./services/weather");
 require("./services/lyrics");
+require("./services/poll");
 
 // Handlers
 const { handleCommands } = require("./handlers/commands");

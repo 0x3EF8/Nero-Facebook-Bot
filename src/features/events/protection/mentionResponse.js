@@ -5,10 +5,10 @@
  * ╚═══════════════════════════════════════════════════════════════════════════════╝
  *
  * This event handler triggers when someone mentions the bot,
- * providing helpful information on how to use it.
+ * responding with a friendly hello message.
  *
  * @author 0x3EF8
- * @version 1.0.0
+ * @version 1.0.1
  */
 
 "use strict";
@@ -19,14 +19,14 @@ module.exports = {
         description: "Responds when the bot is mentioned",
         eventTypes: ["message"],
         priority: 5,
-        enabled: false,
+        enabled: true,
     },
 
     /**
      * Event execution function
      * @param {Object} context - Event context
      */
-    async execute({ api, event, config, logger }) {
+    async execute({ api, event, logger }) {
     // Get bot's user ID
     const botID = api.getCurrentUserID ? api.getCurrentUserID() : null;
 
@@ -47,7 +47,7 @@ module.exports = {
 
     try {
         api.sendMessage(
-            `Hello! I'm ${config.bot.name}. Use ${config.bot.prefix}help to see what I can do!`,
+            `Hello! 👋`,
             threadID,
             messageID
         );

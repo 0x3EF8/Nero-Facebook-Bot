@@ -34,7 +34,7 @@ module.exports = {
      * Command execution function
      * @param {Object} context - Command context
      */
-    async execute({ api, event, args, logger }) {
+    async execute({ api, event, args, config, logger }) {
     const threadID = event.threadID;
     const senderID = event.senderID;
     const isGroup = event.isGroup;
@@ -220,13 +220,15 @@ module.exports = {
     }
     // No target specified
     else {
+        const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+        const commandName = this.config.name;
         return api.sendMessage(
             `❌ Please specify who to kick!\n\n` +
                 `📖 Usage:\n` +
-                `• kick @user1 @user2 - Kick mentioned users\n` +
-                `• kick [reply] - Reply to a message to kick that user\n` +
-                `• kick all - Kick all members (except you and bot)\n` +
-                `• kick all expt @user1 @user2 - Kick all except mentioned\n\n` +
+                `• ${actualPrefix}${commandName} @user1 @user2 - Kick mentioned users\n` +
+                `• ${actualPrefix}${commandName} [reply] - Reply to a message to kick that user\n` +
+                `• ${actualPrefix}${commandName} all - Kick all members (except you and bot)\n` +
+                `• ${actualPrefix}${commandName} all expt @user1 @user2 - Kick all except mentioned\n\n` +
                 `📝 Options:\n` +
                 `• "all" = kick all members\n` +
                 `• "expt" = except/exclude mentioned users`,

@@ -21,220 +21,150 @@ const { fetchLyrics } = require("./lyrics");
 const { withRetry } = require("../../../../../utils/retry");
 
 /**
- * Download music from YouTube
- * @param {Object} api - Facebook API instance
- * @param {string} threadID - Thread identifier
- * @param {string} messageID - Message ID for reactions
- * @param {string} query - Search query
- * @param {Object} _model - Unused (uses internal gemini)
- * @param {boolean} wantsLyrics - Whether to fetch lyrics
- * @returns {Promise<void>}
+ * Internal helper to perform download attempt
+ * @returns {Promise<boolean>} Success status
  */
-async function downloadMusic(api, threadID, messageID, query, _model, wantsLyrics = false) {
-    const model = gemini.createModelProxy();
-    const downloadDir = path.join(process.cwd(), "data", "temp");
-
-    if (!fs.existsSync(downloadDir)) {
-        fs.mkdirSync(downloadDir, { recursive: true });
-    }
-
+async function attemptDownload(api, threadID, messageID, query, model, downloadDir, wantsLyrics) {
     let audioPath = null;
+    let youtube = null;
 
     try {
-        api.setMessageReaction("⏳", messageID, () => {}, true);
-
-        const youtube = await Innertube.create({
+        youtube = await Innertube.create({
             generate_session_locally: true,
         });
 
         const search = await withRetry(() => youtube.search(query), {
-            maxRetries: 3,
+            maxRetries: 2,
             initialDelay: 1000,
-            shouldRetry: (error) =>
-                error.code === "ECONNRESET" ||
-                error.code === "ETIMEDOUT" ||
-                error.message?.includes("network"),
+            shouldRetry: (error) => error.code === "ECONNRESET" || error.code === "ETIMEDOUT",
         });
-        let allVideos = search.results.filter((item) => item.type === "Video").slice(0, 20);
 
-        if (allVideos.length === 0) {
-            api.setMessageReaction("❌", messageID, () => {}, true);
-            return api.sendMessage("❌ No music found for your search query.", threadID, messageID);
-        }
+        let allVideos = search.results.filter((item) => item.type === "Video").slice(0, 15);
 
-        // AI-POWERED CONTENT SCORING
-        console.log(chalk.magenta(` ├─🧠 AI scoring ${allVideos.length} results...`));
+        if (allVideos.length === 0) return false;
 
+        // AI-POWERED CONTENT SCORING (Optional - continue if fails)
         try {
-            const videoTitles = allVideos
-                .slice(0, 10)
-                .map(
-                    (v, i) =>
-                        `${i + 1}. "${v.title.text}" by ${v.author?.name || "Unknown"} (${v.duration?.text || "N/A"})`
-                )
-                .join("\n");
-
-            const scoringPrompt = `Score these music results for "${query}":
-${videoTitles}
-Return JSON: [{"index": 1, "score": 95, "reason": "..."}]`;
-
+            const videoTitles = allVideos.slice(0, 8).map((v, i) => `${i + 1}. "${v.title.text}" (${v.duration?.text})`).join("\n");
+            const scoringPrompt = `Rank these results for "${query}":\n${videoTitles}\nReturn JSON ids: [1, 5, 2]`;
             const scoringResult = await model.generateContent(scoringPrompt);
-            const scoringText = scoringResult?.response?.text?.();
-
-            if (scoringText) {
-                const cleanJson = scoringText.replace(/```json\n?|```\n?/g, "").trim();
-                const scores = JSON.parse(cleanJson);
-                scores.sort((a, b) => b.score - a.score);
-                const reordered = scores.map((s) => allVideos[s.index - 1]).filter((v) => v);
-                allVideos = reordered.concat(allVideos.filter((v) => !reordered.includes(v)));
-                console.log(chalk.green(` ├─✓ AI ranked results`));
+            const scores = JSON.parse(scoringResult?.response?.text?.().replace(/```json\n?|```\n?/g, "") || "[]");
+            if (Array.isArray(scores) && scores.length > 0) {
+                 const reordered = scores.map(idx => allVideos[idx-1]).filter(Boolean);
+                 allVideos = [...reordered, ...allVideos.filter(v => !reordered.includes(v))];
             }
-        } catch {
-            console.warn(chalk.yellow("⚠ AI scoring failed, using default order"));
-        }
+        } catch { /* Ignore AI sorting errors */ }
 
-        // Find video within duration limit
+        // Find valid video
         let selectedVideo = null;
-        let videoTitle = "";
-        let channelName = "";
-
         for (const video of allVideos) {
             try {
                 const info = await youtube.getInfo(video.id);
-                if (info.basic_info.duration <= 600 && info.basic_info.duration > 30) {
+                const dur = info.basic_info.duration;
+                if (dur > 30 && dur <= 600) {
                     selectedVideo = video;
-                    videoTitle = selectedVideo.title.text;
-                    channelName = selectedVideo.author?.name || "Unknown";
-                    console.log(chalk.green(` ├─✓ Found: ${videoTitle}`));
                     break;
                 }
-            } catch {
-                continue;
-            }
+            } catch { continue; }
         }
 
-        if (!selectedVideo) {
-            selectedVideo = allVideos[0];
-            videoTitle = selectedVideo.title.text;
-            channelName = selectedVideo.author?.name || "Unknown";
-        }
+        if (!selectedVideo) return false;
 
-        console.log(chalk.cyan(` ├─🎵 Downloading: ${videoTitle}`));
-        api.setMessageReaction("⬇️", messageID, () => {}, true);
-
-        const sanitizedTitle = videoTitle.replace(/[/\\?%*:|"<>]/g, "-").slice(0, 100);
+        const videoTitle = selectedVideo.title.text;
+        const channelName = selectedVideo.author?.name || "Unknown";
+        
+        console.log(chalk.cyan(` ├─🎵 Downloading: ${videoTitle} (${query})`));
+        
+        const sanitizedTitle = videoTitle.replace(/[/\\?%*:|"<>]/g, "-").slice(0, 50);
         audioPath = path.join(downloadDir, `${Date.now()}-${sanitizedTitle}.mp3`);
 
-        // Download audio
+        // Download loop
         let downloadSuccess = false;
         const qualityOptions = [
             { type: "audio", quality: "best" },
             { type: "audio", quality: "bestefficiency" },
-            { type: "video+audio", quality: "bestefficiency", format: "mp4" },
         ];
 
         for (const options of qualityOptions) {
             try {
                 const stream = await youtube.download(selectedVideo.id, options);
                 const fileStream = fs.createWriteStream(audioPath);
-
-                for await (const chunk of Utils.streamToIterable(stream)) {
-                    fileStream.write(chunk);
-                }
-
+                for await (const chunk of Utils.streamToIterable(stream)) fileStream.write(chunk);
                 fileStream.end();
-                await new Promise((resolve) => {
-                    fileStream.on("finish", resolve);
-                });
+                await new Promise(resolve => fileStream.on("finish", resolve));
                 downloadSuccess = true;
                 break;
-            } catch {
-                if (fs.existsSync(audioPath)) {
-                    try {
-                        fs.unlinkSync(audioPath);
-                    } catch {
-                        /* ignore */
-                    }
-                }
-                continue;
+            } catch { 
+                if (fs.existsSync(audioPath)) try { fs.unlinkSync(audioPath); } catch { /* ignore */ }
             }
         }
 
-        if (!downloadSuccess) {
-            throw new Error("Download failed with all quality options");
-        }
+        if (!downloadSuccess) return false;
 
         const stats = fs.statSync(audioPath);
-        const fileSizeMB = stats.size / (1024 * 1024);
-
-        if (fileSizeMB > 50) {
-            fs.unlinkSync(audioPath);
-            api.setMessageReaction("❌", messageID, () => {}, true);
-            return api.sendMessage(
-                `⚠️ Audio file too large (${fileSizeMB.toFixed(2)} MB). Max: 50 MB`,
-                threadID,
-                messageID
-            );
+        if (stats.size / (1024 * 1024) > 50) {
+             fs.unlinkSync(audioPath);
+             return false;
         }
 
-        // Fetch lyrics if requested
+        // Lyrics
         if (wantsLyrics) {
-            console.log(chalk.cyan(` ├─📝 Fetching lyrics...`));
             const lyrics = await fetchLyrics(videoTitle, channelName);
-
-            if (lyrics) {
-                await api.sendMessage(
-                    `📝 **${videoTitle}**\n👤 ${channelName}\n\n${lyrics}`,
-                    threadID
-                );
-            }
+            if (lyrics) await api.sendMessage(`📝 **${videoTitle}**\n\n${lyrics}`, threadID);
         }
 
-        console.log(chalk.cyan(` ├─🔃 Uploading music...`));
+        // Upload
         api.setMessageReaction("🔃", messageID, () => {}, true);
-
-        // Send music
-        await api.sendMessage(
-            {
-                body: `🎵 ${videoTitle}\n👤 ${channelName}`,
-                attachment: fs.createReadStream(audioPath),
-            },
-            threadID
-        );
-
-        console.log(
-            chalk.green(
-                ` ├─✓ Music sent: ${videoTitle.substring(0, 40)}... (${fileSizeMB.toFixed(2)} MB)`
-            )
-        );
+        await api.sendMessage({
+            body: `🎵 ${videoTitle}\n👤 ${channelName}`,
+            attachment: fs.createReadStream(audioPath)
+        }, threadID);
+        
         api.setMessageReaction("✅", messageID, () => {}, true);
 
         // Cleanup
-        setTimeout(() => {
-            try {
-                if (fs.existsSync(audioPath)) fs.unlinkSync(audioPath);
-            } catch {
-                /* ignore */
-            }
-        }, 5000);
+        setTimeout(() => { if (fs.existsSync(audioPath)) fs.unlinkSync(audioPath); }, 5000);
+        return true;
+
     } catch (error) {
-        console.error(chalk.red(` ├─✗ Music download error: ${error.message}`));
-        api.setMessageReaction("❌", messageID, () => {}, true);
-
-        if (audioPath && fs.existsSync(audioPath)) {
-            try {
-                fs.unlinkSync(audioPath);
-            } catch {
-                /* ignore */
-            }
-        }
-
-        return api.sendMessage(
-            "❌ Error downloading music. Try a different search query.",
-            threadID,
-            messageID
-        );
+        console.error(`Download helper failed: ${error.message}`);
+        if (audioPath && fs.existsSync(audioPath)) fs.unlinkSync(audioPath);
+        return false;
     }
+}
+
+/**
+ * Download music from YouTube with Retry Logic
+ */
+async function downloadMusic(api, threadID, messageID, query, _model, wantsLyrics = false) {
+    const model = gemini.createModelProxy();
+    const downloadDir = path.join(process.cwd(), "data", "temp");
+    if (!fs.existsSync(downloadDir)) fs.mkdirSync(downloadDir, { recursive: true });
+
+    api.setMessageReaction("⏳", messageID, () => {}, true);
+
+    // Retry Strategy
+    const queries = [
+        query,                          // Attempt 1: Raw query
+        `${query} official audio`,      // Attempt 2: Official Audio
+        `${query} lyrics`,              // Attempt 3: Lyrics version (often loads faster/easier)
+        query.split(" ").slice(0, 3).join(" ") // Attempt 4: Simplified query
+    ];
+
+    for (let i = 0; i < queries.length; i++) {
+        const currentQuery = queries[i];
+        if (i > 0) console.log(chalk.yellow(` ├─⚠ Retry ${i}: "${currentQuery}"`));
+        
+        const success = await attemptDownload(api, threadID, messageID, currentQuery, model, downloadDir, wantsLyrics);
+        if (success) return;
+        
+        // Wait briefly between retries
+        await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    // All failed
+    api.setMessageReaction("❌", messageID, () => {}, true);
+    return api.sendMessage("❌ Failed to download music after multiple attempts. Please try a different song name.", threadID, messageID);
 }
 
 module.exports = {

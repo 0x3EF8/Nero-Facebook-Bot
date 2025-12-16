@@ -76,7 +76,7 @@ module.exports = {
         groupOnly: false,
     },
 
-    async execute({ api, event, args }) {
+    async execute({ api, event, args, config }) {
     const { threadID, messageID, senderID, messageReply, mentions } = event;
 
     let targetID = null;
@@ -90,7 +90,14 @@ module.exports = {
         if (potentialUID && potentialUID.length >= 10) {
             targetID = potentialUID;
         } else {
-            return api.sendMessage("Invalid UID format.", threadID, messageID);
+            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+            const commandName = this.config.name;
+            return api.sendMessage(
+                `❌ Invalid UID format.\n\n` +
+                `Usage: ${actualPrefix}${commandName} [@mention | reply to message | UID]`,
+                threadID,
+                messageID
+            );
         }
     } else {
         targetID = senderID;

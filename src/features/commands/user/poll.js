@@ -53,7 +53,7 @@ module.exports = {
      * Command execution function
      * @param {Object} context - Command context
      */
-    async execute({ api, event, args }) {
+    async execute({ api, event, args, config }) {
     const threadID = event.threadID;
 
     // Check if in a group
@@ -62,33 +62,36 @@ module.exports = {
     }
 
     // Check if args are provided
-    if (args.length === 0) {
-        return api.sendMessage(
-            `📊 **Poll Command**\n\n` +
-                `Create a poll for group members to vote on!\n\n` +
-                `📖 Usage:\n` +
-                `• poll <question> - <option1> - <option2> - [option3]...\n\n` +
-                `📝 Examples:\n` +
-                `• poll What's for dinner? - Pizza - Burger - Sushi\n` +
-                `• poll Meeting time? - 10 AM - 2 PM - 4 PM - 6 PM\n` +
-                `• poll Best programming language? - JavaScript - Python - Rust\n\n` +
-                `💡 Tips:\n` +
-                `• Use - (dash) to separate question and options\n` +
-                `• Minimum 2 options required\n` +
-                `• Maximum 10 options recommended`,
-            threadID
-        );
-    }
-
+            if (args.length === 0) {
+                const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+                const commandName = this.config.name;
+                return api.sendMessage(
+                    `📊 **Poll Command**\n\n` +
+                        `Create a poll for group members to vote on!\n\n` +
+                        `📖 Usage:\n` +
+                        `• ${actualPrefix}${commandName} <question> - <option1> - <option2> - [option3]...\n\n` +
+                        `📝 Examples:\n` +
+                        `• ${actualPrefix}${commandName} What's for dinner? - Pizza - Burger - Sushi\n` +
+                        `• ${actualPrefix}${commandName} Meeting time? - 10 AM - 2 PM - 4 PM - 6 PM\n` +
+                        `• ${actualPrefix}${commandName} Best programming language? - JavaScript - Python - Rust\n\n` +
+                        `💡 Tips:\n` +
+                        `• Use - (dash) to separate question and options\n` +
+                        `• Minimum 2 options required\n` +
+                        `• Maximum 10 options recommended`,
+                    threadID
+                );
+            }
     // Parse the input
     const input = args.join(" ");
     const parsed = parsePollInput(input);
 
     if (!parsed) {
+        const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+        const commandName = this.config.name;
         return api.sendMessage(
             `❌ Invalid poll format!\n\n` +
-                `Please use: poll <question> - <option1> - <option2> - ...\n\n` +
-                `Example: poll What's for lunch? - Pizza - Burger - Salad`,
+                `Please use: ${actualPrefix}${commandName} <question> - <option1> - <option2> - ...\n\n` +
+                `Example: ${actualPrefix}${commandName} What's for lunch? - Pizza - Burger - Salad`,
             threadID
         );
     }

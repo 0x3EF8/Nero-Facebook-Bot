@@ -7,7 +7,7 @@ const { URL } = require("url");
  * @namespace api.story
  * @description A collection of functions for interacting with Facebook Stories.
  * @license Ex-it
- * @author Jonell Magallanes, ChoruOfficial
+ * @author Jonell Magallanes, ChoruOfficial, 0x3EF8
  */
 module.exports = function (defaultFuncs, api, ctx) {
     /**
@@ -26,6 +26,64 @@ module.exports = function (defaultFuncs, api, ctx) {
             return null;
         } catch (e) {
             return null;
+        }
+    }
+
+    /**
+     * (Internal) Upload media for story
+     * @param {ReadStream} attachment - File stream to upload
+     * @returns {Promise<string>} Media ID
+     */
+    async function uploadStoryMedia(attachment) {
+        try {
+            const uploadForm = {
+                av: ctx.userID,
+                __user: ctx.userID,
+                fb_dtsg: ctx.fb_dtsg,
+                jazoest: ctx.jazoest,
+                source: "8",
+                profile_id: ctx.userID,
+                waterfallxapp: "comet",
+                upload_id: `jsc_c_${Date.now()}`,
+                farr: attachment,
+            };
+
+            const res = await defaultFuncs.postFormData(
+                "https://upload.facebook.com/ajax/react_composer/attachments/photo/upload",
+                ctx.jar,
+                uploadForm
+            );
+
+            const responseText = res.body.toString();
+            
+            // Parse response - Facebook returns "for (;;);{json}"
+            let jsonStr = responseText;
+            if (responseText.startsWith("for (;;);")) {
+                jsonStr = responseText.slice(9);
+            }
+            
+            const data = JSON.parse(jsonStr);
+            
+            if (data.payload && data.payload.photoID) {
+                return data.payload.photoID;
+            }
+
+            if (data.payload && data.payload.fbid) {
+                return data.payload.fbid;
+            }
+
+            // Try alternate response format
+            if (data.jsmods && data.jsmods.require) {
+                for (const req of data.jsmods.require) {
+                    if (req[0] === "PhotoUploader" && req[3] && req[3][0]) {
+                        return req[3][0].photoID || req[3][0].fbid;
+                    }
+                }
+            }
+
+            throw new Error("Could not extract photo ID from upload response");
+        } catch (err) {
+            throw new Error(`Failed to upload story media: ${err.message}`);
         }
     }
 
@@ -171,6 +229,95 @@ module.exports = function (defaultFuncs, api, ctx) {
         }
     }
 
+    /**
+     * Creates a new photo-based story.
+     * @param {ReadStream|ReadStream[]} attachment - Image stream(s) to upload.
+     * @param {string} [caption=""] - Optional caption/text overlay for the story.
+     * @returns {Promise<{success: boolean, storyID: string}>} A promise that resolves with the new story's ID.
+     */
+    async function createPhoto(attachment, caption = "") {
+        try {
+            // Handle single or multiple attachments
+            const attachments = Array.isArray(attachment) ? attachment : [attachment];
+            
+            if (attachments.length === 0) {
+                throw new Error("At least one image attachment is required.");
+            }
+
+            // Upload the first image (Facebook stories typically use one image)
+            const photoID = await uploadStoryMedia(attachments[0]);
+            
+            if (!photoID) {
+                throw new Error("Failed to upload image for story.");
+            }
+
+            const variables = {
+                input: {
+                    audiences: [{ stories: { self: { target_id: ctx.userID } } }],
+                    audiences_is_complete: true,
+                    logging: { composer_session_id: "createStoriesPhoto-" + Date.now() },
+                    navigation_data: {
+                        attribution_id_v2: "StoriesCreateRoot.react,comet.stories.create",
+                    },
+                    source: "WWW",
+                    tracking: [null],
+                    actor_id: ctx.userID,
+                    client_mutation_id: Math.floor(Math.random() * 1000000).toString(),
+                    media: [{
+                        photo: {
+                            id: photoID,
+                        }
+                    }],
+                },
+            };
+
+            // Add caption/text overlay if provided
+            if (caption && caption.trim()) {
+                variables.input.message = { ranges: [], text: caption };
+            }
+
+            const form = {
+                av: ctx.userID,
+                __user: ctx.userID,
+                __a: "1",
+                fb_dtsg: ctx.fb_dtsg,
+                jazoest: ctx.jazoest,
+                fb_api_caller_class: "RelayModern",
+                fb_api_req_friendly_name: "StoriesCreateMutation",
+                variables: JSON.stringify(variables),
+                doc_id: "24226878183562473",
+            };
+
+            const res = await defaultFuncs.post(
+                "https://www.facebook.com/api/graphql/",
+                ctx.jar,
+                form,
+                {}
+            );
+
+            if (res.data?.errors) {
+                throw new Error(JSON.stringify(res.data.errors));
+            }
+
+            const storyNode =
+                res.data?.data?.story_create?.viewer?.actor?.story_bucket?.nodes[0]
+                    ?.first_story_to_show;
+
+            if (!storyNode || !storyNode.id) {
+                // Try alternate response path
+                const altStoryID = res.data?.data?.story_create?.post_id;
+                if (altStoryID) {
+                    return { success: true, storyID: altStoryID };
+                }
+                throw new Error("Could not find the storyID in the response.");
+            }
+
+            return { success: true, storyID: storyNode.id };
+        } catch (error) {
+            throw error;
+        }
+    }
+
     return {
         /**
          * Creates a new text-based story.
@@ -180,6 +327,13 @@ module.exports = function (defaultFuncs, api, ctx) {
          * @returns {Promise<{success: boolean, storyID: string}>}
          */
         create,
+        /**
+         * Creates a new photo-based story.
+         * @param {ReadStream|ReadStream[]} attachment - Image stream(s) to upload.
+         * @param {string} [caption=""] - Optional caption/text overlay for the story.
+         * @returns {Promise<{success: boolean, storyID: string}>}
+         */
+        createPhoto,
         /**
          * Reacts to a story with a specific emoji.
          * @param {string} storyIdOrUrl The ID or full URL of the story to react to.

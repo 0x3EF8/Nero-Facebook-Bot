@@ -12,10 +12,12 @@
 "use strict";
 
 const chalk = require("chalk");
+const config = require("../../../../../config/config");
 
 const { downloadMusic } = require("../services/music");
 const { downloadVideo } = require("../services/video");
 const { getWeather } = require("../services/weather");
+const { createPoll } = require("../services/poll");
 const { users } = require("../core/users");
 const {
     generateRandomPairs,
@@ -45,6 +47,9 @@ const PATTERNS = {
     // Utility commands
     WEATHER_CHECK: /WEATHER_CHECK:\s*(.+)/i,
     DATETIME_CHECK: /DATETIME_CHECK/i,
+    
+    // Poll commands
+    POLL_CREATE: /POLL_CREATE:\s*(.+)/i,
     
     // Pairing commands
     PAIR_ME: /PAIR_ME/i,
@@ -269,16 +274,34 @@ async function handleWeatherCheck(api, threadID, messageID, location) {
 async function handleDateTimeCheck(api, threadID, messageID) {
     const now = new Date();
     const manilaTime = now.toLocaleString("en-US", {
-        timeZone: "Asia/Manila",
+        timeZone: config.bot.timeZone,
         dateStyle: "full",
         timeStyle: "long",
     });
 
     await sendReply(api, threadID, messageID,
-        `📅 Current Date & Time\n\n🕐 ${manilaTime}\n📍 Timezone: Asia/Manila (PHT)`
+        `📅 Current Date & Time\n\n🕐 ${manilaTime}\n📍 Timezone: ${config.bot.timeZone}`
     );
     react(api, messageID, REACTIONS.success);
     return true;
+}
+
+/**
+ * Handle poll creation
+ */
+async function handlePollCreate(api, threadID, messageID, argsString) {
+    // Parse: Question | Option1 | Option2...
+    const parts = argsString.split("|").map(s => s.trim()).filter(Boolean);
+    
+    if (parts.length < 3) {
+        react(api, messageID, REACTIONS.error);
+        return api.sendMessage("❌ Poll needs a question and at least 2 options.", threadID, messageID);
+    }
+
+    const question = parts[0];
+    const options = parts.slice(1);
+
+    return createPoll(api, threadID, messageID, question, options);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -478,6 +501,11 @@ async function handleCommands({
 
     if (PATTERNS.DATETIME_CHECK.test(responseText)) {
         return handleDateTimeCheck(api, threadID, messageID);
+    }
+
+    const pollMatch = responseText.match(PATTERNS.POLL_CREATE);
+    if (pollMatch) {
+        return handlePollCreate(api, threadID, messageID, pollMatch[1]);
     }
 
     // ─────────────────────────────────────────────────────────────────

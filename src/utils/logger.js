@@ -119,11 +119,49 @@ class Logger {
         if (this.options.file && this.options.filePath) {
             this._initFileLogging();
         }
+
+        // Initialize console overrides to filter spam
+        this._initConsoleOverrides();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
     //  PRIVATE HELPERS
     // ─────────────────────────────────────────────────────────────────────────
+
+    _initConsoleOverrides() {
+        const originalWarn = console.warn;
+        const originalError = console.error;
+        const originalLog = console.log;
+
+        // Filters for noisy logs from external libraries
+        const SPAM_FILTERS = [
+            "WebSocket closed. Reconnecting...",
+            "Connected via undici.WebSocket",
+            "[MQTT] getSeqID error",
+            "Facebook blocked the login", // We handle this in AccountManager, suppress raw log
+        ];
+
+        const shouldFilter = (args) => {
+            const msg = args.map(String).join(" ");
+            return SPAM_FILTERS.some(filter => msg.includes(filter));
+        };
+
+        console.warn = (...args) => {
+            if (shouldFilter(args)) return;
+            originalWarn.apply(console, args);
+        };
+
+        console.error = (...args) => {
+            if (shouldFilter(args)) return;
+            originalError.apply(console, args);
+        };
+        
+        // Also filter standard log if needed (some libs use console.log for status)
+        console.log = (...args) => {
+            if (shouldFilter(args)) return;
+            originalLog.apply(console, args);
+        };
+    }
 
     _generateSessionId() {
         return Math.random().toString(36).substring(2, 8).toUpperCase();

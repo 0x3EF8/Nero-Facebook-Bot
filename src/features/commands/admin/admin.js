@@ -1,11 +1,13 @@
 /**
  * ╔═══════════════════════════════════════════════════════════════════════════════╗
- * ║                           ADMIN COMMAND                                       ║
- * ║         Manage bot administrators (Super Admin Only)                          ║
+ * ║                            ADMIN COMMAND                                      ║
+ * ║                  Manage bot administrators dynamically                        ║
  * ╚═══════════════════════════════════════════════════════════════════════════════╝
  *
- * This command allows super admins to manage bot administrators.
- * Add, remove, or list admin users.
+ * Usage:
+ *  • admin -a @user / reply  -> Add admin
+ *  • admin -r @user / reply  -> Remove admin
+ *  • admin -l                -> List admins
  *
  * @author 0x3EF8
  * @version 1.0.0
@@ -16,142 +18,115 @@
 module.exports = {
     config: {
         name: "admin",
-        aliases: ["admins", "administrator"],
-        description: "Manage bot administrators (Super Admin Only)",
-        usage: "admin <add|remove|list> [userID]",
+        aliases: ["manager", "mod"],
+        description: "Add or remove bot administrators",
+        usage: "admin <-a|-r|-l> [@user|reply|user ID]",
         category: "admin",
         cooldown: 5,
-        permissions: "superadmin",
+        permissions: "superadmin", // Only superadmins can manage admins
         enabled: true,
         dmOnly: false,
         groupOnly: false,
     },
 
-    /**
-     * Command execution function
-     * @param {Object} context - Command context
-     */
-    async execute({ api, event, args, config, logger }) {
-    const threadID = event.threadID;
-    const messageID = event.messageID;
+    async execute({ api, event, args, config }) {
+        const { threadID, messageReply, mentions, senderID } = event;
+        const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+        const commandName = this.config.name;
 
-    // Show usage if no arguments
-    if (args.length === 0) {
-        const adminList =
-            config.bot.admins.length > 0 ? config.bot.admins.join("\n• ") : "No admins configured";
+        if (args.length === 0) {
+            return api.sendMessage(
+                `❌ Invalid usage!\n\n` +
+                `Usage:\n` +
+                `• ${actualPrefix}${commandName} -a @user : Add admin\n` +
+                `• ${actualPrefix}${commandName} -r @user : Remove admin\n` +
+                `• ${actualPrefix}${commandName} -l       : List admins`,
+                threadID
+            );
+        }
 
-        const superAdminList =
-            config.bot.superAdmins.length > 0
-                ? config.bot.superAdmins.join("\n• ")
-                : "No super admins configured";
+        const action = args[0].toLowerCase();
+        
+        // List Admins
+        if (action === "-l" || action === "list") {
+            const admins = config.bot.admins;
+            const superAdmins = config.bot.superAdmins;
+            
+            let msg = "👑 **Bot Administrators** 👑\n\n";
+            
+            msg += "**Super Admins:**\n";
+            superAdmins.forEach((id, index) => { msg += `${index + 1}. ${id}\n`; });
+            
+            msg += "\n**Admins:**\n";
+            if (admins.length > 0) {
+                admins.forEach((id, index) => { msg += `${index + 1}. ${id}\n`; });
+            } else {
+                msg += "None\n";
+            }
+            
+            return api.sendMessage(msg, threadID);
+        }
 
-        return api.sendMessage(
-            `👑 Admin Management\n\n` +
-                `Super Admins:\n• ${superAdminList}\n\n` +
-                `Admins:\n• ${adminList}\n\n` +
-                `Commands:\n` +
-                `• admin add <userID>\n` +
-                `• admin remove <userID>\n` +
-                `• admin list`,
-            threadID,
-            messageID
-        );
+        // Get target user
+        let targetID = null;
+        let targetName = "";
+
+        if (messageReply) {
+            targetID = messageReply.senderID;
+            // Try to get name (might need async call, but for now placeholder)
+            targetName = "Replied User"; 
+        } else if (Object.keys(mentions).length > 0) {
+            targetID = Object.keys(mentions)[0];
+            targetName = mentions[targetID].replace("@", "");
+        } else if (args[1]) {
+            // Try to parse ID directly
+            if (!isNaN(args[1])) {
+                targetID = args[1];
+                targetName = `User ${targetID}`;
+            }
+        }
+
+        if (!targetID) {
+            return api.sendMessage("❌ Please reply to a user or mention them.", threadID);
+        }
+
+        // Action: Add Admin
+        if (action === "-a" || action === "add") {
+            if (config.isSuperAdmin(targetID)) {
+                return api.sendMessage("⚠️ User is already a Super Admin.", threadID);
+            }
+            
+            const success = config.addAdmin(targetID);
+            if (success) {
+                return api.sendMessage(`✅ Successfully added ${targetName} as Admin!`, threadID);
+            } else {
+                return api.sendMessage(`⚠️ User is already an Admin.`, threadID);
+            }
+        }
+        
+        // Action: Remove Admin
+        else if (action === "-r" || action === "remove" || action === "del") {
+            if (config.isSuperAdmin(targetID)) {
+                return api.sendMessage("❌ You cannot remove a Super Admin.", threadID);
+            }
+
+            const success = config.removeAdmin(targetID);
+            if (success) {
+                return api.sendMessage(`✅ Successfully removed ${targetName} from Admins.`, threadID);
+            } else {
+                return api.sendMessage(`⚠️ User is not an Admin.`, threadID);
+            }
+        }
+        
+        else {
+            return api.sendMessage(
+                `❌ Unknown action: ${action}\n\n` +
+                `Usage:\n` +
+                `• ${actualPrefix}${commandName} -a @user : Add admin\n` +
+                `• ${actualPrefix}${commandName} -r @user : Remove admin\n` +
+                `• ${actualPrefix}${commandName} -l       : List admins`,
+                threadID
+            );
+        }
     }
-
-    const action = args[0].toLowerCase();
-    const targetID = args[1];
-
-    switch (action) {
-        case "add": {
-            if (!targetID) {
-                return api.sendMessage(
-                    "❌ Please provide a user ID to add.\n\n" + "Usage: admin add <userID>",
-                    threadID,
-                    messageID
-                );
-            }
-
-            // Check if already admin
-            if (config.bot.admins.includes(targetID)) {
-                return api.sendMessage(
-                    `❌ User ${targetID} is already an admin.`,
-                    threadID,
-                    messageID
-                );
-            }
-
-            // Note: In production, this would update a database
-            // config.bot.admins.push(targetID); // Would throw if frozen
-
-            logger.info("Admin", `Admin add attempted for ${targetID} by ${event.senderID}`);
-
-            return api.sendMessage(
-                `⚠️ To add an admin, update config/config.js:\n\n` +
-                    `Find the admins array and add:\n` +
-                    `"${targetID}"\n\n` +
-                    `Then restart the bot.`,
-                threadID,
-                messageID
-            );
-        }
-
-        case "remove": {
-            if (!targetID) {
-                return api.sendMessage(
-                    "❌ Please provide a user ID to remove.\n\n" + "Usage: admin remove <userID>",
-                    threadID,
-                    messageID
-                );
-            }
-
-            // Check if is super admin
-            if (config.bot.superAdmins.includes(targetID)) {
-                return api.sendMessage("❌ Cannot remove a super admin.", threadID, messageID);
-            }
-
-            // Check if is admin
-            if (!config.bot.admins.includes(targetID)) {
-                return api.sendMessage(`❌ User ${targetID} is not an admin.`, threadID, messageID);
-            }
-
-            logger.info("Admin", `Admin removal attempted for ${targetID} by ${event.senderID}`);
-
-            return api.sendMessage(
-                `⚠️ To remove an admin, update config/config.js:\n\n` +
-                    `Find the admins array and remove:\n` +
-                    `"${targetID}"\n\n` +
-                    `Then restart the bot.`,
-                threadID,
-                messageID
-            );
-        }
-
-        case "list": {
-            const adminList =
-                config.bot.admins.length > 0
-                    ? config.bot.admins.map((id, i) => `${i + 1}. ${id}`).join("\n")
-                    : "No admins configured";
-
-            const superAdminList =
-                config.bot.superAdmins.length > 0
-                    ? config.bot.superAdmins.map((id, i) => `${i + 1}. ${id}`).join("\n")
-                    : "No super admins configured";
-
-            return api.sendMessage(
-                `👑 Administrator List\n\n` +
-                    `━━━ Super Admins ━━━\n${superAdminList}\n\n` +
-                    `━━━ Admins ━━━\n${adminList}`,
-                threadID,
-                messageID
-            );
-        }
-
-        default:
-            return api.sendMessage(
-                `❌ Unknown action "${action}".\n\n` + `Valid actions: add, remove, list`,
-                threadID,
-                messageID
-            );
-    }
-    },
 };

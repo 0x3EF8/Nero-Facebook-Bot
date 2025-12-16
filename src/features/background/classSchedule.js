@@ -15,6 +15,7 @@
 "use strict";
 
 const logger = require('../../utils/logger');
+const config = require('../../config/config');
 
 /**
  * @typedef {Object} ClassInfo
@@ -56,38 +57,65 @@ function convert12to24(time12h) {
 }
 
 /**
+ * Get current time parts in target timezone
+ * @param {string} timezone - Target timezone
+ * @returns {{weekday: string, hour: number, minute: number}}
+ */
+function getTimeParts(timezone) {
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        weekday: 'long',
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: false
+    });
+    
+    const parts = formatter.formatToParts(now);
+    const partMap = {};
+    parts.forEach(({ type, value }) => partMap[type] = value);
+    
+    return {
+        weekday: partMap.weekday,
+        hour: parseInt(partMap.hour, 10) % 24, // Handle 24h format
+        minute: parseInt(partMap.minute, 10)
+    };
+}
+
+/**
  * Check if we should send 30-minute reminder
  * @param {string} classTime - Class time in 12-hour format
- * @param {Date} now - Current time
+ * @param {number} currentHour - Current hour (0-23)
+ * @param {number} currentMinute - Current minute (0-59)
  * @returns {boolean} True if should send reminder
  */
-function shouldSend30MinReminder(classTime, now) {
+function shouldSend30MinReminder(classTime, currentHour, currentMinute) {
     const { hours: classHours, minutes: classMinutes } = convert12to24(classTime);
     
-    const classDate = new Date(now);
-    classDate.setHours(classHours, classMinutes, 0, 0);
+    const classTotalMinutes = classHours * 60 + classMinutes;
+    const currentTotalMinutes = currentHour * 60 + currentMinute;
     
-    const reminderTime = new Date(classDate.getTime() - 30 * 60 * 1000);
+    // Calculate difference handling day wrap-around (though classes are usually same day)
+    let diff = classTotalMinutes - currentTotalMinutes;
+    if (diff < 0) diff += 24 * 60; // Handle next day case if needed
     
-    const nowMinutes = now.getHours() * 60 + now.getMinutes();
-    const reminderMinutes = reminderTime.getHours() * 60 + reminderTime.getMinutes();
-    
-    return nowMinutes === reminderMinutes;
+    return diff === 30;
 }
 
 /**
  * Check if we should send exact time reminder
  * @param {string} classTime - Class time in 12-hour format
- * @param {Date} now - Current time
+ * @param {number} currentHour - Current hour (0-23)
+ * @param {number} currentMinute - Current minute (0-59)
  * @returns {boolean} True if should send reminder
  */
-function shouldSendExactTimeReminder(classTime, now) {
+function shouldSendExactTimeReminder(classTime, currentHour, currentMinute) {
     const { hours: classHours, minutes: classMinutes } = convert12to24(classTime);
     
-    const nowMinutes = now.getHours() * 60 + now.getMinutes();
-    const classTimeMinutes = classHours * 60 + classMinutes;
+    const classTotalMinutes = classHours * 60 + classMinutes;
+    const currentTotalMinutes = currentHour * 60 + currentMinute;
     
-    return nowMinutes === classTimeMinutes;
+    return classTotalMinutes === currentTotalMinutes;
 }
 
 /**
@@ -112,13 +140,13 @@ module.exports = {
     TARGET_GROUPS: ['24052714344355754', '24425853360351937'],
     
     /** @type {string} Timezone for time calculations */
-    TIMEZONE: 'Asia/Manila',
+    TIMEZONE: config.bot.timeZone,
     
     /** @type {boolean} Whether to unsend 30-min reminder when class starts */
     UNSEND_30MIN_ON_CLASS_START: true,
     
     /** @type {number} Time to wait before unsending class start message (ms) */
-    UNSEND_CLASS_START_AFTER: 30 * 60 * 1000, // 30 minutes in ms
+    UNSEND_CLASS_START_AFTER: 60 * 60 * 1000, // 60 minutes in ms
 
     /** 
      * Track sent messages for auto-unsend
@@ -162,6 +190,7 @@ module.exports = {
             { subject: 'IT - IT Elective 1', code: 'IT EL 1 (3220)', time: '11:30 AM', duration: 60, teacher: 'Yvonne Tenio', room: '422' },
             { subject: 'IT - Analytics Modeling', code: 'IT 312 (3216)', time: '04:00 PM', duration: 60, teacher: 'Evangeline Javier', room: '409' }
         ],
+        /*
         Saturday: [
             { subject: 'IT - Systems Admin & Maintenance', code: 'IT 314 (3218)', time: '08:30 AM', duration: 60, teacher: 'Marnuld Climaco', room: 'ILLC' },
             { subject: 'IT - Analytic Tools and Techniques', code: 'IT 311 (3215)', time: '02:00 PM', duration: 60, teacher: 'Evangeline Javier', room: 'ILLC' },
@@ -169,18 +198,11 @@ module.exports = {
             { subject: 'IT - IT Elective 2', code: 'IT EL 2 (3221)', time: '05:00 PM', duration: 60, teacher: 'Liloy Hoyla', room: '407' },
             { subject: 'IT - Social Issues & Professional Practice', code: 'IT 313 (3217)', time: '06:30 PM', duration: 60, teacher: 'Haidee Galdo', room: '409' }
         ]
+        */
     },
 
     /** @type {Set<string>} Track already sent reminders to prevent duplicates */
     sentReminders: new Set(),
-
-    /**
-     * Get current Manila time
-     * @returns {Date} Current time in Manila timezone
-     */
-    getManilaTime() {
-        return new Date(new Date().toLocaleString('en-US', { timeZone: this.TIMEZONE }));
-    },
 
     /**
      * Auto-unsend old class start messages (after 30 minutes)
@@ -219,8 +241,10 @@ module.exports = {
      */
     async execute({ api }) {
         try {
-            const now = this.getManilaTime();
-            const dayName = now.toLocaleDateString('en-US', { weekday: 'long', timeZone: this.TIMEZONE });
+            // Get precise time parts for the target timezone
+            const timeParts = getTimeParts(this.TIMEZONE);
+            const { weekday: dayName, hour, minute } = timeParts;
+            
             const todayClasses = this.schedule[dayName];
 
             // Cleanup old class start messages
@@ -236,7 +260,7 @@ module.exports = {
                 const reminderKeyExact = `exact-${classKey}`;
 
                 // Check for 30-minute reminder
-                if (shouldSend30MinReminder(classInfo.time, now) && !this.sentReminders.has(reminderKey30)) {
+                if (shouldSend30MinReminder(classInfo.time, hour, minute) && !this.sentReminders.has(reminderKey30)) {
                     const message = `📚 𝗖𝗟𝗔𝗦𝗦 𝗥𝗘𝗠𝗜𝗡𝗗𝗘𝗥 (𝟯𝟬 𝗺𝗶𝗻𝘀)\n\n` +
                         `━━━━━━━━━━━━━━━━━━━━━\n` +
                         `📖 Subject: ${classInfo.subject}\n` +
@@ -249,6 +273,10 @@ module.exports = {
                         `⚡ Class starts in 30 minutes! Get ready!`;
 
                     for (const threadId of this.TARGET_GROUPS) {
+                        if (config.isThreadBlocked(threadId)) {
+                            logger.debug('ClassSchedule', `Skipping blocked thread ${threadId}`);
+                            continue;
+                        }
                         try {
                             // Use sendMessageDirect for accurate timing (no human behavior delays)
                             const sendFn = api.sendMessageDirect || api.sendMessage;
@@ -272,7 +300,7 @@ module.exports = {
                 }
 
                 // Check for exact time reminder
-                if (shouldSendExactTimeReminder(classInfo.time, now) && !this.sentReminders.has(reminderKeyExact)) {
+                if (shouldSendExactTimeReminder(classInfo.time, hour, minute) && !this.sentReminders.has(reminderKeyExact)) {
                     
                     // First, unsend the 30-minute reminder if it exists
                     if (this.UNSEND_30MIN_ON_CLASS_START && this.sentMessages.thirtyMinReminders.has(classKey)) {
@@ -287,17 +315,19 @@ module.exports = {
                     }
 
                     const message = `🔔 𝗖𝗟𝗔𝗦𝗦 𝗦𝗧𝗔𝗥𝗧𝗜𝗡𝗚 𝗡𝗢𝗪!\n\n` +
-                        `━━━━━━━━━━━━━━━━━━━━━━━\n` +
                         `📖 Subject: ${classInfo.subject}\n` +
                         `🔢 Code: ${classInfo.code}\n` +
                         `⏰ Time: ${classInfo.time}\n` +
                         `⏱️ Duration: ${classInfo.duration} mins\n` +
                         `👨‍🏫 Teacher: ${classInfo.teacher}\n` +
-                        `🏫 Room: ${classInfo.room}\n` +
-                        `━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+                        `🏫 Room: ${classInfo.room}\n\n` +
                         `🚀 Your class is starting NOW! Don't be late!`;
 
                     for (const threadId of this.TARGET_GROUPS) {
+                        if (config.isThreadBlocked(threadId)) {
+                            logger.debug('ClassSchedule', `Skipping blocked thread ${threadId}`);
+                            continue;
+                        }
                         try {
                             // Use sendMessageDirect for accurate timing (no human behavior delays)
                             const sendFn = api.sendMessageDirect || api.sendMessage;
@@ -322,7 +352,7 @@ module.exports = {
             }
 
             // Clear old reminders at midnight
-            if (now.getHours() === 0 && now.getMinutes() === 0) {
+            if (hour === 0 && minute === 0) {
                 this.sentReminders.clear();
                 this.sentMessages.thirtyMinReminders.clear();
                 this.sentMessages.classStartMessages.clear();

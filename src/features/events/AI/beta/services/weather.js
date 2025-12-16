@@ -14,6 +14,7 @@
 const axios = require("axios");
 const chalk = require("chalk");
 const { withRetry } = require("../../../../../utils/retry");
+const config = require("../../../../../config/config");
 
 // Weather code descriptions with emojis
 const WEATHER_CODES = {
@@ -111,7 +112,7 @@ async function getWeather(api, threadID, messageID, location) {
         api.setMessageReaction("🌤️", messageID, () => {}, true);
 
         // Get weather data
-        const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${place.latitude}&longitude=${place.longitude}&current=temperature_2m,relativehumidity_2m,apparent_temperature,is_day,precipitation,rain,showers,snowfall,weathercode,cloudcover,pressure_msl,surface_pressure,windspeed_10m,winddirection_10m,windgusts_10m&daily=weathercode,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max,precipitation_sum,precipitation_hours,precipitation_probability_max,windspeed_10m_max,windgusts_10m_max,winddirection_10m_dominant&hourly=temperature_2m,relativehumidity_2m,precipitation_probability,precipitation,rain,showers,snowfall,weathercode,cloudcover,visibility,windspeed_10m,winddirection_10m&timezone=Asia/Manila&forecast_days=3`;
+        const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${place.latitude}&longitude=${place.longitude}&current=temperature_2m,relativehumidity_2m,apparent_temperature,is_day,precipitation,rain,showers,snowfall,weathercode,cloudcover,pressure_msl,surface_pressure,windspeed_10m,winddirection_10m,windgusts_10m&daily=weathercode,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max,precipitation_sum,precipitation_hours,precipitation_probability_max,windspeed_10m_max,windgusts_10m_max,winddirection_10m_dominant&hourly=temperature_2m,relativehumidity_2m,precipitation_probability,precipitation,rain,showers,snowfall,weathercode,cloudcover,visibility,windspeed_10m,winddirection_10m&timezone=${config.bot.timeZone}&forecast_days=3`;
         const weatherResponse = await withRetry(() => axios.get(weatherUrl, { timeout: 15000 }), {
             maxRetries: 3,
             initialDelay: 1000,
@@ -128,7 +129,7 @@ async function getWeather(api, threadID, messageID, location) {
         // Format time
         const now = new Date();
         const manilaTime = now.toLocaleString("en-US", {
-            timeZone: "Asia/Manila",
+            timeZone: config.bot.timeZone,
             dateStyle: "full",
             timeStyle: "short",
         });
@@ -138,12 +139,12 @@ async function getWeather(api, threadID, messageID, location) {
 
         // Sun times
         const todaySunrise = new Date(daily.sunrise[0]).toLocaleTimeString("en-US", {
-            timeZone: "Asia/Manila",
+            timeZone: config.bot.timeZone,
             hour: "2-digit",
             minute: "2-digit",
         });
         const todaySunset = new Date(daily.sunset[0]).toLocaleTimeString("en-US", {
-            timeZone: "Asia/Manila",
+            timeZone: config.bot.timeZone,
             hour: "2-digit",
             minute: "2-digit",
         });
@@ -155,7 +156,7 @@ async function getWeather(api, threadID, messageID, location) {
             const hourIndex = currentHour + i;
             if (hourIndex < hourly.time.length) {
                 const time = new Date(hourly.time[hourIndex]).toLocaleTimeString("en-US", {
-                    timeZone: "Asia/Manila",
+                    timeZone: config.bot.timeZone,
                     hour: "2-digit",
                     minute: "2-digit",
                 });
@@ -169,7 +170,7 @@ async function getWeather(api, threadID, messageID, location) {
         const forecast3day = [];
         for (let i = 0; i < Math.min(3, daily.time.length); i++) {
             const date = new Date(daily.time[i]).toLocaleDateString("en-US", {
-                timeZone: "Asia/Manila",
+                timeZone: config.bot.timeZone,
                 weekday: "short",
                 month: "short",
                 day: "numeric",

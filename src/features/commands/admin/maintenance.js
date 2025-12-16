@@ -41,7 +41,7 @@ module.exports = {
         name: "maintenance",
         aliases: ["maint", "mt"],
         description: "Toggle and manage maintenance mode",
-        usage: "maintenance <on/off/status> [reason] [--time=minutes]",
+        usage: "maintenance <on/off/status/reason/time/reset> [reason] [--time=minutes]",
         category: "admin",
         cooldown: 0,
         permissions: "admin",
@@ -50,11 +50,14 @@ module.exports = {
         groupOnly: false,
     },
 
-    async execute({ api, event, args, logger }) {
+    async execute({ api, event, args, config, logger }) {
     const threadID = event.threadID;
     const messageID = event.messageID ? String(event.messageID) : null;
 
     if (args.length === 0) {
+        const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+        const commandName = this.config.name;
+
         // Show status
         const status = maintenanceManager.getStatus();
 
@@ -76,12 +79,12 @@ module.exports = {
         }
 
         response += `\n\nUsage:\n`;
-        response += `• maintenance on [reason] [--time=minutes]\n`;
-        response += `• maintenance off\n`;
-        response += `• maintenance status\n`;
-        response += `• maintenance reason <new reason>\n`;
-        response += `• maintenance time <minutes>\n`;
-        response += `• maintenance reset`;
+        response += `• ${actualPrefix}${commandName} on [reason] [--time=minutes]\n`;
+        response += `• ${actualPrefix}${commandName} off\n`;
+        response += `• ${actualPrefix}${commandName} status\n`;
+        response += `• ${actualPrefix}${commandName} reason <new reason>\n`;
+        response += `• ${actualPrefix}${commandName} time <minutes>\n`;
+        response += `• ${actualPrefix}${commandName} reset`;
 
         return api.sendMessage(response, threadID, messageID);
     }
@@ -147,9 +150,11 @@ module.exports = {
         }
 
         case "reason": {
+            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+            const commandName = this.config.name;
             if (args.length < 2) {
                 return api.sendMessage(
-                    `❌ Please provide a reason.\n\nUsage: maintenance reason <new reason>`,
+                    `❌ Please provide a reason.\n\nUsage: ${actualPrefix}${commandName} reason <new reason>`,
                     threadID,
                     messageID
                 );
@@ -167,9 +172,11 @@ module.exports = {
 
         case "time":
         case "eta": {
+            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+            const commandName = this.config.name;
             if (args.length < 2) {
                 return api.sendMessage(
-                    `❌ Please provide estimated time in minutes.\n\nUsage: maintenance time <minutes>`,
+                    `❌ Please provide estimated time in minutes.\n\nUsage: ${actualPrefix}${commandName} time <minutes>`,
                     threadID,
                     messageID
                 );
@@ -205,9 +212,11 @@ module.exports = {
         }
 
         default: {
+            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+            const commandName = this.config.name;
             return api.sendMessage(
                 `❌ Unknown action: ${action}\n\n` +
-                    `Valid actions: on, off, status, reason, time, reset`,
+                    `Valid actions: ${actualPrefix}${commandName} on, ${actualPrefix}${commandName} off, ${actualPrefix}${commandName} status, ${actualPrefix}${commandName} reason, ${actualPrefix}${commandName} time, ${actualPrefix}${commandName} reset`,
                 threadID,
                 messageID
             );

@@ -110,7 +110,7 @@ module.exports = {
         name: "broadcast",
         aliases: ["bc", "announce", "sendall"],
         description: "Broadcast a message to all threads",
-        usage: "broadcast <message> | broadcast -g <message> | broadcast -d <message> | broadcast -s <message>",
+        usage: "broadcast <message> | -g <message> | -d <message> | -s <message> | -list",
         category: "admin",
         cooldown: 30,
         permissions: "admin",
@@ -127,7 +127,7 @@ module.exports = {
      * @param {Array} context.args - Command arguments
      * @param {Object} context.logger - Logger utility
      */
-    async execute({ api, event, args, logger }) {
+    async execute({ api, event, args, config, logger }) {
         const threadID = event.threadID;
         const messageID = event.messageID;
         const senderID = event.senderID;
@@ -143,17 +143,19 @@ module.exports = {
 
         // Show usage if no arguments
         if (args.length === 0) {
+            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+            const commandName = this.config.name;
             return api.sendMessage(
                 "📢 **Broadcast Command**\n\n" +
                 "Send a message to multiple threads at once.\n\n" +
                 "**Usage:**\n" +
-                "• `broadcast <message>` - Send to all threads\n" +
-                "• `broadcast -g <message>` - Send to groups only\n" +
-                "• `broadcast -d <message>` - Send to DMs only\n" +
-                "• `broadcast -s <message>` - Send to school GCs only\n" +
-                "• `broadcast -list` - List all threads\n\n" +
+                `• ${actualPrefix}${commandName} <message>` + " - Send to all threads\n" +
+                `• ${actualPrefix}${commandName} -g <message>` + " - Send to groups only\n" +
+                `• ${actualPrefix}${commandName} -d <message>` + " - Send to DMs only\n" +
+                `• ${actualPrefix}${commandName} -s <message>` + " - Send to school GCs only\n" +
+                `• ${actualPrefix}${commandName} -list` + " - List all threads\n\n" +
                 "**Example:**\n" +
-                "`broadcast Hello everyone! Bot update incoming.`",
+                `• ${actualPrefix}${commandName} Hello everyone! Bot update incoming.`,
                 threadID,
                 messageID
             );
@@ -175,16 +177,18 @@ module.exports = {
             messageStart = 1;
         } else if (firstArg === "-list") {
             // List all threads
-            return await this.listThreads(api, event, args[1] || "all");
+            return await this.listThreads(api, event, args[1] || "all", config);
         }
 
         // Get message content
         const broadcastMessage = args.slice(messageStart).join(" ").trim();
 
         if (!broadcastMessage) {
+            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+            const commandName = this.config.name;
             return api.sendMessage(
                 "❌ Please provide a message to broadcast.\n\n" +
-                "Usage: `broadcast <message>`",
+                `Usage: \`${actualPrefix}${commandName} <message>\``,
                 threadID,
                 messageID
             );
@@ -314,7 +318,7 @@ module.exports = {
      * @param {Object} event - Event object
      * @param {string} filter - Filter type
      */
-    async listThreads(api, event, filter) {
+    async listThreads(api, event, filter, config) {
         const threadID = event.threadID;
         const messageID = event.messageID;
 

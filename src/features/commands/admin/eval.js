@@ -77,10 +77,12 @@ module.exports = {
 
     // Check if code was provided
     if (args.length === 0) {
+        const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+        const commandName = this.config.name;
         return api.sendMessage(
-            "❌ Please provide code to execute.\n\n" +
-                "Usage: eval <code>\n\n" +
-                "Example: eval return 2 + 2",
+            `❌ Please provide code to execute.\n\n` +
+                `Usage: ${actualPrefix}${commandName} <code>\n\n` +
+                `Example: ${actualPrefix}${commandName} return 2 + 2`,
             threadID,
             messageID
         );

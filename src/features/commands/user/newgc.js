@@ -33,7 +33,7 @@ module.exports = {
      * Command execution function
      * @param {Object} context - Command context
      */
-    async execute({ api, event, args, logger: _logger }) {
+    async execute({ api, event, args, config, logger: _logger }) {
     const threadID = event.threadID;
     const senderID = event.senderID;
     const isGroup = event.isGroup;
@@ -110,12 +110,14 @@ module.exports = {
     // If "all" flag is used, get all members from current group
     if (addAllMembers) {
         if (!isGroup) {
+            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+            const commandName = this.config.name;
             return api.sendMessage(
                 `❌ The "all" option only works in group chats!\n\n` +
                     `📖 Usage in groups:\n` +
-                    `• newgc all - Add all current members\n` +
-                    `• newgc all gn NewGroup - With group name\n` +
-                    `• newgc all gn NewGroup expt @user - Exclude users`,
+                    `• ${actualPrefix}${commandName} all - Add all current members\n` +
+                    `• ${actualPrefix}${commandName} all gn NewGroup - With group name\n` +
+                    `• ${actualPrefix}${commandName} all gn NewGroup expt @user - Exclude users`,
                 threadID
             );
         }
@@ -173,14 +175,16 @@ module.exports = {
     } else {
         // Use mentioned users (not in exclude mode)
         if (mentionedIDs.length < 1) {
+            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+            const commandName = this.config.name;
             return api.sendMessage(
                 `❌ Please mention users or use "all" to add everyone!\n\n` +
                     `📖 Usage:\n` +
-                    `• newgc @user1 @user2 - Specific users\n` +
-                    `• newgc gn MyGroup @user1 @user2 - With name\n` +
-                    `• newgc all - All current group members\n` +
-                    `• newgc all gn NewGroup - All members with name\n` +
-                    `• newgc all gn NewGroup expt @user1 @user2 - Exclude users\n\n` +
+                    `• ${actualPrefix}${commandName} @user1 @user2 - Specific users\n` +
+                    `• ${actualPrefix}${commandName} gn MyGroup @user1 @user2 - With name\n` +
+                    `• ${actualPrefix}${commandName} all - All current group members\n` +
+                    `• ${actualPrefix}${commandName} all gn NewGroup - All members with name\n` +
+                    `• ${actualPrefix}${commandName} all gn NewGroup expt @user1 @user2 - Exclude users\n\n` +
                     `📝 Options:\n` +
                     `• "gn" = group name\n` +
                     `• "all" = add all members from current group\n` +
