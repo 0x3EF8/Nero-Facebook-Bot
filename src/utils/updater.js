@@ -307,13 +307,24 @@ class Updater {
             const tarballUrl = this.latestRelease.tarball;
             
             console.log(chalk.cyan("[Updater]") + " Downloading latest version...");
-            // curl -L <url> | tar -xz --strip-components=1
-            // This downloads the tarball and extracts it, stripping the root folder (repo-name-version)
-            execSync(`curl -L "${tarballUrl}" | tar -xz --strip-components=1`, { 
-                cwd: rootDir, 
-                stdio: "pipe",
-                maxBuffer: 10 * 1024 * 1024 // 10MB buffer
-            });
+            
+            // Try curl first, then wget
+            try {
+                // curl -L -k (allow insecure just in case) | tar -xz --strip-components=1 --overwrite
+                execSync(`curl -L -k "${tarballUrl}" | tar -xz --strip-components=1 --overwrite`, { 
+                    cwd: rootDir, 
+                    stdio: "pipe",
+                    maxBuffer: 10 * 1024 * 1024
+                });
+            } catch (curlError) {
+                console.log(chalk.yellow("[Updater]") + " Curl failed, trying wget...");
+                // wget -O - (output to stdout) | tar ...
+                execSync(`wget -qO- --no-check-certificate "${tarballUrl}" | tar -xz --strip-components=1 --overwrite`, { 
+                    cwd: rootDir, 
+                    stdio: "pipe",
+                    maxBuffer: 10 * 1024 * 1024
+                });
+            }
 
             console.log(chalk.cyan("[Updater]") + " Installing dependencies...");
             execSync("npm install", { cwd: rootDir, stdio: "inherit" });
