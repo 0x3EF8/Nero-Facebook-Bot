@@ -289,7 +289,46 @@ class Updater {
 
             return true;
         } catch (error) {
-            console.log(chalk.red("[Updater]") + ` Update failed: ${error.message}`);
+            console.log(chalk.red("[Updater]") + ` Git update failed: ${error.message}`);
+            console.log(chalk.yellow("[Updater]") + " Attempting direct download fallback...");
+
+            return await this.performDirectUpdate();
+        }
+    }
+
+    /**
+     * Fallback: Download and extract update directly
+     */
+    async performDirectUpdate() {
+        const rootDir = path.join(__dirname, "..", "..");
+        
+        try {
+            // Use tar command which is standard in most containers (uid 999 suggests linux container)
+            const tarballUrl = this.latestRelease.tarball;
+            
+            console.log(chalk.cyan("[Updater]") + " Downloading latest version...");
+            // curl -L <url> | tar -xz --strip-components=1
+            // This downloads the tarball and extracts it, stripping the root folder (repo-name-version)
+            execSync(`curl -L "${tarballUrl}" | tar -xz --strip-components=1`, { 
+                cwd: rootDir, 
+                stdio: "pipe",
+                maxBuffer: 10 * 1024 * 1024 // 10MB buffer
+            });
+
+            console.log(chalk.cyan("[Updater]") + " Installing dependencies...");
+            execSync("npm install", { cwd: rootDir, stdio: "inherit" });
+
+            console.log();
+            console.log(
+                chalk.green("[Updater]") +
+                    " Direct update successful! Now running " +
+                    chalk.cyan(`v${this.latestRelease.version}`)
+            );
+            console.log(chalk.green("[Updater]") + " Restarting automatically...");
+            return true;
+
+        } catch (directError) {
+            console.log(chalk.red("[Updater]") + ` Direct update failed: ${directError.message}`);
             console.log(
                 chalk.dim(
                     `          Please update manually from: https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}`

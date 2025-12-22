@@ -50,7 +50,7 @@
  *
  * @module lib/utils/humanBehavior
  * @author 0x3EF8
- * @version 2.2.0-beta
+ * @version 2.0.0-beta
  * @license MIT
  */
 
