@@ -90,7 +90,7 @@ function delay(ms) {
  * Log command action
  */
 function logCommand(icon, action) {
-    console.log(chalk.cyan(` ├─${icon} ${action}`));
+    console.log(chalk.cyan(`${icon} ${action}`));
 }
 
 /**

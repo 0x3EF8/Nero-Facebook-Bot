@@ -283,6 +283,14 @@ module.exports = (defaultFuncs, api, ctx) => {
                 "sendMessage",
                 `Final form arrays - image_ids: ${form.image_ids.length}, audio_ids: ${form.audio_ids.length}, video_ids: ${form.video_ids.length}, file_ids: ${form.file_ids.length}`
             );
+
+            // Check if uploads failed silently (empty arrays despite attachments provided)
+            const totalUploaded = form.image_ids.length + form.audio_ids.length + form.video_ids.length + form.file_ids.length;
+            if (msg.attachment.length > 0 && totalUploaded === 0) {
+                const err = new Error("Upload failed: missing metadata (Facebook rejected file)");
+                utils.warn("sendMessage", err.message);
+                throw err;
+            }
         }
         if (msg.url) {
             form["shareable_attachment[share_type]"] = "100";

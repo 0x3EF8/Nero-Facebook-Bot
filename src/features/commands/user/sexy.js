@@ -37,8 +37,14 @@ module.exports = {
     /**
      * Command execution function
      */
-    async execute({ api, event, messageID }) {
+    async execute({ api, event, messageID }, retries = 0) {
         const threadID = event.threadID;
+
+        // Prevent infinite loops
+        if (retries > 5) {
+            api.setMessageReaction("❌", event.messageID, () => {}, true);
+            return api.sendMessage("❌ Failed to send video after multiple attempts.", threadID, event.messageID);
+        }
         
         // Set initial reaction
         api.setMessageReaction("⏳", event.messageID, () => {}, true);
@@ -112,9 +118,9 @@ module.exports = {
                 api.setMessageReaction("✅", event.messageID, () => {}, true);
             } catch (sendError) {
                 // If FB rejects it (missing metadata), try one more time recursively
-                if (sendError.message.includes("metadata") || sendError.message.includes("upload")) {
-                    console.log("[Sexy] Upload failed, retrying with new video...");
-                    return this.execute({ api, event, messageID, threadID });
+                if (isMetadataError || sendError.message.includes("upload")) {
+                    console.warn(`[Sexy] Facebook rejected video. Retrying (Attempt ${retries + 1})...`);
+                    return this.execute({ api, event, messageID, threadID }, retries + 1);
                 }
                 throw sendError;
             }
