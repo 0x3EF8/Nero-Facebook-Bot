@@ -64,7 +64,7 @@ const settings = {
         //   • normal  - Errors, warnings, key events (recommended)
         //   • verbose - Full telemetry: HTTP, MQTT, deltas, API calls
         logging: true, // Enable Nero framework banner/info (true/false)
-        debugLevel: "normal", // Debug level for framework logging
+        debugLevel: "verbose", // Debug level for framework logging
         debugTimestamps: false, // Show timestamps in framework debug logs
 
         // ─────────────────────────────────────────────────────────────────────────
@@ -129,7 +129,7 @@ const settings = {
         file: false, // Enable file logging
         filePath: "./logs/bot.log", // Log file path (supports rotation)
         maxFileSize: 10, // Max file size in MB before rotation
-        levels: "info", // Log level preset (see above for options)
+        levels: "all", // Log level preset (see above for options)
         timestamps: true, // Show timestamps (HH:mm:ss.SSS format)
         colors: true, // Enable colored output
         moduleWidth: 18, // Fixed width for module names (alignment)

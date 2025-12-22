@@ -73,15 +73,9 @@ module.exports = {
     let userName = "Someone";
 
     try {
-        const userInfo = await new Promise((resolve, reject) => {
-            api.getUserInfo([leftParticipantFbId], (err, info) => {
-                if (err) reject(err);
-                else resolve(info);
-            });
-        });
-
-        if (userInfo && userInfo[leftParticipantFbId]) {
-            userName = userInfo[leftParticipantFbId].name || userName;
+        const userInfo = await api.getUserInfo(leftParticipantFbId);
+        if (userInfo) {
+            userName = userInfo.name || userName;
         }
     } catch {
         // Use default name if getUserInfo fails
@@ -91,12 +85,7 @@ module.exports = {
     const goodbyeMessage = getRandomGoodbye(userName);
 
     try {
-        await new Promise((resolve, reject) => {
-            api.sendMessage(goodbyeMessage, threadID, (err, info) => {
-                if (err) reject(err);
-                else resolve(info);
-            });
-        });
+        await api.sendMessage(goodbyeMessage, threadID);
 
         logger.info(
             "Goodbye",

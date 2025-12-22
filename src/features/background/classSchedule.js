@@ -132,7 +132,7 @@ module.exports = {
     config: {
         name: 'classSchedule',
         description: 'Sends class schedule reminders 30 mins before and at class time with auto-unsend',
-        enabled: true,
+        enabled: false,
         interval: 60000,
     },
 

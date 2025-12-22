@@ -54,15 +54,15 @@ function formatThreadGraphQLResponse(messageThread) {
     return {
         threadID: threadID,
         threadName: messageThread.name,
-        participantIDs: messageThread.all_participants.edges.map((d) => d.node.messaging_actor.id),
-        userInfo: messageThread.all_participants.edges.map((d) => ({
+        participantIDs: (messageThread.all_participants?.edges || []).map((d) => d.node.messaging_actor.id),
+        userInfo: (messageThread.all_participants?.edges || []).map((d) => ({
             id: d.node.messaging_actor.id,
             name: d.node.messaging_actor.name,
             firstName: d.node.messaging_actor.short_name,
             vanity: d.node.messaging_actor.username,
             url: d.node.messaging_actor.url,
-            thumbSrc: d.node.messaging_actor.big_image_src.uri,
-            profileUrl: d.node.messaging_actor.big_image_src.uri,
+            thumbSrc: d.node.messaging_actor.big_image_src?.uri || null,
+            profileUrl: d.node.messaging_actor.big_image_src?.uri || null,
             gender: d.node.messaging_actor.gender,
             type: d.node.messaging_actor.__typename,
             isFriend: d.node.messaging_actor.is_viewer_friend,
@@ -95,16 +95,16 @@ function formatThreadGraphQLResponse(messageThread) {
                       return res;
                   }, {})
                 : {},
-        adminIDs: messageThread.thread_admins.map((a) => a.id),
+        adminIDs: (messageThread.thread_admins || []).map((a) => a.id),
         approvalMode: Boolean(messageThread.approval_mode),
-        approvalQueue: messageThread.group_approval_queue.nodes.map((a) => ({
+        approvalQueue: (messageThread.group_approval_queue?.nodes || []).map((a) => ({
             inviterID: a.inviter.id,
             requesterID: a.requester.id,
             timestamp: a.request_timestamp,
             request_source: a.request_source,
         })),
-        reactionsMuteMode: messageThread.reactions_mute_mode.toLowerCase(),
-        mentionsMuteMode: messageThread.mentions_mute_mode.toLowerCase(),
+        reactionsMuteMode: messageThread.reactions_mute_mode?.toLowerCase() || null,
+        mentionsMuteMode: messageThread.mentions_mute_mode?.toLowerCase() || null,
         isPinProtected: messageThread.is_pin_protected,
         relatedPageThread: messageThread.related_page_thread,
         name: messageThread.name,

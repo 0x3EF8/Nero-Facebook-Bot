@@ -19,11 +19,11 @@
  * Beta AI identity and persona
  */
 const AI_IDENTITY = {
-    name: "Beta",
+    name: "Nero",
     version: "3.1.0",
     author: "Jay Patrick Cano",
     persona: "casual, friendly, helpful AI assistant",
-    triggerPatterns: [/\b@?beta\b/i],
+    triggerPatterns: [/\b@?nero\b/i],
 };
 
 /**

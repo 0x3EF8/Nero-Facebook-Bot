@@ -13,6 +13,41 @@
 
 "use strict";
 
+/**
+ * Formats the result for display
+ * @param {*} result - The result to format
+ * @param {number} maxLength - Maximum length of output
+ * @returns {string}
+ */
+function formatResult(result, maxLength = 2000) {
+    let output;
+
+    if (result === undefined) {
+        output = "undefined";
+    } else if (result === null) {
+        output = "null";
+    } else if (typeof result === "object") {
+        try {
+            output = JSON.stringify(result, null, 2);
+        } catch {
+            output = String(result);
+        }
+    } else if (typeof result === "function") {
+        output = result.toString();
+    } else {
+        output = String(result);
+    }
+
+    // Truncate if too long
+    if (output.length > maxLength) {
+        output =
+            output.substring(0, maxLength) +
+            `\n\n... [Truncated - ${output.length} total characters]`;
+    }
+
+    return output;
+}
+
 module.exports = {
     config: {
         name: "eval",
@@ -28,41 +63,6 @@ module.exports = {
     },
 
     /**
-     * Formats the result for display
-     * @param {*} result - The result to format
-     * @param {number} maxLength - Maximum length of output
-     * @returns {string}
-     */
-    formatResult(result, maxLength = 2000) {
-        let output;
-
-        if (result === undefined) {
-            output = "undefined";
-        } else if (result === null) {
-            output = "null";
-        } else if (typeof result === "object") {
-            try {
-                output = JSON.stringify(result, null, 2);
-            } catch {
-                output = String(result);
-            }
-        } else if (typeof result === "function") {
-            output = result.toString();
-        } else {
-            output = String(result);
-        }
-
-        // Truncate if too long
-        if (output.length > maxLength) {
-            output =
-                output.substring(0, maxLength) +
-                `\n\n... [Truncated - ${output.length} total characters]`;
-        }
-
-        return output;
-    },
-
-    /**
      * Command execution function
      * @param {Object} context - Command context
      * @param {Object} context.api - Nero API object
@@ -72,69 +72,69 @@ module.exports = {
      * @param {Object} context.logger - Logger utility
      */
     async execute({ api, event, args, config, logger }) {
-    const threadID = event.threadID;
-    const messageID = event.messageID ? String(event.messageID) : null;
+        const threadID = event.threadID;
+        const messageID = event.messageID ? String(event.messageID) : null;
 
-    // Check if code was provided
-    if (args.length === 0) {
-        const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
-        const commandName = this.config.name;
-        return api.sendMessage(
-            `❌ Please provide code to execute.\n\n` +
-                `Usage: ${actualPrefix}${commandName} <code>\n\n` +
-                `Example: ${actualPrefix}${commandName} return 2 + 2`,
-            threadID,
-            messageID
-        );
-    }
+        // Check if code was provided
+        if (args.length === 0) {
+            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+            const commandName = this.config.name;
+            return api.sendMessage(
+                `❌ Please provide code to execute.\n\n` +
+                    `Usage: ${actualPrefix}${commandName} <code>\n\n` +
+                    `Example: ${actualPrefix}${commandName} return 2 + 2`,
+                threadID,
+                messageID
+            );
+        }
 
-    const code = args.join(" ");
+        const code = args.join(" ");
 
-    logger.warn("Eval", `Executing code from ${event.senderID}: ${code.substring(0, 100)}...`);
+        logger.warn("Eval", `Executing code from ${event.senderID}: ${code.substring(0, 100)}...`);
 
-    try {
-        // Create a function with access to useful variables
-        const startTime = Date.now();
+        try {
+            // Create a function with access to useful variables
+            const startTime = Date.now();
 
-        // Wrap in async function to allow await
-        const asyncFunction = new Function(
-            "api",
-            "event",
-            "config",
-            "logger",
-            "require",
-            `return (async () => { ${code} })()`
-        );
+            // Wrap in async function to allow await
+            const asyncFunction = new Function(
+                "api",
+                "event",
+                "config",
+                "logger",
+                "require",
+                `return (async () => { ${code} })()`
+            );
 
-        // Execute the code
-        const result = await asyncFunction(api, event, config, logger, require);
+            // Execute the code
+            const result = await asyncFunction(api, event, config, logger, require);
 
-        const endTime = Date.now();
-        const executionTime = endTime - startTime;
+            const endTime = Date.now();
+            const executionTime = endTime - startTime;
 
-        // Format the result
-        const formattedResult = this.formatResult(result);
+            // Format the result
+            const formattedResult = formatResult(result);
 
-        // Send the result
-        const response =
-            `✅ Code executed successfully\n` +
-            `⏱️ Execution time: ${executionTime}ms\n\n` +
-            `📤 Output:\n${formattedResult}`;
+            // Send the result
+            const response =
+                `✅ Code executed successfully\n` +
+                `⏱️ Execution time: ${executionTime}ms\n\n` +
+                `📤 Output:\n${formattedResult}`;
 
-        api.sendMessage(response, threadID, messageID);
+            api.sendMessage(response, threadID, messageID);
 
-        logger.success("Eval", `Code executed in ${executionTime}ms`);
-    } catch (error) {
-        const errorMessage =
-            `❌ Execution error\n\n` +
-            `🔴 Error: ${error.name}\n` +
-            `📝 Message: ${error.message}\n\n` +
-            `📍 Stack:\n${error.stack ? error.stack.substring(0, 500) : "No stack trace"}`;
+            logger.success("Eval", `Code executed in ${executionTime}ms`);
+        } catch (error) {
+            const errorMessage =
+                `❌ Execution error\n\n` +
+                `🔴 Error: ${error.name}\n` +
+                `📝 Message: ${error.message}\n\n` +
+                `📍 Stack:\n${error.stack ? error.stack.substring(0, 500) : "No stack trace"}`;
 
-        api.sendMessage(errorMessage, threadID, messageID);
+            api.sendMessage(errorMessage, threadID, messageID);
 
-        logger.error("Eval", `Execution failed: ${error.message}`);
-    }
+            logger.error("Eval", `Execution failed: ${error.message}`);
+        }
     },
 
     /**

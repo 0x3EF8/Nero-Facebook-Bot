@@ -76,31 +76,31 @@ module.exports = {
      * @param {Object} context - Command context
      */
     async execute({ api, event }) {
-    const threadID = event.threadID;
+        const threadID = event.threadID;
 
-    // Measure API latency with a lightweight operation
-    const startTime = Date.now();
-    await api.getUserInfo(event.senderID);
-    const ping = Date.now() - startTime;
+        // Measure API latency with a lightweight operation
+        const startTime = Date.now();
+        await api.getUserInfo(event.senderID);
+        const ping = Date.now() - startTime;
 
-    const status = getStatusEmoji(ping);
-    const statusText = getStatusText(ping);
+        const status = getStatusEmoji(ping);
+        const statusText = getStatusText(ping);
 
-    // Get system info
-    const uptime = process.uptime();
-    const uptimeStr = formatUptime(uptime);
-    const memUsage = process.memoryUsage();
-    const memUsedMB = (memUsage.heapUsed / 1024 / 1024).toFixed(2);
+        // Get system info
+        const uptime = process.uptime();
+        const uptimeStr = formatUptime(uptime);
+        const memUsage = process.memoryUsage();
+        const memUsedMB = (memUsage.heapUsed / 1024 / 1024).toFixed(2);
 
-    // Build response
-    const response =
-        `🏓 Pong!\n\n` +
-        `${status} Status: ${statusText}\n` +
-        `⏱️ Latency: ${ping}ms\n` +
-        `🕐 Uptime: ${uptimeStr}\n` +
-        `💾 Memory: ${memUsedMB} MB`;
+        // Build response
+        const response =
+            `🏓 Pong!\n\n` +
+            `${status} Status: ${statusText}\n` +
+            `⏱️ Latency: ${ping}ms\n` +
+            `🕐 Uptime: ${uptimeStr}\n` +
+            `💾 Memory: ${memUsedMB} MB`;
 
-    // Send the result directly
-    await api.sendMessage(response, threadID);
+        // Send the result directly
+        await api.sendMessage(response, threadID);
     },
 };

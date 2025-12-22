@@ -27,30 +27,32 @@ async function createPoll(api, threadID, messageID, question, options) {
     console.log(chalk.cyan(` ├─📊 Creating poll: "${question}"`));
     api.setMessageReaction("📊", messageID, () => {}, true);
 
-    // Format for API: { "Option Name": false } (Standard FCA format)
-    const pollOptions = options.reduce((acc, opt) => {
-        acc[opt] = false; 
-        return acc;
-    }, {});
+    // 1. Deduplicate and clean options
+    const uniqueOptions = [...new Set(options.map(o => o.trim()).filter(Boolean))];
+
+    // 2. Ensure at least 2 options
+    if (uniqueOptions.length < 2) {
+        // If only 1 option provided (e.g. "Yes"), add "No" automatically
+        if (uniqueOptions.length === 1) {
+            uniqueOptions.push("No");
+        } else {
+             // Fallback default options
+            uniqueOptions.push("Yes", "No");
+        }
+    }
 
     try {
-        await api.createPoll(threadID, question, pollOptions);
+        // API expects Array<string> or Array<Object>
+        // passing strings directly is supported by nero-core
+        await api.createPoll(threadID, question, uniqueOptions);
+        
         api.setMessageReaction(REACTIONS.success, messageID, () => {}, true);
         return true;
     } catch (error) {
         console.error(chalk.red(` ├─✗ Poll error: ${error.message}`));
-        
-        // Fallback: Try array format { text: "Option" } (Some API versions)
-        try {
-            const fallbackOptions = options.map(text => ({ text }));
-            await api.createPoll(threadID, question, fallbackOptions);
-            api.setMessageReaction(REACTIONS.success, messageID, () => {}, true);
-            return true;
-        } catch (err2) {
-            api.setMessageReaction(REACTIONS.error, messageID, () => {}, true);
-            await api.sendMessage(`❌ Failed to create poll: ${error.message}`, threadID, messageID);
-            return false;
-        }
+        api.setMessageReaction(REACTIONS.error, messageID, () => {}, true);
+        await api.sendMessage(`❌ Failed to create poll: ${error.message}`, threadID, messageID);
+        return false;
     }
 }
 

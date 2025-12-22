@@ -52,50 +52,45 @@ module.exports = {
      * @param {Object} context.logger - Logger utility
      */
     async execute({ api, event, logger }) {
-    // Only handle participant addition events
-    if (event.logMessageType !== "log:subscribe") {
-        return;
-    }
-
-    const threadID = event.threadID;
-
-    // Get the added participants
-    const addedParticipants = event.logMessageData?.addedParticipants || [];
-
-    if (addedParticipants.length === 0) {
-        return;
-    }
-
-    // Get bot's user ID to avoid welcoming itself
-    const botID = api.getCurrentUserID ? api.getCurrentUserID() : null;
-
-    // Process each new member
-    for (const participant of addedParticipants) {
-        const userID = participant.userFbId;
-        const fullName = participant.fullName || "Friend";
-
-        // Don't welcome the bot itself
-        if (botID && userID === botID) {
-            logger.debug("Welcome", `Skipping self-welcome in thread ${threadID}`);
-            continue;
+        // Only handle participant addition events
+        if (event.logMessageType !== "log:subscribe") {
+            return;
         }
 
-        // Generate welcome message
-        const welcomeMessage = getRandomWelcome(fullName);
+        const threadID = event.threadID;
 
-        try {
-            // Send welcome message
-            await new Promise((resolve, reject) => {
-                api.sendMessage(welcomeMessage, threadID, (err, info) => {
-                    if (err) reject(err);
-                    else resolve(info);
-                });
-            });
+        // Get the added participants
+        const addedParticipants = event.logMessageData?.addedParticipants || [];
 
-            logger.info("Welcome", `Welcomed ${fullName} (${userID}) to thread ${threadID}`);
-        } catch (error) {
-            logger.error("Welcome", `Failed to send welcome message: ${error.message}`);
+        if (addedParticipants.length === 0) {
+            return;
         }
-    }
+
+        // Get bot's user ID to avoid welcoming itself
+        const botID = api.getCurrentUserID ? api.getCurrentUserID() : null;
+
+        // Process each new member
+        for (const participant of addedParticipants) {
+            const userID = participant.userFbId;
+            const fullName = participant.fullName || "Friend";
+
+            // Don't welcome the bot itself
+            if (botID && userID === botID) {
+                logger.debug("Welcome", `Skipping self-welcome in thread ${threadID}`);
+                continue;
+            }
+
+            // Generate welcome message
+            const welcomeMessage = getRandomWelcome(fullName);
+
+            try {
+                // Send welcome message
+                await api.sendMessage(welcomeMessage, threadID);
+
+                logger.info("Welcome", `Welcomed ${fullName} (${userID}) to thread ${threadID}`);
+            } catch (error) {
+                logger.error("Welcome", `Failed to send welcome message: ${error.message}`);
+            }
+        }
     },
 };

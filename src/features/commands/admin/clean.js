@@ -242,17 +242,6 @@ module.exports = {
 
             logger?.info?.("Clean", `Starting deletion of ${targetThreads.length} threads`);
 
-            // Check if deleteThread API exists
-            if (!api.deleteThread) {
-                activeCleans.delete(senderID);
-                return api.sendMessage(
-                    "❌ Delete thread API not available.\n\n" +
-                    "The bot needs to be restarted to load the new API.",
-                    threadID,
-                    messageID
-                );
-            }
-
             // Delete threads one by one
             for (const thread of targetThreads) {
                 try {

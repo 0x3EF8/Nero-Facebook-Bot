@@ -8,10 +8,15 @@
  * including version, uptime, statistics, and more.
  *
  * @author 0x3EF8
- * @version 1.0.0
+ * @version 1.1.5
  */
 
 "use strict";
+
+const packageJson = require("../../../../package.json");
+const eventHandler = require("../../../handlers/eventHandler");
+const backgroundHandler = require("../../../handlers/backgroundHandler");
+const statsTracker = require("../../../utils/statsTracker");
 
 /**
  * Formats bytes into human-readable format
@@ -26,26 +31,6 @@ function formatBytes(bytes) {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
 
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-}
-
-/**
- * Formats uptime into human-readable string
- * @param {number} seconds - Uptime in seconds
- * @returns {string}
- */
-function formatUptime(seconds) {
-    const days = Math.floor(seconds / 86400);
-    const hours = Math.floor((seconds % 86400) / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-
-    const parts = [];
-    if (days > 0) parts.push(`${days} day${days !== 1 ? "s" : ""}`);
-    if (hours > 0) parts.push(`${hours} hour${hours !== 1 ? "s" : ""}`);
-    if (minutes > 0) parts.push(`${minutes} minute${minutes !== 1 ? "s" : ""}`);
-    if (secs > 0 || parts.length === 0) parts.push(`${secs} second${secs !== 1 ? "s" : ""}`);
-
-    return parts.join(", ");
 }
 
 module.exports = {
@@ -66,51 +51,59 @@ module.exports = {
      * Command execution function
      * @param {Object} context - Command context
      */
-    async execute({ api, event, config, commandHandler }) {
-    const threadID = event.threadID;
-    const messageID = event.messageID ? String(event.messageID) : null;
+    async execute({ api, event, config, commandHandler, accountManager }) {
+        const threadID = event.threadID;
+        const messageID = event.messageID ? String(event.messageID) : null;
 
-    // Get system information
-    const uptime = process.uptime();
-    const memUsage = process.memoryUsage();
-    const nodeVersion = process.version;
-    const platform = process.platform;
-    const arch = process.arch;
+        // Get system information
+        const memUsage = process.memoryUsage();
+        const nodeVersion = process.version;
+        const platform = process.platform;
+        const arch = process.arch;
 
-    // Get command handler stats
-    const cmdStats = commandHandler.getStats();
+        // Get statistics from handlers
+        const cmdStats = commandHandler.getStats();
+        const eventStats = eventHandler.getStats();
+        const bgStats = backgroundHandler.getStats();
+        const trackerStats = statsTracker.getStats();
 
-    // Get event handler stats
-    let eventStats = { loaded: 0, triggered: 0, failed: 0 };
-    try {
-        const eventHandler = require("../../handlers/eventHandler");
-        eventStats = eventHandler.getStats();
-    } catch {
-        // Event handler might not be loaded yet
-    }
+        // Get account information
+        const onlineAccounts = accountManager ? accountManager.getOnlineAccounts().length : 1;
 
-    // Build the info message
-    const infoMessage = `🤖 ${config.bot.name.toUpperCase()}
-━━━━━━━━━━━━━━━━━━━━
+        // Conditional prefix display
+        const prefixInfo = config.bot.prefixEnabled ? `\nPrefix: ${config.bot.prefix}` : "";
 
-📋 General:
-   Name: ${config.bot.name}
-   Version: ${config.bot.version}
-   Prefix: ${config.bot.prefix}
+        // Build the info message - Pure text only
+        const infoMessage = 
+`NERO SYSTEM INFORMATION
 
-⚙️ System:
-   Platform: ${platform} (${arch})
-   Node.js: ${nodeVersion}
-   Memory: ${formatBytes(memUsage.heapUsed)} / ${formatBytes(memUsage.heapTotal)}
-   Uptime: ${formatUptime(uptime)}
+GENERAL INFORMATION
+Name: ${config.bot.name}
+Version: v${packageJson.version}${prefixInfo}
+Owner: 0x3EF8
 
-📊 Statistics:
-   Commands: ${cmdStats.totalCommands} loaded
-   Executed: ${cmdStats.executed}
-   Events: ${eventStats.loaded || 0} loaded
+SYSTEM STATUS
+Platform: ${platform} (${arch})
+Node.js: ${nodeVersion}
+Memory: ${formatBytes(memUsage.heapUsed)} / ${formatBytes(memUsage.heapTotal)}
+Uptime: ${trackerStats.uptimeFormatted}
 
-👑 Admins: ${config.bot.admins.length} | Super: ${config.bot.superAdmins.length}`;
+BOT INFRASTRUCTURE
+Active Accounts: ${onlineAccounts}
+Commands: ${cmdStats.totalCommands}
+Event Handlers: ${eventStats.loaded}
+Background Tasks: ${bgStats.loaded}
 
-    api.sendMessage(infoMessage, threadID, messageID);
+REAL-TIME METRICS
+Total Messages: ${trackerStats.messages.total.toLocaleString()}
+Commands Run: ${trackerStats.commands.successful.toLocaleString()}
+Active Users: ${trackerStats.activeUsers.toLocaleString()}
+Active Threads: ${trackerStats.activeThreads.toLocaleString()}
+
+ADMINISTRATION
+Admins: ${config.bot.admins.length}
+Super Admins: ${config.bot.superAdmins.length}`;
+
+        api.sendMessage(infoMessage, threadID, messageID);
     },
 };

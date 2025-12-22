@@ -117,133 +117,133 @@ module.exports = {
      * Event execution
      */
     async execute({ api, event, config, logger }) {
-    const { threadID, messageID, senderID, deletionTimestamp } = event;
+        const { threadID, messageID, senderID, deletionTimestamp } = event;
 
-    // Don't reveal bot's own unsent messages
-    const botID = api.getCurrentUserID?.();
-    if (senderID === botID) return;
+        // Don't reveal bot's own unsent messages
+        const botID = api.getCurrentUserID?.();
+        if (senderID === botID) return;
 
-    // Don't reveal admins' or superAdmins' unsent messages
-    if (config.isAdmin(senderID)) return;
+        // Don't reveal admins' or superAdmins' unsent messages
+        if (config.isAdmin(senderID)) return;
 
-    // Get original message from Nero's built-in store
-    const original = api.getStoredMessage(messageID);
+        // Get original message from Nero's built-in store
+        const original = api.getStoredMessage(messageID);
 
-    if (!original) {
-        logger?.debug?.("AntiUnsend", `Message ${messageID} not in store`);
-        return;
-    }
+        if (!original) {
+            logger?.debug?.("AntiUnsend", `Message ${messageID} not in store`);
+            return;
+        }
 
-    logger?.info?.("AntiUnsend", `Revealing unsent message from ${senderID}`);
+        logger?.info?.("AntiUnsend", `Revealing unsent message from ${senderID}`);
 
-    try {
-        // Get sender name
-        let senderName = "Someone";
         try {
-            const userInfo = await api.getUserInfo([String(senderID)]);
-            const userData = userInfo?.[senderID] || Object.values(userInfo || {})[0];
-            senderName = userData?.name || userData?.firstName || senderName;
-        } catch {
-            senderName = `User ${String(senderID).slice(-4)}`;
-        }
+            // Get sender name
+            let senderName = "Someone";
+            try {
+                const userInfo = await api.getUserInfo([String(senderID)]);
+                const userData = userInfo?.[senderID] || Object.values(userInfo || {})[0];
+                senderName = userData?.name || userData?.firstName || senderName;
+            } catch {
+                senderName = `User ${String(senderID).slice(-4)}`;
+            }
 
-        // Build reveal message
-        let msg = `🗑️ 𝗠𝗘𝗦𝗦𝗔𝗚𝗘 𝗨𝗡𝗦𝗘𝗡𝗧\n`;
-        msg += `━━━━━━━━━━━━━━━━━━\n`;
-        msg += `👤 From: ${senderName}\n`;
-        msg += `🕐 Sent: ${formatTime(original.timestamp)}\n`;
+            // Build reveal message
+            let msg = `🗑️ 𝗠𝗘𝗦𝗦𝗔𝗚𝗘 𝗨𝗡𝗦𝗘𝗡𝗧\n`;
+            msg += `━━━━━━━━━━━━━━━━━━\n`;
+            msg += `👤 From: ${senderName}\n`;
+            msg += `🕐 Sent: ${formatTime(original.timestamp)}\n`;
 
-        if (deletionTimestamp) {
-            msg += `🗑️ Deleted: ${formatTime(deletionTimestamp)}`;
-        }
+            if (deletionTimestamp) {
+                msg += `🗑️ Deleted: ${formatTime(deletionTimestamp)}`;
+            }
 
-        if (original.body?.trim()) {
-            msg += `\n💬 Content:\n${original.body}`;
-        }
+            if (original.body?.trim()) {
+                msg += `\n💬 Content:\n${original.body}`;
+            }
 
-        if (original.messageReply?.body) {
-            const preview = original.messageReply.body.substring(0, 50);
-            const ellipsis = original.messageReply.body.length > 50 ? "..." : "";
-            msg += `\n\n↩️ Was replying to: "${preview}${ellipsis}"`;
-        }
+            if (original.messageReply?.body) {
+                const preview = original.messageReply.body.substring(0, 50);
+                const ellipsis = original.messageReply.body.length > 50 ? "..." : "";
+                msg += `\n\n↩️ Was replying to: "${preview}${ellipsis}"`;
+            }
 
-        // Download attachments
-        const attachments = original.attachments || [];
-        const streams = [];
+            // Download attachments
+            const attachments = original.attachments || [];
+            const streams = [];
 
-        for (const att of attachments) {
-            // Skip stickers (handled separately)
-            if (att.type === "sticker") continue;
+            for (const att of attachments) {
+                // Skip stickers (handled separately)
+                if (att.type === "sticker") continue;
 
-            const url = att.url || att.largePreviewUrl || att.previewUrl;
-            if (!url) {
-                // Try to resolve photo URL if we have an ID
-                const photoId = att.fbid || att.ID;
-                if (photoId) {
-                    try {
-                        const resolvedUrl = await new Promise((resolve, reject) => {
-                            api.resolvePhotoUrl(photoId, (err, photoUrl) => {
-                                if (err) reject(err);
-                                else resolve(photoUrl);
+                const url = att.url || att.largePreviewUrl || att.previewUrl;
+                if (!url) {
+                    // Try to resolve photo URL if we have an ID
+                    const photoId = att.fbid || att.ID;
+                    if (photoId) {
+                        try {
+                            const resolvedUrl = await new Promise((resolve, reject) => {
+                                api.resolvePhotoUrl(photoId, (err, photoUrl) => {
+                                    if (err) reject(err);
+                                    else resolve(photoUrl);
+                                });
                             });
-                        });
-                        if (resolvedUrl) {
-                            const stream = await downloadStream(
-                                resolvedUrl,
-                                att.filename || "photo.jpg",
-                                "photo"
-                            );
-                            streams.push(stream);
+                            if (resolvedUrl) {
+                                const stream = await downloadStream(
+                                    resolvedUrl,
+                                    att.filename || "photo.jpg",
+                                    "photo"
+                                );
+                                streams.push(stream);
+                            }
+                        } catch (e) {
+                            logger?.debug?.("AntiUnsend", `Could not resolve photo: ${e.message}`);
                         }
-                    } catch (e) {
-                        logger?.debug?.("AntiUnsend", `Could not resolve photo: ${e.message}`);
                     }
+                    continue;
                 }
-                continue;
+
+                try {
+                    // For photos, always use photo type to ensure proper handling
+                    const attType = att.type === "animated_image" ? "photo" : att.type;
+
+                    const stream = await downloadStream(url, att.filename || att.name, attType);
+                    streams.push(stream);
+                } catch (e) {
+                    logger?.debug?.("AntiUnsend", `Failed to download: ${e.message}`);
+                }
             }
 
+            // Send reveal message with attachments
             try {
-                // For photos, always use photo type to ensure proper handling
-                const attType = att.type === "animated_image" ? "photo" : att.type;
-
-                const stream = await downloadStream(url, att.filename || att.name, attType);
-                streams.push(stream);
-            } catch (e) {
-                logger?.debug?.("AntiUnsend", `Failed to download: ${e.message}`);
+                await api.sendMessage(
+                    {
+                        body: msg,
+                        attachment:
+                            streams.length > 0
+                                ? streams.length === 1
+                                    ? streams[0]
+                                    : streams
+                                : undefined,
+                    },
+                    threadID
+                );
+            } catch {
+                // Fallback: send text only
+                await api.sendMessage(msg, threadID);
             }
-        }
 
-        // Send reveal message with attachments
-        try {
-            await api.sendMessage(
-                {
-                    body: msg,
-                    attachment:
-                        streams.length > 0
-                            ? streams.length === 1
-                                ? streams[0]
-                                : streams
-                            : undefined,
-                },
-                threadID
-            );
-        } catch {
-            // Fallback: send text only
-            await api.sendMessage(msg, threadID);
-        }
-
-        // Send stickers separately
-        for (const att of attachments.filter((a) => a.type === "sticker" && a.stickerID)) {
-            try {
-                await api.sendMessage({ sticker: att.stickerID }, threadID);
-            } catch (e) {
-                logger?.debug?.("AntiUnsend", `Failed to send sticker: ${e.message}`);
+            // Send stickers separately
+            for (const att of attachments.filter((a) => a.type === "sticker" && a.stickerID)) {
+                try {
+                    await api.sendMessage({ sticker: att.stickerID }, threadID);
+                } catch (e) {
+                    logger?.debug?.("AntiUnsend", `Failed to send sticker: ${e.message}`);
+                }
             }
-        }
 
-        logger?.success?.("AntiUnsend", `Revealed message from ${senderName}`);
-    } catch (error) {
-        logger?.error?.("AntiUnsend", `Failed: ${error.message}`);
-    }
+            logger?.success?.("AntiUnsend", `Revealed message from ${senderName}`);
+        } catch (error) {
+            logger?.error?.("AntiUnsend", `Failed: ${error.message}`);
+        }
     },
 };
