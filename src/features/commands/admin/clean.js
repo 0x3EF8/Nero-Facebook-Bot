@@ -12,7 +12,7 @@
  * WARNING: This is destructive and cannot be undone!
  *
  * @author 0x3EF8
- * @version 1.0.0
+ * @version 1.1.0
  */
 
 "use strict";
@@ -29,12 +29,6 @@ const DELETE_DELAY = 500;
 
 /** @type {Map<string, boolean>} Track ongoing clean operations */
 const activeCleans = new Map();
-
-/** @type {string[]} Protected thread IDs (won't be deleted) */
-const PROTECTED_THREADS = [
-    "24052714344355754",  // School GC 1
-    "24425853360351937",  // School GC 2
-];
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //                              HELPER FUNCTIONS
@@ -146,12 +140,18 @@ module.exports = {
                 "Delete conversations from your inbox.\n\n" +
                 "⚠️ **WARNING:** This is destructive and cannot be undone!\n\n" +
                 "**Usage:**\n" +
-                `• \`${actualPrefix}${commandName} all confirm\` - Delete ALL threads\n` +
-                `• \`${actualPrefix}${commandName} groups confirm\` - Delete groups only\n` +
-                `• \`${actualPrefix}${commandName} dms confirm\` - Delete DMs only\n` +
-                `• \`${actualPrefix}${commandName} list\` - Preview threads before deleting\n\n` +
-                "**Protected Threads:**\n" +
-                "School GCs are protected and won't be deleted.",
+                `• 
+${actualPrefix}${commandName} all confirm
+ - Delete ALL threads
+` +                `• 
+${actualPrefix}${commandName} groups confirm
+ - Delete groups only
+` +                `• 
+${actualPrefix}${commandName} dms confirm
+ - Delete DMs only
+` +                `• 
+${actualPrefix}${commandName} list
+ - Preview threads before deleting`,
                 threadID,
                 messageID
             );
@@ -172,7 +172,13 @@ module.exports = {
             const commandName = this.config.name;
             return api.sendMessage(
                 "❌ Invalid option.\n\n" +
-                `Use: \`${actualPrefix}${commandName} all\`, \`${actualPrefix}${commandName} groups\`, or \`${actualPrefix}${commandName} dms\``,
+                `Use: 
+${actualPrefix}${commandName} all
+, 
+${actualPrefix}${commandName} groups
+, or 
+${actualPrefix}${commandName} dms
+`,
                 threadID,
                 messageID
             );
@@ -180,7 +186,7 @@ module.exports = {
 
         // Require confirmation
         if (confirmArg !== "confirm") {
-            const filterText = filterArg === "all" ? "ALL threads" : 
+            const filterText = filterArg === "all" ? "ALL threads" :
                 filterArg === "groups" ? "all GROUPS" : "all DMs";
             const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
             const commandName = this.config.name;
@@ -189,8 +195,11 @@ module.exports = {
                 `⚠️ **Confirmation Required**\n\n` +
                 `You are about to delete ${filterText}.\n\n` +
                 `This action CANNOT be undone!\n\n` +
-                `To confirm, type:\n` +
-                `\`${actualPrefix}${commandName} ${filterArg} confirm\``,
+                `To confirm, type:
+` +
+                `
+${actualPrefix}${commandName} ${filterArg} confirm
+`,
                 threadID,
                 messageID
             );
@@ -208,27 +217,21 @@ module.exports = {
                 );
             }
 
-            // Filter out protected threads and current thread
-            const targetThreads = threads.filter((t) => 
-                t.threadID !== threadID && 
-                !PROTECTED_THREADS.includes(t.threadID)
-            );
+            // Filter out current thread
+            const targetThreads = threads.filter((t) => t.threadID !== threadID);
 
             if (targetThreads.length === 0) {
                 return api.sendMessage(
-                    "📭 No threads to delete (all are protected or current).",
+                    "📭 No other threads to delete.",
                     threadID,
                     messageID
                 );
             }
 
-            const protectedCount = threads.length - targetThreads.length;
-
             // Send status
             const statusMsg = await api.sendMessage(
                 `🧹 **Starting cleanup...**\n\n` +
-                `📋 Threads to delete: ${targetThreads.length}\n` +
-                `🛡️ Protected: ${protectedCount}\n\n` +
+                `📋 Threads to delete: ${targetThreads.length}\n\n` +
                 `⏳ This may take a while...`,
                 threadID
             );
@@ -279,11 +282,10 @@ module.exports = {
             // Send results
             let resultMessage = 
                 `✅ **Cleanup Complete**\n\n` +
-                `🗑️ Deleted: ${successCount}/${targetThreads.length}\n` +
-                `🛡️ Protected: ${protectedCount}\n`;
+                `🗑️ Deleted: ${successCount}/${targetThreads.length}`;
 
             if (failCount > 0) {
-                resultMessage += `❌ Failed: ${failCount}\n`;
+                resultMessage += `\n❌ Failed: ${failCount}`;
             }
 
             logger?.success?.("Clean", `Completed: ${successCount} deleted, ${failCount} failed`);
@@ -320,16 +322,10 @@ module.exports = {
                 return api.sendMessage("📭 No threads found.", threadID, messageID);
             }
 
-            // Separate protected and deletable
-            const deletable = threads.filter((t) => 
-                t.threadID !== threadID && 
-                !PROTECTED_THREADS.includes(t.threadID)
-            );
-            const protectedList = threads.filter((t) => 
-                PROTECTED_THREADS.includes(t.threadID)
-            );
+            // Filter out current thread
+            const deletable = threads.filter((t) => t.threadID !== threadID);
 
-            let list = `📋 **Thread Preview** (${threads.length} total)\n\n`;
+            let list = `📋 **Thread Preview** (${deletable.length} total)\n\n`;
 
             const groups = deletable.filter((t) => t.isGroup);
             const dms = deletable.filter((t) => !t.isGroup);
@@ -353,17 +349,9 @@ module.exports = {
                 if (dms.length > 10) {
                     list += `... and ${dms.length - 10} more\n`;
                 }
-                list += `\n`;
             }
 
-            if (protectedList.length > 0) {
-                list += `🛡️ **Protected (${protectedList.length}):**\n`;
-                for (const t of protectedList) {
-                    list += `• ${getThreadName(t)}\n`;
-                }
-            }
-
-            list += `\n⚠️ Total deletable: ${deletable.length}`;
+            list += `\n⚠️ Total to delete: ${deletable.length}`;
 
             return api.sendMessage(list, threadID, messageID);
 

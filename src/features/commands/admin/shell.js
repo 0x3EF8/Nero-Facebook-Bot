@@ -87,8 +87,7 @@ module.exports = {
         const shell = platform === "win32" ? "cmd.exe" : "/bin/bash";
 
         return api.sendMessage(
-            `🖥️ SHELL COMMAND\n` +
-                `━━━━━━━━━━━━━━━━━━━━\n\n` +
+            `🖥️ SHELL COMMAND\n\n` +
                 `Usage: ${actualPrefix}${commandName} <command>\n\n` +
                 `📋 System Info:\n` +
                 `   Platform: ${platform}\n` +
@@ -118,8 +117,7 @@ module.exports = {
     const result = await executeCommand(command);
 
     // Build response
-    let response = `🖥️ SHELL OUTPUT\n`;
-    response += `━━━━━━━━━━━━━━━━━━━━\n\n`;
+    let response = `🖥️ SHELL OUTPUT\n\n`;
     response += `📝 Command: ${command}\n`;
     response += `⏱️ Time: ${result.executionTime}ms\n`;
     response += `📊 Exit Code: ${result.exitCode}\n`;

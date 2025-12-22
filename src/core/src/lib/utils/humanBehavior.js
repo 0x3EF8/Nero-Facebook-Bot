@@ -2224,7 +2224,7 @@ async function beforeSendMessage(ctx, api, threadID, messageBody) {
     debug.human(`   ├─ Phase 5 - Typing Indicator: ${typingTime}ms`);
 
     let sendPause = 0;
-    if (api.sendTypingIndicator && msgLength > 2) {
+    if (api.sendTypingIndicator && msgLength > 2 && threadID) {
         try {
             debug.human(`   │  ├─ Starting typing indicator...`);
             await api.sendTypingIndicator(true, threadID, null, true); // skipHumanBehavior = true
@@ -2241,7 +2241,8 @@ async function beforeSendMessage(ctx, api, threadID, messageBody) {
             await delay(typingTime);
         }
     } else {
-        debug.human(`   │  └─ ⚠️ Typing indicator skipped (msg too short)`);
+        const reason = !threadID ? "no threadID" : msgLength <= 2 ? "msg too short" : "API missing";
+        debug.human(`   │  └─ ⚠️ Typing indicator skipped (${reason})`);
         await delay(typingTime);
     }
 

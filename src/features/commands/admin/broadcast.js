@@ -244,10 +244,8 @@ module.exports = {
             for (const thread of targetThreads) {
                 try {
                     const formattedMessage = 
-                        `📢 **BROADCAST**\n` +
-                        `━━━━━━━━━━━━━━━━━━\n` +
-                        `${broadcastMessage}\n` +
-                        `━━━━━━━━━━━━━━━━━━`;
+                        `📢 **BROADCAST**\n\n` +
+                        `${broadcastMessage}`;
 
                     await api.sendMessage(formattedMessage, thread.threadID);
                     successCount++;

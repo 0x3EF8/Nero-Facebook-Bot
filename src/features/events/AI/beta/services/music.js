@@ -63,7 +63,7 @@ async function downloadMusic(api, threadID, messageID, query, _model, wantsLyric
         }
 
         // AI-POWERED CONTENT SCORING
-        console.log(chalk.magenta(` ├─🧠 AI scoring ${allVideos.length} results...`));
+        console.log(chalk.magenta(`🧠 AI scoring ${allVideos.length} results...`));
 
         try {
             const videoTitles = allVideos
@@ -87,7 +87,7 @@ Return JSON: [{"index": 1, "score": 95, "reason": "..."}]`;
                 scores.sort((a, b) => b.score - a.score);
                 const reordered = scores.map((s) => allVideos[s.index - 1]).filter((v) => v);
                 allVideos = reordered.concat(allVideos.filter((v) => !reordered.includes(v)));
-                console.log(chalk.green(` ├─✓ AI ranked results`));
+                console.log(chalk.green(`✓ AI ranked results`));
             }
         } catch {
             console.warn(chalk.yellow("⚠ AI scoring failed, using default order"));
@@ -105,7 +105,7 @@ Return JSON: [{"index": 1, "score": 95, "reason": "..."}]`;
                     selectedVideo = video;
                     videoTitle = selectedVideo.title.text;
                     channelName = selectedVideo.author?.name || "Unknown";
-                    console.log(chalk.green(` ├─✓ Found: ${videoTitle}`));
+                    console.log(chalk.green(`✓ Found: ${videoTitle}`));
                     break;
                 }
             } catch {
@@ -119,7 +119,7 @@ Return JSON: [{"index": 1, "score": 95, "reason": "..."}]`;
             channelName = selectedVideo.author?.name || "Unknown";
         }
 
-        console.log(chalk.cyan(` ├─🎵 Downloading: ${videoTitle}`));
+        console.log(chalk.cyan(`🎵 Downloading: ${videoTitle}`));
         api.setMessageReaction("⬇️", messageID, () => {}, true);
 
         const sanitizedTitle = videoTitle.replace(/[/\\?%*:|"<>]/g, "-").slice(0, 100);
@@ -179,7 +179,7 @@ Return JSON: [{"index": 1, "score": 95, "reason": "..."}]`;
 
         // Fetch lyrics if requested
         if (wantsLyrics) {
-            console.log(chalk.cyan(` ├─📝 Fetching lyrics...`));
+            console.log(chalk.cyan(`📝 Fetching lyrics...`));
             const lyrics = await fetchLyrics(videoTitle, channelName);
 
             if (lyrics) {
@@ -190,7 +190,7 @@ Return JSON: [{"index": 1, "score": 95, "reason": "..."}]`;
             }
         }
 
-        console.log(chalk.cyan(` ├─🔃 Uploading music...`));
+        console.log(chalk.cyan(`🔃 Uploading music...`));
         api.setMessageReaction("🔃", messageID, () => {}, true);
 
         // Send music
@@ -204,7 +204,7 @@ Return JSON: [{"index": 1, "score": 95, "reason": "..."}]`;
 
         console.log(
             chalk.green(
-                ` ├─✓ Music sent: ${videoTitle.substring(0, 40)}... (${fileSizeMB.toFixed(2)} MB)`
+                `✓ Music sent: ${videoTitle.substring(0, 40)}... (${fileSizeMB.toFixed(2)} MB)`
             )
         );
         api.setMessageReaction("✅", messageID, () => {}, true);
@@ -218,7 +218,7 @@ Return JSON: [{"index": 1, "score": 95, "reason": "..."}]`;
             }
         }, 5000);
     } catch (error) {
-        console.error(chalk.red(` ├─✗ Music download error: ${error.message}`));
+        console.error(chalk.red(`✗ Music download error: ${error.message}`));
         api.setMessageReaction("❌", messageID, () => {}, true);
 
         if (audioPath && fs.existsSync(audioPath)) {

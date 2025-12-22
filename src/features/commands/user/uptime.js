@@ -8,7 +8,7 @@
  * running since the last restart.
  *
  * @author 0x3EF8
- * @version 1.0.0
+ * @version 1.0.1
  */
 
 "use strict";
@@ -81,21 +81,27 @@ module.exports = {
 
     const response = `⏰ ${config.bot.name} Uptime
 
-📅 Days: ${time.days}
-━━━━━━━━━━━━━━━━━
+` +
+        `📅 Days: ${time.days}
+` +
+        `⏱️ Hours: ${time.hours.toString().padStart(2, "0")}
+` +
+        `${hoursBar} ${time.hours}/24h
 
-⏱️ Hours: ${time.hours.toString().padStart(2, "0")}
-${hoursBar} ${time.hours}/24h
+` +
+        `⏱️ Minutes: ${time.minutes.toString().padStart(2, "0")}
+` +
+        `${minutesBar} ${time.minutes}/60m
 
-⏱️ Minutes: ${time.minutes.toString().padStart(2, "0")}
-${minutesBar} ${time.minutes}/60m
+` +
+        `⏱️ Seconds: ${time.seconds.toString().padStart(2, "0")}
+` +
+        `${secondsBar} ${time.seconds}/60s
 
-⏱️ Seconds: ${time.seconds.toString().padStart(2, "0")}
-${secondsBar} ${time.seconds}/60s
-
-━━━━━━━━━━━━━━━━━
-📊 Day Progress: ${percentOfDay}%
-🚀 Started: ${startTimeStr}`;
+` +
+        `📊 Day Progress: ${percentOfDay}%
+` +
+        `🚀 Started: ${startTimeStr}`;
 
     api.sendMessage(response, threadID, messageID);
     },

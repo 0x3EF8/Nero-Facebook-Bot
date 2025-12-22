@@ -149,13 +149,7 @@ module.exports = {
 
             // Build reveal message
             let msg = `🗑️ 𝗠𝗘𝗦𝗦𝗔𝗚𝗘 𝗨𝗡𝗦𝗘𝗡𝗧\n`;
-            msg += `━━━━━━━━━━━━━━━━━━\n`;
             msg += `👤 From: ${senderName}\n`;
-            msg += `🕐 Sent: ${formatTime(original.timestamp)}\n`;
-
-            if (deletionTimestamp) {
-                msg += `🗑️ Deleted: ${formatTime(deletionTimestamp)}`;
-            }
 
             if (original.body?.trim()) {
                 msg += `\n💬 Content:\n${original.body}`;

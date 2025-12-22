@@ -212,10 +212,10 @@ ${forecast24h.join("\n")}
 ${forecast3day.join("\n")}`;
 
         await api.sendMessage(weatherMessage, threadID);
-        console.log(chalk.green(` ├─✓ Weather sent for: ${placeName}`));
+        console.log(chalk.green(`✓ Weather sent for: ${placeName}`));
         api.setMessageReaction("✅", messageID, () => {}, true);
     } catch (error) {
-        console.error(chalk.red(` ├─✗ Weather error: ${error.message}`));
+        console.error(chalk.red(`✗ Weather error: ${error.message}`));
         api.setMessageReaction("❌", messageID, () => {}, true);
 
         let errorMessage = "❌ Error getting weather data. Please try again.";

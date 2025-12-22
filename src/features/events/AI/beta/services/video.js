@@ -56,7 +56,7 @@ async function attemptVideoDownload(api, threadID, messageID, query, downloadDir
 
         const videoTitle = selectedVideo.title.text;
         const channelName = selectedVideo.author?.name || "Unknown";
-        console.log(chalk.cyan(` ├─🎬 Downloading: ${videoTitle}`));
+        console.log(chalk.cyan(`🎬 Downloading: ${videoTitle}`));
 
         const sanitizedTitle = videoTitle.replace(/[/\\?%*:|"<>]/g, "-").slice(0, 50);
         videoPath = path.join(downloadDir, `${Date.now()}-${sanitizedTitle}.mp4`);
@@ -98,7 +98,7 @@ async function attemptVideoDownload(api, threadID, messageID, query, downloadDir
         }, threadID);
 
         api.setMessageReaction("✅", messageID, () => {}, true);
-        console.log(chalk.green(` ├─✓ Video sent: ${videoTitle}`));
+        console.log(chalk.green(`✓ Video sent: ${videoTitle}`));
 
         // Cleanup
         setTimeout(() => { if (fs.existsSync(videoPath)) fs.unlinkSync(videoPath); }, 5000);
@@ -124,7 +124,7 @@ async function downloadVideo(api, threadID, messageID, query, _model) {
     // 1. Optimize query first
     let optimizedQuery = query;
     try {
-        console.log(chalk.magenta(` ├─🧠 AI analyzing video request...`));
+        console.log(chalk.magenta(`🧠 AI analyzing video request...`));
         const analysisPrompt = `Optimize video search for: "${query}". Return JSON: {"optimizedQuery": "..."}`;
         const result = await model.generateContent(analysisPrompt);
         const json = JSON.parse(result?.response?.text?.().replace(/```json\n?|```\n?/g, "") || "{}");
@@ -144,7 +144,7 @@ async function downloadVideo(api, threadID, messageID, query, _model) {
 
     for (let i = 0; i < uniqueQueries.length; i++) {
         const currentQuery = uniqueQueries[i];
-        if (i > 0) console.log(chalk.yellow(` ├─⚠ Retry ${i}: "${currentQuery}"`));
+        if (i > 0) console.log(chalk.yellow(`⚠ Retry ${i}: "${currentQuery}"`));
 
         const success = await attemptVideoDownload(api, threadID, messageID, currentQuery, downloadDir);
         if (success) return;

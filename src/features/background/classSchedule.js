@@ -262,14 +262,12 @@ module.exports = {
                 // Check for 30-minute reminder
                 if (shouldSend30MinReminder(classInfo.time, hour, minute) && !this.sentReminders.has(reminderKey30)) {
                     const message = `📚 𝗖𝗟𝗔𝗦𝗦 𝗥𝗘𝗠𝗜𝗡𝗗𝗘𝗥 (𝟯𝟬 𝗺𝗶𝗻𝘀)\n\n` +
-                        `━━━━━━━━━━━━━━━━━━━━━\n` +
                         `📖 Subject: ${classInfo.subject}\n` +
                         `🔢 Code: ${classInfo.code}\n` +
                         `⏰ Time: ${classInfo.time}\n` +
                         `⏱️ Duration: ${classInfo.duration} mins\n` +
                         `👨‍🏫 Teacher: ${classInfo.teacher}\n` +
-                        `🏫 Room: ${classInfo.room}\n` +
-                        `━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+                        `🏫 Room: ${classInfo.room}\n\n` +
                         `⚡ Class starts in 30 minutes! Get ready!`;
 
                     for (const threadId of this.TARGET_GROUPS) {

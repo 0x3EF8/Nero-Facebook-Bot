@@ -24,7 +24,7 @@ const { REACTIONS } = require("../core/constants");
  * @returns {Promise<boolean>} Success status
  */
 async function createPoll(api, threadID, messageID, question, options) {
-    console.log(chalk.cyan(` ├─📊 Creating poll: "${question}"`));
+    console.log(chalk.cyan(`📊 Creating poll: "${question}"`));
     api.setMessageReaction("📊", messageID, () => {}, true);
 
     // 1. Deduplicate and clean options
@@ -49,7 +49,7 @@ async function createPoll(api, threadID, messageID, question, options) {
         api.setMessageReaction(REACTIONS.success, messageID, () => {}, true);
         return true;
     } catch (error) {
-        console.error(chalk.red(` ├─✗ Poll error: ${error.message}`));
+        console.error(chalk.red(`✗ Poll error: ${error.message}`));
         api.setMessageReaction(REACTIONS.error, messageID, () => {}, true);
         await api.sendMessage(`❌ Failed to create poll: ${error.message}`, threadID, messageID);
         return false;

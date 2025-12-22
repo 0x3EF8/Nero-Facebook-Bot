@@ -124,7 +124,7 @@ async function handleBulkNickname(api, threadID, messageID, bulkData, allMembers
         .filter(change => {
             const isValid = isValidUserID(change.id);
             if (!isValid) {
-                console.log(chalk.red(` ├─✗ Invalid ID: ${change.id}`));
+                console.log(chalk.red(`✗ Invalid ID: ${change.id}`));
             }
             return isValid;
         });
@@ -142,14 +142,14 @@ async function handleBulkNickname(api, threadID, messageID, bulkData, allMembers
 
     for (const change of changes) {
         const name = allMembers.get(change.id) || "Unknown";
-        console.log(chalk.yellow(` ├─  ${name} → "${change.name}"`));
+        console.log(chalk.yellow(`${name} → "${change.name}"`));
         
         const result = await changeNickname(api, threadID, change.id, change.name);
         result ? success++ : failed++;
         await delay(500);
     }
 
-    console.log(chalk.green(` ├─✓ Bulk: ${success} success, ${failed} failed`));
+    console.log(chalk.green(`✓ Bulk: ${success} success, ${failed} failed`));
     await sendReply(api, threadID, messageID, 
         `✨ Changed ${success} nickname${success !== 1 ? "s" : ""} successfully! 🎭\n\n💡 Tip: Try "beta change my name to [nickname]"`
     );
@@ -167,13 +167,13 @@ async function handleClearAllNicknames(api, threadID, messageID, allMembers) {
     let success = 0, failed = 0;
 
     for (const [userID, memberName] of allMembers.entries()) {
-        console.log(chalk.yellow(` ├─  Clearing: ${memberName}`));
+        console.log(chalk.yellow(`Clearing: ${memberName}`));
         const result = await changeNickname(api, threadID, userID, "");
         result ? success++ : failed++;
         await delay(500);
     }
 
-    console.log(chalk.green(` ├─✓ Cleared: ${success} success, ${failed} failed`));
+    console.log(chalk.green(`✓ Cleared: ${success} success, ${failed} failed`));
     await sendReply(api, threadID, messageID,
         `✨ Cleared ${success} nickname${success !== 1 ? "s" : ""}! 🧹`
     );
