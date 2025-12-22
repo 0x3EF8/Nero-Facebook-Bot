@@ -16,14 +16,8 @@
 const axios = require("axios");
 
 // Curated keywords to keep content relevant to the command's theme
-const KEYWORDS = [
-    "pretty girl tiktok", "beautiful pinay", "tiktok dance girl", 
-    "viral girl dance", "cute chinita", "filipina beauty", 
-    "tiktok mashup girl", "pretty asian girl", "girl dancing trend",
-    "tiktok model", "bikini girl tiktok", "hot girl dance",
-    "trending pinay", "fit girl tiktok", "aesthetic girl",
-    "thirst trap tiktok", "baddie edit", "tiktok crush",
-    "sexy teens tiktok", "cute teen dance", "viral teen girl"
+const KEYWORDS = [ 
+   "Pinay Tiktok Dance Trend", "2 piece dance tiktok", "tiktok bikini dance", "crop top and dolphin shorts dance", "pinay white shirt", "chinita girls", "pinay swimsuit", "pinay", "thirst trap pinay", "thirst trap",
 ];
 
 module.exports = {
