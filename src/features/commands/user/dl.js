@@ -18,6 +18,74 @@
 const { aio, fbdown, igdl, ttdl, twitter, youtube } = require("ab-downloader");
 const axios = require("axios");
 
+/**
+ * Custom Facebook Downloader with Multi-API Fallback
+ * @param {string} url - Facebook Video URL
+ * @returns {Promise<Object>} Response object
+ */
+async function facebookDl(url) {
+    // List of APIs to try in order
+    const apis = [
+        {
+            name: "BK9",
+            url: `https://api.bk9.site/download/fb?url=${encodeURIComponent(url)}`,
+            transform: (res) => {
+                if (!res.data || !res.data.status || !res.data.data) return null;
+                return {
+                    video: res.data.data.hd || res.data.data.sd,
+                    title: res.data.data.title || "Facebook Video",
+                    HD: res.data.data.hd,
+                    SD: res.data.data.sd
+                };
+            }
+        },
+        {
+            name: "DavidCyril",
+            url: `https://api.davidcyriltech.my.id/facebook?url=${encodeURIComponent(url)}`,
+            transform: (res) => {
+                if (!res.data || !res.data.video || !res.data.video.hd) return null;
+                return {
+                    video: res.data.video.hd || res.data.video.sd,
+                    title: res.data.title || "Facebook Video",
+                    HD: res.data.video.hd,
+                    SD: res.data.video.sd
+                };
+            }
+        },
+        {
+            name: "SparkX",
+            url: `https://sparkx-api.vercel.app/api/downloader/fb?url=${encodeURIComponent(url)}`,
+            transform: (res) => {
+                if (!res.data || !res.data.status || !res.data.data) return null;
+                const v = res.data.data;
+                return {
+                    video: v.hd || v.sd,
+                    title: v.title || "Facebook Video",
+                    HD: v.hd,
+                    SD: v.sd
+                };
+            }
+        }
+    ];
+
+    for (const api of apis) {
+        try {
+            console.log(`[FacebookDL] Trying API: ${api.name}`);
+            const response = await axios.get(api.url);
+            const data = api.transform(response);
+            
+            if (data && data.video) {
+                console.log(`[FacebookDL] Success with ${api.name}`);
+                return { data };
+            }
+        } catch (error) {
+            console.log(`[FacebookDL] Failed with ${api.name}: ${error.message}`);
+        }
+    }
+    
+    return null;
+}
+
 module.exports = {
     config: {
         name: "dl",
@@ -51,38 +119,86 @@ module.exports = {
         }
 
         const url = args[0];
+        let finalUrl = url;
 
-        // Set initial reaction and send status message
+        // Set initial reaction
         api.setMessageReaction("⏳", messageID, () => {}, true);
-        /* statusMsg = await api.sendMessage(
-            `⏳ Searching for content...\nThis might take a moment.`,
-            threadID,
-            messageID
-        ); */
 
         try {
+            // Resolve short URLs for better metadata extraction
+            if (url.includes('vt.tiktok.com') || url.includes('vm.tiktok.com') || url.includes('bit.ly') || url.includes('tinyurl.com') || url.includes('facebook.com/share') || url.includes('fb.watch')) {
+                try {
+                    const headRes = await axios.head(url, { 
+                        maxRedirects: 10,
+                        headers: {
+                            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+                        }
+                    });
+                    finalUrl = headRes.request.res.responseUrl || url;
+                } catch (e) {
+                    try {
+                        const getRes = await axios.get(url, { 
+                            maxRedirects: 10,
+                            timeout: 5000,
+                            headers: {
+                                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+                            }
+                        });
+                        finalUrl = getRes.request.res.responseUrl || url;
+                    } catch (err) {
+                        finalUrl = url;
+                    }
+                }
+            }
+
             let response;
             let platform = "Unknown";
+            let attempts = 0;
+            const maxAttempts = 3;
 
-            // Select specific downloader based on URL
-            if (url.includes('facebook.com') || url.includes('fb.watch') || url.includes('fb.com')) {
-                platform = "Facebook";
-                response = await fbdown(url);
-            } else if (url.includes('tiktok.com')) {
-                platform = "TikTok";
-                response = await ttdl(url);
-            } else if (url.includes('instagram.com')) {
-                platform = "Instagram";
-                response = await igdl(url);
-            } else if (url.includes('youtube.com') || url.includes('youtu.be')) {
-                platform = "YouTube";
-                response = await youtube(url);
-            } else if (url.includes('twitter.com') || url.includes('x.com')) {
-                platform = "Twitter";
-                response = await twitter(url);
-            } else {
-                platform = "Auto-Detect";
-                response = await aio(url);
+            while (attempts < maxAttempts) {
+                attempts++;
+                try {
+                    // Select specific downloader based on URL
+                    if (finalUrl.includes('facebook.com') || finalUrl.includes('fb.watch') || finalUrl.includes('fb.com')) {
+                        platform = "Facebook";
+                        // Try custom API first
+                        response = await facebookDl(finalUrl);
+                        // If custom API fails, fallback to ab-downloader
+                        if (!response) {
+                             response = await fbdown(finalUrl);
+                        }
+                    } else if (finalUrl.includes('tiktok.com')) {
+                        platform = "TikTok";
+                        response = await ttdl(finalUrl);
+                    } else if (finalUrl.includes('instagram.com')) {
+                        platform = "Instagram";
+                        response = await igdl(finalUrl);
+                    } else if (finalUrl.includes('youtube.com') || finalUrl.includes('youtu.be')) {
+                        platform = "YouTube";
+                        response = await youtube(finalUrl);
+                    } else if (finalUrl.includes('twitter.com') || finalUrl.includes('x.com')) {
+                        platform = "Twitter";
+                        response = await twitter(finalUrl);
+                    } else {
+                        platform = "Auto-Detect";
+                        response = await aio(finalUrl);
+                    }
+
+                    // Validation check to trigger retry
+                    if (response && (response.data || response.result || response.url || response.video)) {
+                        break; 
+                    }
+                    throw new Error("Empty response data");
+
+                } catch (err) {
+                    console.log(`[DL Command] Attempt ${attempts} failed for ${platform || 'Unknown'}: ${err.message}`);
+                    if (attempts === maxAttempts) {
+                        response = null; // Ensure it fails gracefully to fallback
+                    } else {
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                    }
+                }
             }
 
             console.log(`[DL Command] Platform: ${platform}`);
@@ -96,12 +212,77 @@ module.exports = {
                 data = response.result;
             }
 
+            // Check for API failure
+            if (!data || (data.status === false && !data.url && !data.video && !data.HD)) {
+                console.log(`[DL Command] ${platform} downloader failed, trying AIO fallback...`);
+                // Fallback to AIO
+                try {
+                    const aioResponse = await aio(finalUrl);
+                    if (aioResponse && (aioResponse.url || aioResponse.data || aioResponse.result)) {
+                         response = aioResponse;
+                         data = response.data || response.result || response;
+                         platform = "Auto-Detect (Fallback)";
+                         console.log("[DL Command] Fallback Response:", JSON.stringify(data, null, 2));
+                    }
+                    
+                    // Second Fallback: Try custom Facebook DL again if AIO fails and it is FB
+                    if ((!response || !data) && platform === "Facebook") {
+                         const fbRes = await facebookDl(finalUrl);
+                         if (fbRes) {
+                             response = fbRes;
+                             data = fbRes.data;
+                             console.log("[DL Command] Second Fallback to Custom FB DL successful");
+                         }
+                    }
+
+                } catch (err) {
+                    console.error("[DL Command] AIO fallback also failed:", err);
+                }
+            }
+
             if (!data) {
                 throw new Error("Empty response from downloader.");
             }
             
+            // Helper function to recursively find a URL in an object
+            const findUrlInObject = (obj, visited = new Set()) => {
+                if (!obj || typeof obj !== 'object' || visited.has(obj)) return null;
+                visited.add(obj);
+
+                // Check immediate keys first
+                const keys = [
+                    'HD', 'mp4', 'video', 'Normal_video', 'SD', 'url', 'media', 'Video', 'Download', 
+                    'hd_play', 'sd_play', 'play_addr', 'play_url', 'download_url', 'no_watermark'
+                ];
+                
+                for (const key of keys) {
+                    if (obj[key] && typeof obj[key] === 'string' && obj[key].startsWith('http')) {
+                        return obj[key];
+                    }
+                }
+                
+                // If nested array, search inside
+                if (Array.isArray(obj)) {
+                    for (const item of obj) {
+                        const result = findUrlInObject(item, visited);
+                        if (result) return result;
+                    }
+                }
+
+                // Deep search in values
+                for (const key in obj) {
+                    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+                        const val = obj[key];
+                        if (typeof val === 'object') {
+                            const result = findUrlInObject(val, visited);
+                            if (result) return result;
+                        }
+                    }
+                }
+                return null;
+            };
+
             // Determine the best URL to use
-            // varied structures: .url, .video, .HD, .SD, .media, .Video, .Download, .mp4, .Normal_video
             let videoUrl = 
                 data.HD || 
                 data.mp4 ||
@@ -115,16 +296,19 @@ module.exports = {
                 (data.links ? data.links[0] : null) ||
                 (typeof data === 'string' && data.startsWith('http') ? data : null);
             
-            // Handle array response (sometimes returns multiple qualities) or nested arrays
-            if (Array.isArray(data)) {
+            // Handle array response or nested arrays
+            if (!videoUrl && Array.isArray(data)) {
                  videoUrl = data[0].url || data[0].video || data[0].HD || data[0].SD || data[0].Normal_video;
-            } else if (Array.isArray(data.video)) {
-                // Specific fix for ttdl response where video is ["url"]
+            } else if (!videoUrl && Array.isArray(data.video)) {
                 videoUrl = data.video[0];
             }
 
-            // Prioritize title from data, then caption/description
-            // Common fields: title, caption, description, desc, text, full_title
+            // Last resort: deep search
+            if (!videoUrl) {
+                videoUrl = findUrlInObject(data);
+            }
+
+            // Prioritize title from data
             let title = 
                 data.title || 
                 data.full_title ||
@@ -135,14 +319,10 @@ module.exports = {
                 (data.meta ? data.meta.title : null);
             
             if (!title) {
-                if (platform !== "Unknown") {
-                    title = `${platform} Video`;
-                } else {
-                    title = "Downloaded Video";
-                }
+                title = platform !== "Unknown" ? `${platform} Video` : "Downloaded Video";
             }
                 
-            // Common fields: author, uploader, owner, user, nickname, unique_id, author_name
+            // Improved Author Extraction
             let author = 
                 data.author || 
                 data.uploader || 
@@ -150,22 +330,32 @@ module.exports = {
                 data.user || 
                 data.nickname || 
                 data.unique_id || 
+                data.uniqueId ||
                 data.author_name || 
-                (typeof data.author === 'object' ? (data.author.nickname || data.author.name || data.author.unique_id) : null) ||
-                (typeof data.owner === 'object' ? (data.owner.nickname || data.owner.username) : null);
+                data.authorName;
+
+            // Handle object types for author
+            if (author && typeof author === 'object') {
+                author = author.nickname || author.name || author.unique_id || author.uniqueId || author.username || author.id;
+            }
+
+            // Fallback: If author still unknown, check nested objects or metadata
+            if (!author || typeof author !== 'string' || author === "Unknown") {
+                const authorObj = data.author || data.owner || data.user || data.meta?.author;
+                if (authorObj && typeof authorObj === 'object') {
+                    author = authorObj.nickname || authorObj.name || authorObj.unique_id || authorObj.uniqueId || authorObj.username;
+                }
+            }
             
-            // Fallback: Extract author from URL for various platforms
-            if (!author) {
-                // TikTok: @username
-                // IG/Twitter: .com/username
-                // FB: .com/username or .com/groups/id
-                const tiktokMatch = url.match(/@([^/?&]+)/);
-                const generalMatch = url.match(/https?:\/\/(?:www\.)?(?:instagram|twitter|x|facebook|youtube)\.com\/([^/?&]+)/);
+            // Final Fallback: Extract from URL
+            if (!author || typeof author !== 'string' || author === "Unknown") {
+                const tiktokMatch = finalUrl.match(/@([^/?&]+)/);
+                const generalMatch = finalUrl.match(/https?:\/\/(?:www\.)?(?:instagram|twitter|x|facebook|youtube|tiktok)\.com\/([^/?&]+)/);
                 
                 if (tiktokMatch) {
                     author = tiktokMatch[1];
                 } else if (generalMatch && !["share", "watch", "reels", "shorts", "groups"].includes(generalMatch[1])) {
-                    author = generalMatch[1];
+                    author = generalMatch[1].startsWith('@') ? generalMatch[1].substring(1) : generalMatch[1];
                 } else {
                     author = "Unknown";
                 }
@@ -177,15 +367,7 @@ module.exports = {
 
             api.setMessageReaction("⬇️", messageID, () => {}, true);
             
-            // For Facebook, we skip the "Downloading" status message to keep it simple
-            if (platform !== "Facebook") {
-                statusMsg = await api.sendMessage(
-                    `⬇️ Downloading content...\n\nTitle: ${title.substring(0, 50)}${title.length > 50 ? "..." : ""}\n👤 From: ${author}`,
-                    threadID,
-                    messageID
-                );
-            }
-
+    
             // Download the video as a stream
             const videoStream = await axios({
                 method: "GET",
@@ -204,16 +386,7 @@ module.exports = {
             // Set uploading reaction
             api.setMessageReaction("🔃", messageID, () => {}, true);
 
-            // Cleanup status message BEFORE sending the final one
-            // This ensures there's only one bot message at the end
-            if (statusMsg && statusMsg.messageID) {
-                try {
-                    await api.unsendMessage(statusMsg.messageID);
-                } catch (e) {
-                    // Ignore unsend errors
-                }
-            }
-
+   
             // Set final success reaction
             api.setMessageReaction("✅", messageID, () => {}, true);
             

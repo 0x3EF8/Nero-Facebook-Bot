@@ -119,7 +119,7 @@ const config = {
     // ═══════════════════════════════════════════════════════════════════════════
     events: {
         ...settings.events,
-        directories: ["welcome", "protection", "AI", "timeline"],  // Directories to load events from
+        directories: ["welcome", "protection", "AI", "media"],  // Directories to load events from
     },
 
     // ═══════════════════════════════════════════════════════════════════════════

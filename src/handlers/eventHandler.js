@@ -44,6 +44,12 @@ class EventHandler {
             triggered: 0,
             failed: 0,
         };
+        
+        /** @type {Set<string>} Processed event IDs to prevent multi-bot duplicates */
+        this.processedEvents = new Set();
+        
+        // Auto-cleanup processed events every minute
+        setInterval(() => this.processedEvents.clear(), 60000);
     }
 
     /**
@@ -244,7 +250,7 @@ class EventHandler {
         if (isGroup && config.events.allowInGroups === false) {
             return; // Silently ignore group events
         }
-
+        
         const eventType = event.type;
 
         // Debug: Log event types for troubleshooting
@@ -285,6 +291,22 @@ class EventHandler {
             logger,
             eventHandler: this,
         };
+
+        // Multi-bot collision prevention for shared groups
+        // CHECK HERE: Only claim the event if we found handlers and are about to execute
+        let uniqueId = null;
+        if (config.events.singleEventInSharedGC && isGroup) {
+            uniqueId = event.messageID || `${event.threadID}-${event.logMessageType || event.type}-${event.timestamp}`;
+            
+            if (this.processedEvents.has(uniqueId)) {
+                 return; // Already processed by another bot
+            }
+        }
+
+        // If we made it here, we are the first valid bot to process this event
+        if (uniqueId) {
+            this.processedEvents.add(uniqueId);
+        }
 
         // Execute all handlers
         for (const handler of activeHandlers) {

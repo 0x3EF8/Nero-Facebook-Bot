@@ -34,7 +34,7 @@ module.exports = {
     async execute({ api, event, args, config, logger, commandHandler }) {
     const threadID = event.threadID;
     const messageID = event.messageID ? String(event.messageID) : null;
-    const eventHandler = require("../../handlers/eventHandler");
+    const eventHandler = require("../../../handlers/eventHandler");
     const fs = require("fs");
     const path = require("path");
 
@@ -111,8 +111,10 @@ module.exports = {
     const commandDirs = [path.join(__dirname, "..", "user"), path.join(__dirname, "..", "admin")];
 
     const eventDirs = [
-        path.join(__dirname, "..", "events", "welcome"),
-        path.join(__dirname, "..", "events", "protection"),
+        path.join(__dirname, "..", "..", "events", "welcome"),
+        path.join(__dirname, "..", "..", "events", "protection"),
+        path.join(__dirname, "..", "..", "events", "media"),
+        path.join(__dirname, "..", "..", "events", "AI")
     ];
 
     // Check command directories
@@ -132,13 +134,32 @@ module.exports = {
 
     // Check event directories
     for (const dir of eventDirs) {
-        const filePath = path.join(dir, `${name}.js`);
-        if (fs.existsSync(filePath)) {
-            // New event file found - reload all to pick it up
+        if (!fs.existsSync(dir)) continue;
+        
+        // Read directory to find case-insensitive match
+        const files = fs.readdirSync(dir);
+        const match = files.find(f => f.toLowerCase() === `${name}.js`);
+        
+        if (match) {
+            // Found the file with correct casing!
+            // If it was already loaded (but lookup failed due to case), try reloading specific event
+            // Otherwise re-init
+            
+            const actualName = match.replace(/\.js$/, "");
+            const existingHandler = eventHandler.getHandler(actualName);
+            
+            if (existingHandler) {
+                 const success = await eventHandler.reloadEvent(actualName);
+                 if (success) {
+                     return api.sendMessage(`✅ Event "${actualName}" reloaded!`, threadID, messageID);
+                 }
+            }
+
+            // Fallback to full init if specific reload didn't work or wasn't loaded
             const evtCount = await eventHandler.init();
-            logger.success("Reload", `New event "${name}" loaded by ${event.senderID}`);
+            logger.success("Reload", `New/Updated event "${match}" loaded by ${event.senderID}`);
             return api.sendMessage(
-                `✅ New event "${name}" loaded!\n\n📡 Total events: ${evtCount}`,
+                `✅ Event "${match}" loaded!\n\n📡 Total events: ${evtCount}`,
                 threadID,
                 messageID
             );

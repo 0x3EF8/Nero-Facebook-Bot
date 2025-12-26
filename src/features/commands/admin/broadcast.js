@@ -15,6 +15,10 @@
 
 "use strict";
 
+const axios = require("axios");
+const fs = require("fs");
+const path = require("path");
+
 // ═══════════════════════════════════════════════════════════════════════════════
 //                              CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -101,6 +105,40 @@ function sleep(ms) {
     });
 }
 
+/**
+ * Download attachment from URL
+ * @param {string} url - URL to download
+ * @param {string} type - 'photo' or 'video'
+ * @returns {Promise<string>} Path to temporary file
+ */
+async function downloadAttachment(url, type) {
+    try {
+        const response = await axios({
+            method: 'GET',
+            url: url,
+            responseType: 'stream'
+        });
+
+        const tempDir = path.join(__dirname, '../../../../temp');
+        if (!fs.existsSync(tempDir)) {
+            fs.mkdirSync(tempDir, { recursive: true });
+        }
+
+        const ext = type === 'video' ? 'mp4' : 'png';
+        const filePath = path.join(tempDir, `broadcast_${Date.now()}.${ext}`);
+        
+        const writer = fs.createWriteStream(filePath);
+        response.data.pipe(writer);
+
+        return new Promise((resolve, reject) => {
+            writer.on('finish', () => resolve(filePath));
+            writer.on('error', reject);
+        });
+    } catch (error) {
+        throw new Error(`Failed to download attachment: ${error.message}`);
+    }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 //                              COMMAND EXPORT
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -109,8 +147,8 @@ module.exports = {
     config: {
         name: "broadcast",
         aliases: ["bc", "announce", "sendall"],
-        description: "Broadcast a message to all threads",
-        usage: "broadcast <message> | -g <message> | -d <message> | -s <message> | -list",
+        description: "Broadcast a message/attachment to threads",
+        usage: "broadcast <msg> | reply to media",
         category: "admin",
         cooldown: 30,
         permissions: "admin",
@@ -121,11 +159,6 @@ module.exports = {
 
     /**
      * Command execution function
-     * @param {Object} context - Command context
-     * @param {Object} context.api - Nero API object
-     * @param {Object} context.event - Event object
-     * @param {Array} context.args - Command arguments
-     * @param {Object} context.logger - Logger utility
      */
     async execute({ api, event, args, config, logger }) {
         const threadID = event.threadID;
@@ -141,93 +174,127 @@ module.exports = {
             );
         }
 
-        // Show usage if no arguments
-        if (args.length === 0) {
+        // --- 1. Handle Attachments (Reply Mode) ---
+        let attachmentPath = null;
+        let attachmentType = null;
+        
+        if (event.type === "message_reply" && event.messageReply.attachments && event.messageReply.attachments.length > 0) {
+            const att = event.messageReply.attachments[0]; // Take first attachment
+            if (att.type === "photo" || att.type === "video" || att.type === "animated_image") {
+                try {
+                    api.sendMessage("⏳ Downloading attachment...", threadID);
+                    attachmentType = att.type === "video" ? "video" : "photo";
+                    attachmentPath = await downloadAttachment(att.url, attachmentType);
+                } catch (err) {
+                    return api.sendMessage(`❌ Error downloading attachment: ${err.message}`, threadID);
+                }
+            }
+        }
+
+        // Parse flags
+        const firstArg = args[0] ? args[0].toLowerCase().trim() : "";
+        let filter = "all";
+        let messageStart = 0;
+        let selectedIDs = [];
+
+        if (["-g", "-groups", "groups"].includes(firstArg)) {
+            filter = "groups";
+            messageStart = 1;
+        } else if (["-d", "-dms", "dms"].includes(firstArg)) {
+            filter = "dms";
+            messageStart = 1;
+        } else if (["-t", "-target", "target"].includes(firstArg)) {
+            // Logic for -t <id1>, <id2> ... <message>
+            filter = "custom";
+            let i = 1;
+            
+            // Collect IDs. Supports numeric IDs or IDs starting with 'c', allowing trailing commas
+            while (i < args.length && /^(c|)\d+,?$/i.test(args[i])) {
+                // Strip the comma if present
+                const cleanID = args[i].replace(/,$/, "");
+                selectedIDs.push(cleanID);
+                i++;
+            }
+            
+            if (selectedIDs.length === 0) {
+                 return api.sendMessage("❌ Please provide at least one Thread ID after -t.\nExample: /broadcast -t c12345, c67890 Hello", threadID);
+            }
+            messageStart = i;
+        } else if (firstArg === "-list") {
+            return await this.listThreads(api, event, args[1] || "all", config);
+        }
+
+        // Show usage if no arguments and no attachment
+        if (args.length === 0 && !attachmentPath) {
             const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
             const commandName = this.config.name;
             return api.sendMessage(
                 "📢 **Broadcast Command**\n\n" +
-                "Send a message to multiple threads at once.\n\n" +
+                "Send a message (text, photo, video) to multiple threads.\n" +
+                "Reply to an attachment to broadcast it.\n\n" +
                 "**Usage:**\n" +
                 `• ${actualPrefix}${commandName} <message>` + " - Send to all threads\n" +
                 `• ${actualPrefix}${commandName} -g <message>` + " - Send to groups only\n" +
                 `• ${actualPrefix}${commandName} -d <message>` + " - Send to DMs only\n" +
-                `• ${actualPrefix}${commandName} -s <message>` + " - Send to school GCs only\n" +
+                `• ${actualPrefix}${commandName} -s <message>` + " - Send to school GCs\n" +
+                `• ${actualPrefix}${commandName} -t <id1> <id2>... <msg>` + " - Send to target IDs\n" +
                 `• ${actualPrefix}${commandName} -list` + " - List all threads\n\n" +
-                "**Example:**\n" +
-                `• ${actualPrefix}${commandName} Hello everyone! Bot update incoming.`,
+                "**Attachments:** Reply to a photo/video with the command to broadcast it.",
                 threadID,
                 messageID
             );
         }
 
-        // Parse flags
-        const firstArg = args[0].toLowerCase();
-        let filter = "all";
-        let messageStart = 0;
-
-        if (firstArg === "-g" || firstArg === "-groups") {
-            filter = "groups";
-            messageStart = 1;
-        } else if (firstArg === "-d" || firstArg === "-dms") {
-            filter = "dms";
-            messageStart = 1;
-        } else if (firstArg === "-s" || firstArg === "-school") {
-            filter = "school";
-            messageStart = 1;
-        } else if (firstArg === "-list") {
-            // List all threads
-            return await this.listThreads(api, event, args[1] || "all", config);
-        }
-
-        // Get message content
+        // Get message text content
         const broadcastMessage = args.slice(messageStart).join(" ").trim();
 
-        if (!broadcastMessage) {
-            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
-            const commandName = this.config.name;
-            return api.sendMessage(
-                "❌ Please provide a message to broadcast.\n\n" +
-                `Usage: \`${actualPrefix}${commandName} <message>\``,
-                threadID,
-                messageID
-            );
-        }
-
-        // Confirm broadcast
-        const filterText = filter === "all" ? "all threads" : 
-            filter === "groups" ? "groups only" : 
-            filter === "dms" ? "DMs only" : 
-            filter === "school" ? "school GCs" : "threads";
-
-        try {
-            // Fetch threads
-            const threads = await fetchThreads(api, filter);
-
-            if (threads.length === 0) {
-                return api.sendMessage(
-                    `📭 No ${filterText} found to broadcast to.`,
-                    threadID,
-                    messageID
-                );
+                // Validation: Must have either text OR attachment
+                if (!broadcastMessage && !attachmentPath) {
+                     const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+                     return api.sendMessage(
+                        "❌ Please provide a message or reply to an attachment.\n\n" +
+                        `Usage: \`${actualPrefix}broadcast <message>\``,
+                        threadID,
+                        messageID
+                    );
+                }
+        
+                // Confirm broadcast
+                let filterText = filter;
+                if (filter === "all") filterText = "all threads";
+                else if (filter === "groups") filterText = "groups only";
+                else if (filter === "dms") filterText = "DMs only";
+                else if (filter === "school") filterText = "school GCs";
+                else if (filter === "custom") filterText = `target IDs (${selectedIDs.length})`;        
+                try {
+                    // Fetch threads
+                    let targetThreads = [];
+                    
+                    if (filter === "custom") {
+                        // Manually construct thread objects for custom IDs
+                        targetThreads = selectedIDs.map(id => ({ 
+                            threadID: id, 
+                            isGroup: true, // Assume group, doesn't matter much for sending
+                            threadName: `ID: ${id}` 
+                        }));
+                    } else {                const threads = await fetchThreads(api, filter);
+                if (threads.length === 0) {
+                    return api.sendMessage(`📭 No ${filterText} found.`, threadID);
+                }
+                // Filter out current thread to avoid echo
+                targetThreads = threads.filter((t) => t.threadID !== threadID);
             }
 
-            // Filter out current thread (optional - you may want to include it)
-            const targetThreads = threads.filter((t) => t.threadID !== threadID);
-
             if (targetThreads.length === 0) {
-                return api.sendMessage(
-                    `📭 No other threads found to broadcast to.`,
-                    threadID,
-                    messageID
-                );
+                return api.sendMessage("📭 No targets found.", threadID);
             }
 
             // Send confirmation
             const confirmMsg = await api.sendMessage(
-                `📢 **Broadcasting to ${targetThreads.length} ${filterText}**\n\n` +
-                `Message:\n"${broadcastMessage.substring(0, 100)}${broadcastMessage.length > 100 ? "..." : ""}"\n\n` +
-                `⏳ Starting broadcast...`,
+                `📢 **Broadcasting to ${targetThreads.length} targets**\n` +
+                (attachmentPath ? `📎 With attachment (${attachmentType})\n` : "") +
+                (broadcastMessage ? `📝 Text: "${broadcastMessage.substring(0, 50)}..."\n` : "") +
+                `⏳ Starting...`,
                 threadID
             );
 
@@ -243,14 +310,24 @@ module.exports = {
 
             for (const thread of targetThreads) {
                 try {
-                    const formattedMessage = 
-                        `📢 **BROADCAST**\n\n` +
-                        `${broadcastMessage}`;
-
-                    await api.sendMessage(formattedMessage, thread.threadID);
-                    successCount++;
+                    const msgOptions = {};
                     
+                    // Add text if exists
+                    if (broadcastMessage) {
+                        msgOptions.body = `📢 **BROADCAST**\n\n${broadcastMessage}`;
+                    } else if (attachmentPath) {
+                        msgOptions.body = `📢 **BROADCAST**`;
+                    }
+
+                    // Add attachment if exists
+                    if (attachmentPath) {
+                        msgOptions.attachment = fs.createReadStream(attachmentPath);
+                    }
+
+                    await api.sendMessage(msgOptions, thread.threadID);
+                    successCount++;
                     logger?.debug?.("Broadcast", `Sent to ${getThreadName(thread)} (${thread.threadID})`);
+                    
                 } catch (error) {
                     failCount++;
                     failedThreads.push({
@@ -258,7 +335,6 @@ module.exports = {
                         id: thread.threadID,
                         error: error.message,
                     });
-                    
                     logger?.debug?.("Broadcast", `Failed: ${getThreadName(thread)} - ${error.message}`);
                 }
 
@@ -266,47 +342,38 @@ module.exports = {
                 await sleep(MESSAGE_DELAY);
             }
 
+            // Cleanup attachment file
+            if (attachmentPath && fs.existsSync(attachmentPath)) {
+                fs.unlinkSync(attachmentPath);
+            }
+
             // Clear active broadcast
             activeBroadcasts.delete(senderID);
 
-            // Try to unsend the "Starting broadcast" message
-            try {
-                if (confirmMsg?.messageID) {
-                    await api.unsendMessage(confirmMsg.messageID);
-                }
-            } catch {
-                // Ignore
-            }
+            // Try to unsend confirmation
+            try { if (confirmMsg?.messageID) await api.unsendMessage(confirmMsg.messageID); } catch {}
 
             // Send results
             let resultMessage = 
-                `✅ **Broadcast Complete**\n\n` +
+                `✅ **Broadcast Complete**\n` +
                 `📤 Sent: ${successCount}/${targetThreads.length}\n`;
 
             if (failCount > 0) {
-                resultMessage += `❌ Failed: ${failCount}\n\n`;
-                
-                if (failedThreads.length <= 5) {
-                    resultMessage += `**Failed threads:**\n`;
-                    for (const ft of failedThreads) {
-                        resultMessage += `• ${ft.name}\n`;
-                    }
+                resultMessage += `❌ Failed: ${failCount}\n\nFAILED:\n`;
+                for (const ft of failedThreads.slice(0, 5)) {
+                    resultMessage += `• ${ft.name}\n`;
                 }
             }
-
-            logger?.success?.("Broadcast", `Completed: ${successCount} sent, ${failCount} failed`);
 
             return api.sendMessage(resultMessage, threadID, messageID);
 
         } catch (error) {
             activeBroadcasts.delete(senderID);
+            // Cleanup on error too
+            if (attachmentPath && fs.existsSync(attachmentPath)) fs.unlinkSync(attachmentPath);
+            
             logger?.error?.("Broadcast", `Error: ${error.message}`);
-
-            return api.sendMessage(
-                `❌ Broadcast failed!\n\nError: ${error.message}`,
-                threadID,
-                messageID
-            );
+            return api.sendMessage(`❌ Failed: ${error.message}`, threadID, messageID);
         }
     },
 
@@ -336,7 +403,7 @@ module.exports = {
                 list += `👥 **Groups (${groups.length}):**\n`;
                 for (let i = 0; i < Math.min(groups.length, 10); i++) {
                     const g = groups[i];
-                    list += `${i + 1}. ${getThreadName(g)}\n`;
+                    list += `${i + 1}. ${getThreadName(g)} (${g.threadID})\n`;
                 }
                 if (groups.length > 10) {
                     list += `... and ${groups.length - 10} more\n`;
@@ -348,7 +415,7 @@ module.exports = {
                 list += `👤 **DMs (${dms.length}):**\n`;
                 for (let i = 0; i < Math.min(dms.length, 10); i++) {
                     const d = dms[i];
-                    list += `${i + 1}. ${getThreadName(d)}\n`;
+                    list += `${i + 1}. ${getThreadName(d)} (${d.threadID})\n`;
                 }
                 if (dms.length > 10) {
                     list += `... and ${dms.length - 10} more\n`;

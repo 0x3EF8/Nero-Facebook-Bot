@@ -138,59 +138,56 @@ module.exports = {
         const unsendAll = args[0]?.toLowerCase() === "all";
 
         if (unsendAll) {
-            // Unsend all recent bot messages in this thread
+            // Set loading reaction
+            api.setMessageReaction("⏳", messageID, () => {}, true);
+
+            const unsentIDs = new Set();
+            
+            // 1. Unsend tracked messages first (Fastest, from memory)
             const trackedMessages = getTrackedMessages(threadID);
-
-            if (trackedMessages.length === 0) {
-                return api.sendMessage(
-                    "📭 No recent bot messages to unsend in this thread.",
-                    threadID,
-                    messageID
-                );
-            }
-
-            let successCount = 0;
-            let failCount = 0;
-
-            // Send status message first
-            const statusMsg = await api.sendMessage(
-                `🗑️ Unsending ${trackedMessages.length} message(s)...`,
-                threadID
-            );
-
-            // Unsend all tracked messages
+            
             for (const msg of trackedMessages) {
                 try {
                     await api.unsendMessage(msg.messageID);
                     untrackMessage(threadID, msg.messageID);
-                    successCount++;
+                    unsentIDs.add(msg.messageID);
                 } catch (error) {
-                    logger?.debug?.("Unsend", `Failed to unsend ${msg.messageID}: ${error.message}`);
-                    failCount++;
+                    logger?.debug?.("Unsend", `Failed to unsend tracked ${msg.messageID}: ${error.message}`);
                 }
-
                 // Small delay to avoid rate limiting
                 await new Promise((r) => { setTimeout(r, 100); });
             }
-
-            // Clear all tracked messages for this thread
+            
+            // Clear memory tracking
             clearThread(threadID);
 
-            // Update status message
-            const resultText = failCount > 0
-                ? `✅ Unsent ${successCount} message(s), ❌ ${failCount} failed.`
-                : `✅ Successfully unsent ${successCount} message(s).`;
-
-            // Try to unsend the status message and send result
+            // 2. Scan recent history for untracked messages (e.g. from before restart)
             try {
-                if (statusMsg?.messageID) {
-                    await api.unsendMessage(statusMsg.messageID);
+                // Fetch last 50 messages
+                const history = await api.getThreadHistory(threadID, 50);
+                
+                // Filter for messages sent by the bot that we haven't just unsent
+                const botHistoryMessages = history.filter(
+                    m => m.senderID === botID && !unsentIDs.has(m.messageID)
+                );
+
+                for (const msg of botHistoryMessages) {
+                    try {
+                        await api.unsendMessage(msg.messageID);
+                        unsentIDs.add(msg.messageID);
+                    } catch (error) {
+                        logger?.debug?.("Unsend", `Failed to unsend history msg ${msg.messageID}: ${error.message}`);
+                    }
+                    // Small delay
+                    await new Promise((r) => { setTimeout(r, 200); });
                 }
-            } catch {
-                // Ignore
+            } catch (error) {
+                logger?.debug?.("Unsend", `Failed to fetch history: ${error.message}`);
             }
 
-            return api.sendMessage(resultText, threadID, messageID);
+            // Set completion reaction
+            api.setMessageReaction("✅", messageID, () => {}, true);
+            return;
         }
 
         // Single message unsend (requires reply)
@@ -223,38 +220,18 @@ module.exports = {
         const targetMessageID = messageReply.messageID;
 
         try {
+            // Set loading reaction on the command message
+            api.setMessageReaction("⏳", messageID, () => {}, true);
+
             await api.unsendMessage(targetMessageID);
             untrackMessage(threadID, targetMessageID);
-
             logger?.info?.("Unsend", `Unsent message ${targetMessageID} in thread ${threadID}`);
-
-            // Send confirmation (will auto-delete after 3 seconds)
-            const confirmMsg = await api.sendMessage("✅ Message unsent!", threadID);
-
-            // Auto-delete confirmation after 3 seconds
-            setTimeout(async () => {
-                try {
-                    if (confirmMsg?.messageID) {
-                        await api.unsendMessage(confirmMsg.messageID);
-                    }
-                } catch {
-                    // Ignore - message might already be deleted
-                }
-            }, 3000);
-
+            
+            // Set completion reaction
+            api.setMessageReaction("✅", messageID, () => {}, true);
         } catch (error) {
             logger?.error?.("Unsend", `Failed to unsend: ${error.message}`);
-
-            return api.sendMessage(
-                `❌ Failed to unsend message!\n\n` +
-                `Error: ${error.message || "Unknown error"}\n\n` +
-                "This might happen if:\n" +
-                "• The message is too old\n" +
-                "• The message was already unsent\n" +
-                "• There's a network issue",
-                threadID,
-                messageID
-            );
+            api.setMessageReaction("❌", messageID, () => {}, true);
         }
     },
 };

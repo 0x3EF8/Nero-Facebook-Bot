@@ -116,6 +116,9 @@ class CommandHandler {
         /** @type {Map<string, Object>} Per-user activity statistics */
         this.userActivity = new Map();
 
+        /** @type {Set<string>} Processed message IDs to prevent multi-bot replies */
+        this.processedMessages = new Set();
+
         // Start periodic cleanup for cooldowns and stats (every 60 seconds)
         this._cleanupInterval = setInterval(() => this._periodicCleanup(), 60000);
     }
@@ -133,6 +136,9 @@ class CommandHandler {
                 this.cooldowns.delete(key);
             }
         }
+
+        // Clear processed messages cache (simple flush every minute is sufficient)
+        this.processedMessages.clear();
 
         // Limit user activity to 10000 entries max
         if (this.userActivity.size > 10000) {
@@ -522,6 +528,17 @@ class CommandHandler {
                 "CommandHandler",
                 `Executing: ${command.config.name} │ user:${userId} │ thread:${threadId} │ ${argsStr}`
             );
+
+            // Multi-bot collision prevention for shared groups
+            // CHECK HERE: Only claim the message if we are actually about to execute
+            if (config.commands.singleReplyInSharedGC && isGroup && event.messageID) {
+                if (this.processedMessages.has(event.messageID)) {
+                    // Another bot beat us to it (or we beat ourselves in a race)
+                    logger.debug("CommandHandler", `Skipping duplicate execution for ${event.messageID}`);
+                    return false; 
+                }
+                this.processedMessages.add(event.messageID);
+            }
 
             // Wrap API with tracking and auto DM detection
             const wrappedApi = wrapApiWithTracking(api, threadId, event);

@@ -84,6 +84,7 @@ const settings = {
         caseSensitive: false, // Case sensitive commands
         allowInDM: true, // Allow commands in DMs
         allowInGroups: true, // Allow commands in groups
+        singleReplyInSharedGC: true, // Only allow one bot to reply in shared groups
     },
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -93,6 +94,7 @@ const settings = {
         enabled: true, // Enable/disable event system
         allowInDM: true, // Allow events in DMs
         allowInGroups: true, // Allow events in groups
+        singleEventInSharedGC: true, // Only allow one bot to process events in shared groups
     },
 
     // ═══════════════════════════════════════════════════════════════════════════

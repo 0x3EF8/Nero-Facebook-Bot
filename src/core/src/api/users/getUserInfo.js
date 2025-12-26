@@ -156,7 +156,7 @@ module.exports = (defaultFuncs, api, ctx) => {
                 form[`ids[${i}]`] = v;
             });
             const getGenderString = (code) =>
-                code === 1 ? "male" : code === 2 ? "female" : "no specific gender";
+                code === 2 ? "male" : code === 1 ? "female" : "no specific gender";
             defaultFuncs
                 .post("https://www.facebook.com/chat/user_info/", ctx.jar, form)
                 .then((resData) => utils.parseAndCheckLogin(ctx, defaultFuncs)(resData))
