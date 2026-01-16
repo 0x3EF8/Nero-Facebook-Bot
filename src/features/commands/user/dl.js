@@ -18,74 +18,6 @@
 const { aio, fbdown, igdl, ttdl, twitter, youtube } = require("ab-downloader");
 const axios = require("axios");
 
-/**
- * Custom Facebook Downloader with Multi-API Fallback
- * @param {string} url - Facebook Video URL
- * @returns {Promise<Object>} Response object
- */
-async function facebookDl(url) {
-    // List of APIs to try in order
-    const apis = [
-        {
-            name: "BK9",
-            url: `https://api.bk9.site/download/fb?url=${encodeURIComponent(url)}`,
-            transform: (res) => {
-                if (!res.data || !res.data.status || !res.data.data) return null;
-                return {
-                    video: res.data.data.hd || res.data.data.sd,
-                    title: res.data.data.title || "Facebook Video",
-                    HD: res.data.data.hd,
-                    SD: res.data.data.sd
-                };
-            }
-        },
-        {
-            name: "DavidCyril",
-            url: `https://api.davidcyriltech.my.id/facebook?url=${encodeURIComponent(url)}`,
-            transform: (res) => {
-                if (!res.data || !res.data.video || !res.data.video.hd) return null;
-                return {
-                    video: res.data.video.hd || res.data.video.sd,
-                    title: res.data.title || "Facebook Video",
-                    HD: res.data.video.hd,
-                    SD: res.data.video.sd
-                };
-            }
-        },
-        {
-            name: "SparkX",
-            url: `https://sparkx-api.vercel.app/api/downloader/fb?url=${encodeURIComponent(url)}`,
-            transform: (res) => {
-                if (!res.data || !res.data.status || !res.data.data) return null;
-                const v = res.data.data;
-                return {
-                    video: v.hd || v.sd,
-                    title: v.title || "Facebook Video",
-                    HD: v.hd,
-                    SD: v.sd
-                };
-            }
-        }
-    ];
-
-    for (const api of apis) {
-        try {
-            console.log(`[FacebookDL] Trying API: ${api.name}`);
-            const response = await axios.get(api.url);
-            const data = api.transform(response);
-            
-            if (data && data.video) {
-                console.log(`[FacebookDL] Success with ${api.name}`);
-                return { data };
-            }
-        } catch (error) {
-            console.log(`[FacebookDL] Failed with ${api.name}: ${error.message}`);
-        }
-    }
-    
-    return null;
-}
-
 module.exports = {
     config: {
         name: "dl",
@@ -126,7 +58,7 @@ module.exports = {
 
         try {
             // Resolve short URLs for better metadata extraction
-            if (url.includes('vt.tiktok.com') || url.includes('vm.tiktok.com') || url.includes('bit.ly') || url.includes('tinyurl.com') || url.includes('facebook.com/share') || url.includes('fb.watch')) {
+            if (url.includes('vt.tiktok.com') || url.includes('vm.tiktok.com') || url.includes('bit.ly') || url.includes('tinyurl.com')) {
                 try {
                     const headRes = await axios.head(url, { 
                         maxRedirects: 10,
@@ -153,52 +85,26 @@ module.exports = {
 
             let response;
             let platform = "Unknown";
-            let attempts = 0;
-            const maxAttempts = 3;
 
-            while (attempts < maxAttempts) {
-                attempts++;
-                try {
-                    // Select specific downloader based on URL
-                    if (finalUrl.includes('facebook.com') || finalUrl.includes('fb.watch') || finalUrl.includes('fb.com')) {
-                        platform = "Facebook";
-                        // Try custom API first
-                        response = await facebookDl(finalUrl);
-                        // If custom API fails, fallback to ab-downloader
-                        if (!response) {
-                             response = await fbdown(finalUrl);
-                        }
-                    } else if (finalUrl.includes('tiktok.com')) {
-                        platform = "TikTok";
-                        response = await ttdl(finalUrl);
-                    } else if (finalUrl.includes('instagram.com')) {
-                        platform = "Instagram";
-                        response = await igdl(finalUrl);
-                    } else if (finalUrl.includes('youtube.com') || finalUrl.includes('youtu.be')) {
-                        platform = "YouTube";
-                        response = await youtube(finalUrl);
-                    } else if (finalUrl.includes('twitter.com') || finalUrl.includes('x.com')) {
-                        platform = "Twitter";
-                        response = await twitter(finalUrl);
-                    } else {
-                        platform = "Auto-Detect";
-                        response = await aio(finalUrl);
-                    }
-
-                    // Validation check to trigger retry
-                    if (response && (response.data || response.result || response.url || response.video)) {
-                        break; 
-                    }
-                    throw new Error("Empty response data");
-
-                } catch (err) {
-                    console.log(`[DL Command] Attempt ${attempts} failed for ${platform || 'Unknown'}: ${err.message}`);
-                    if (attempts === maxAttempts) {
-                        response = null; // Ensure it fails gracefully to fallback
-                    } else {
-                        await new Promise(resolve => setTimeout(resolve, 2000));
-                    }
-                }
+            // Select specific downloader based on URL
+            if (finalUrl.includes('facebook.com') || finalUrl.includes('fb.watch') || finalUrl.includes('fb.com')) {
+                platform = "Facebook";
+                response = await fbdown(finalUrl);
+            } else if (finalUrl.includes('tiktok.com')) {
+                platform = "TikTok";
+                response = await ttdl(finalUrl);
+            } else if (finalUrl.includes('instagram.com')) {
+                platform = "Instagram";
+                response = await igdl(finalUrl);
+            } else if (finalUrl.includes('youtube.com') || finalUrl.includes('youtu.be')) {
+                platform = "YouTube";
+                response = await youtube(finalUrl);
+            } else if (finalUrl.includes('twitter.com') || finalUrl.includes('x.com')) {
+                platform = "Twitter";
+                response = await twitter(finalUrl);
+            } else {
+                platform = "Auto-Detect";
+                response = await aio(finalUrl);
             }
 
             console.log(`[DL Command] Platform: ${platform}`);
@@ -213,7 +119,7 @@ module.exports = {
             }
 
             // Check for API failure
-            if (!data || (data.status === false && !data.url && !data.video && !data.HD)) {
+            if (!data || (data.status === false && !data.url && !data.video)) {
                 console.log(`[DL Command] ${platform} downloader failed, trying AIO fallback...`);
                 // Fallback to AIO
                 try {
@@ -224,17 +130,6 @@ module.exports = {
                          platform = "Auto-Detect (Fallback)";
                          console.log("[DL Command] Fallback Response:", JSON.stringify(data, null, 2));
                     }
-                    
-                    // Second Fallback: Try custom Facebook DL again if AIO fails and it is FB
-                    if ((!response || !data) && platform === "Facebook") {
-                         const fbRes = await facebookDl(finalUrl);
-                         if (fbRes) {
-                             response = fbRes;
-                             data = fbRes.data;
-                             console.log("[DL Command] Second Fallback to Custom FB DL successful");
-                         }
-                    }
-
                 } catch (err) {
                     console.error("[DL Command] AIO fallback also failed:", err);
                 }
@@ -418,11 +313,11 @@ module.exports = {
                 // Ignore
             }
 
-            return api.sendMessage(
-                `❌ Download failed.\n\nError: ${error.message || "Unknown error occurred"}\n\nPlease check the URL and try again.`,
-                threadID,
-                messageID
-            );
+          //  return api.sendMessage(
+          //      `❌ Download failed.\n\nError: ${error.message || "Unknown error occurred"}\n\nPlease check the URL and try again.`,
+           //     threadID,
+          //      messageID
+          //  );
         }
     },
 };

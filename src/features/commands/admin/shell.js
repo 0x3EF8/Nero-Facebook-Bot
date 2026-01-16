@@ -62,7 +62,7 @@ function truncate(text, maxLength = 1500) {
 module.exports = {
     config: {
         name: "shell",
-        aliases: ["sh", "cmd", "terminal", "exec"],
+        aliases: ["sh", "terminal", "exec"],
         description: "Execute shell commands (Super Admin Only)",
         usage: "shell <command>",
         category: "admin",

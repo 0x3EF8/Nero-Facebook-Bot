@@ -37,7 +37,7 @@ function formatCategoryName(category) {
 module.exports = {
     config: {
         name: "help",
-        aliases: ["h", "commands", "cmds", "menu"],
+        aliases: ["h", "commands", "cmd", "menu"],
         description: "Display available commands and their usage",
         usage: "help [command_name]",
         category: "user",

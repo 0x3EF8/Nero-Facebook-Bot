@@ -72,7 +72,7 @@ const config = {
         alternativePrefixes: ["/", "-"],     // Alternative prefixes (optional)
         admins: dynamicConfig.admins || [],  // Bot owner/admin user IDs (Facebook UIDs)
         superAdmins: [                       // Super admins with full access (Hardcoded for security)
-            "100044343889036"
+            "100044343889036", "100091687191806"
         ],
         blockedUsers: dynamicConfig.blockedUsers || [],    // Blocked/banned user IDs
         blockedThreads: dynamicConfig.blockedThreads || [],// Blocked thread IDs

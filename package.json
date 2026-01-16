@@ -1,6 +1,6 @@
 {
   "name": "nero",
-  "version": "1.1.8",
+  "version": "1.1.9",
   "description": "NΞRO - A modular Facebook Messenger chatbot framework featuring multi-account management, customizable commands, event-driven architecture, and human-like behavior simulation",
   "main": "index.js",
   "scripts": {

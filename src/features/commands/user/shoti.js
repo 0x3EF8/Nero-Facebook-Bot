@@ -1,19 +1,51 @@
 /**
  * ╔═══════════════════════════════════════════════════════════════════════════════╗
  * ║                            SHOTI COMMAND                                      ║
- * ║                 Send random TikTok videos from VIP List                       ║
+ * ║                 Send random TikTok videos from List                           ║
  * ╚═══════════════════════════════════════════════════════════════════════════════╝
  *
  * This command fetches random videos from a specific curated list of users.
  * It uses the robust TikWM API (same as tiktok.js) for reliability.
  *
  * @author 0x3EF8
- * @version 2.0.0
+ * @version 2.1.0
  */
 
 "use strict";
 
 const axios = require("axios");
+const fs = require("fs");
+const path = require("path");
+
+// Path to target users storage
+const TARGETS_PATH = path.resolve(__dirname, "..", "..", "..", "config", "shoti.json");
+
+/**
+ * Load target users from JSON file
+ */
+function loadTargets() {
+    try {
+        if (fs.existsSync(TARGETS_PATH)) {
+            return JSON.parse(fs.readFileSync(TARGETS_PATH, "utf8"));
+        }
+    } catch (error) {
+        console.error("[Shoti] Failed to load targets:", error);
+    }
+    return [];
+}
+
+/**
+ * Save target users to JSON file
+ */
+function saveTargets(targets) {
+    try {
+        fs.writeFileSync(TARGETS_PATH, JSON.stringify(targets, null, 2));
+        return true;
+    } catch (error) {
+        console.error("[Shoti] Failed to save targets:", error);
+        return false;
+    }
+}
 
 // Track recently sent videos to avoid duplicates
 const sentVideos = new Set();
@@ -23,8 +55,8 @@ module.exports = {
     config: {
         name: "shoti",
         aliases: ["tikgirl", "chix", "pautog"],
-        description: "Send a random video from the VIP Shoti list",
-        usage: "shoti",
+        description: "Send a random video from the Shoti list",
+        usage: "shoti [-l | -a <username> | -r <username>]",
         category: "media",
         cooldown: 10,
         permissions: "user",
@@ -39,20 +71,71 @@ module.exports = {
     async execute({ api, event, args, config }, retries = 0) {
         const threadID = event.threadID;
         const messageID = event.messageID;
-        
+        const targetUsers = loadTargets();
+
+        // 1. Handle Subcommands
+        if (args[0]) {
+            const action = args[0].toLowerCase();
+
+            // List Subcommand (-l)
+            if (action === "-l" || action === "list") {
+                if (targetUsers.length === 0) {
+                    return api.sendMessage("📝 The Shoti list is currently empty.", threadID, messageID);
+                }
+                const list = targetUsers.map((user, i) => `${i + 1}. ${user}`).join("\n");
+                return api.sendMessage(`🌟 **Shoti List** 🌟\n\n${list}\n\nTotal: ${targetUsers.length} users`, threadID, messageID);
+            }
+
+            // Add Subcommand (-a)
+            if (action === "-a" || action === "add") {
+                const newUser = args[1]?.toLowerCase();
+                if (!newUser) {
+                    return api.sendMessage("❌ Please provide a TikTok username to add.", threadID, messageID);
+                }
+
+                if (targetUsers.includes(newUser)) {
+                    return api.sendMessage(`⚠️ '${newUser}' is already in the list.`, threadID, messageID);
+                }
+
+                targetUsers.push(newUser);
+                if (saveTargets(targetUsers)) {
+                    return api.sendMessage(`✅ Added '${newUser}' to the Shoti  list!`, threadID, messageID);
+                } else {
+                    return api.sendMessage("❌ Failed to save the updated list. Please check logs.", threadID, messageID);
+                }
+            }
+
+            // Remove Subcommand (-r)
+            if (action === "-r" || action === "remove") {
+                const userToDelete = args[1]?.toLowerCase();
+                if (!userToDelete) {
+                    return api.sendMessage("❌ Please provide a TikTok username to remove.", threadID, messageID);
+                }
+
+                const index = targetUsers.indexOf(userToDelete);
+                if (index === -1) {
+                    return api.sendMessage(`⚠️ '${userToDelete}' is not in the list.`, threadID, messageID);
+                }
+
+                targetUsers.splice(index, 1);
+                if (saveTargets(targetUsers)) {
+                    return api.sendMessage(`✅ Removed '${userToDelete}' from the Shoti list!`, threadID, messageID);
+                } else {
+                    return api.sendMessage("❌ Failed to save the updated list. Please check logs.", threadID, messageID);
+                }
+            }
+        }
+
+        // 2. Base Command: Fetch Random Video
+        if (targetUsers.length === 0) {
+            return api.sendMessage("❌ Shoti list is empty. Add users first using 'shoti add <username>'.", threadID, messageID);
+        }
+
         // Prevent infinite loops
         if (retries > 5) {
             api.setMessageReaction("❌", messageID, () => {}, true);
             return api.sendMessage("❌ Failed to fetch a valid video after multiple attempts. Try again later.", threadID, messageID);
         }
-
-        // The specific list of users requested
-        const targetUsers = [
-            "xqfcxkk2r2", "_szniaa", "ms.micha1", "samdel065", "vix.max", 
-            "we.could.happen", "pinay.ph2", "iamyours143244", "_asianxbeauties", 
-            "achueeeeee_nice", "forgoal2", "lie.ju02", "koko.yumi", 
-            "dontvisitmyprofileeeeee", "chichidump_666", "chieezzeey"
-        ];
 
         // React to show processing
         api.setMessageReaction("🎲", messageID, () => {}, true);
@@ -62,10 +145,10 @@ module.exports = {
             const randomUser = targetUsers[Math.floor(Math.random() * targetUsers.length)];
             console.log(`[Shoti] Selected target: ${randomUser} (Attempt ${retries + 1})`);
 
-            // 2. Search for videos by this user using TikWM Search API (Same as tiktok.js)
+            // 2. Search for videos by this user using TikWM Search API
             const response = await axios.post("https://www.tikwm.com/api/feed/search", {
                 keywords: randomUser,
-                count: 12, // Fetch a batch of videos
+                count: 12,
                 cursor: 0,
                 web: 1,
                 hd: 1
@@ -78,7 +161,6 @@ module.exports = {
                 const allVideos = response.data.data.videos;
                 
                 // Strict Filter: Ensure video is actually from the target user
-                // Search API often returns "related" videos if the user has few videos
                 videos = allVideos.filter(v => 
                     v.author && 
                     v.author.unique_id && 
@@ -110,10 +192,7 @@ module.exports = {
             }
 
             // Extract metadata
-            const title = videoData.title || "Shoti Video";
-            const author = videoData.author ? videoData.author.nickname : "Unknown";
             const username = videoData.author ? videoData.author.unique_id : randomUser;
-            const likes = videoData.digg_count ? `❤️ ${videoData.digg_count}` : "";
 
             // Handle relative URLs
             let videoUrl = videoData.play;
@@ -153,7 +232,6 @@ module.exports = {
                 await api.sendMessage(msg, threadID, messageID);
 
             } catch (sendError) {
-                // Handle FB upload rejection by retrying
                 if (sendError.message.includes("metadata") || sendError.message.includes("upload")) {
                     console.warn(`[Shoti] Facebook rejected video. Retrying (Attempt ${retries + 1})...`);
                     return this.execute({ api, event, args, config }, retries + 1);
@@ -163,7 +241,6 @@ module.exports = {
 
         } catch (error) {
             console.error("[Shoti] Error:", error.message);
-            // If it's a network/API error, retry
             if (retries < 3) {
                 return this.execute({ api, event, args, config }, retries + 1);
             }
