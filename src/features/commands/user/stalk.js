@@ -77,144 +77,148 @@ module.exports = {
     },
 
     async execute({ api, event, args, config }) {
-    const { threadID, messageID, senderID, messageReply, mentions } = event;
+        const { threadID, messageID, senderID, messageReply, mentions } = event;
 
-    let targetID = null;
+        let targetID = null;
 
-    if (messageReply && messageReply.senderID) {
-        targetID = messageReply.senderID;
-    } else if (mentions && Object.keys(mentions).length > 0) {
-        targetID = Object.keys(mentions)[0];
-    } else if (args[0]) {
-        const potentialUID = args[0].replace(/[^0-9]/g, "");
-        if (potentialUID && potentialUID.length >= 10) {
-            targetID = potentialUID;
+        if (messageReply && messageReply.senderID) {
+            targetID = messageReply.senderID;
+        } else if (mentions && Object.keys(mentions).length > 0) {
+            targetID = Object.keys(mentions)[0];
+        } else if (args[0]) {
+            const potentialUID = args[0].replace(/[^0-9]/g, "");
+            if (potentialUID && potentialUID.length >= 10) {
+                targetID = potentialUID;
+            } else {
+                const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : "";
+                const commandName = this.config.name;
+                return api.sendMessage(
+                    `❌ Invalid UID format.\n\n` +
+                        `Usage: ${actualPrefix}${commandName} [@mention | reply to message | UID]`,
+                    threadID,
+                    messageID
+                );
+            }
         } else {
-            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
-            const commandName = this.config.name;
+            targetID = senderID;
+        }
+
+        try {
+            const userInfo = await new Promise((resolve, reject) => {
+                api.getUserInfo(targetID, true, (err, data) => {
+                    if (err) reject(err);
+                    else resolve(data);
+                });
+            });
+
+            if (!userInfo) {
+                return api.sendMessage("Could not fetch user information.", threadID, messageID);
+            }
+
+            const formatGender = (gender) => {
+                if (!gender) return "Not specified";
+                const g = gender.toLowerCase();
+                if (g === "male" || g === "male_singular") return "Male";
+                if (g === "female" || g === "female_singular") return "Female";
+                return gender;
+            };
+
+            const lines = [`𝗨𝗦𝗘𝗥 𝗣𝗥𝗢𝗙𝗜𝗟𝗘`, ``, `Name: ${userInfo.name || "Unknown"}`];
+
+            if (userInfo.firstName && userInfo.lastName) {
+                lines.push(`First Name: ${userInfo.firstName}`);
+                lines.push(`Last Name: ${userInfo.lastName}`);
+            }
+
+            lines.push(`User ID: ${userInfo.id || targetID}`);
+
+            if (userInfo.vanity) {
+                lines.push(`Username: @${userInfo.vanity}`);
+            }
+
+            lines.push(`Gender: ${formatGender(userInfo.gender)}`);
+
+            if (userInfo.type) {
+                lines.push(`Account Type: ${userInfo.type}`);
+            }
+
+            const ageEstimate = estimateAccountAge(targetID);
+            if (ageEstimate) {
+                lines.push(`Est. Created: ${ageEstimate}`);
+            }
+
+            if (userInfo.bio) {
+                lines.push(``);
+                lines.push(`Bio: ${userInfo.bio}`);
+            }
+
+            if (userInfo.headline) {
+                lines.push(`Headline: ${userInfo.headline}`);
+            }
+
+            if (userInfo.live_city) {
+                lines.push(`Location: ${userInfo.live_city}`);
+            }
+
+            lines.push(``);
+            lines.push(`Verified: ${userInfo.isVerified ? "Yes" : "No"}`);
+            lines.push(`Birthday Today: ${userInfo.isBirthday ? "Yes" : "No"}`);
+            lines.push(`Friend: ${userInfo.isFriend ? "Yes" : "No"}`);
+
+            if (userInfo.followers) {
+                lines.push(`Followers: ${userInfo.followers}`);
+            }
+
+            if (userInfo.following) {
+                lines.push(`Following: ${userInfo.following}`);
+            }
+
+            lines.push(``);
+            lines.push(`Profile: ${userInfo.profileUrl || `https://facebook.com/${targetID}`}`);
+
+            const message = lines.join("\n");
+
+            // Fetch profile picture and cover photo
+            const attachments = [];
+            const fetchPromises = [];
+
+            if (userInfo.profilePicUrl) {
+                fetchPromises.push(
+                    fetchImage(userInfo.profilePicUrl, `profile_${targetID}.jpg`)
+                        .then((stream) => {
+                            attachments.unshift(stream);
+                        })
+                        .catch(() => {})
+                );
+            }
+
+            if (userInfo.coverPhoto) {
+                fetchPromises.push(
+                    fetchImage(userInfo.coverPhoto, `cover_${targetID}.jpg`)
+                        .then((stream) => {
+                            attachments.push(stream);
+                        })
+                        .catch(() => {})
+                );
+            }
+
+            await Promise.all(fetchPromises);
+
+            api.sendMessage(
+                {
+                    body: message,
+                    attachment: attachments.length > 0 ? attachments : undefined,
+                },
+                threadID,
+                messageID
+            );
+        } catch (error) {
+            console.error("[STALK]", error);
             return api.sendMessage(
-                `❌ Invalid UID format.\n\n` +
-                `Usage: ${actualPrefix}${commandName} [@mention | reply to message | UID]`,
+                `Error: ${error.message || "Unknown error"}`,
                 threadID,
                 messageID
             );
         }
-    } else {
-        targetID = senderID;
-    }
-
-    try {
-        const userInfo = await new Promise((resolve, reject) => {
-            api.getUserInfo(targetID, true, (err, data) => {
-                if (err) reject(err);
-                else resolve(data);
-            });
-        });
-
-        if (!userInfo) {
-            return api.sendMessage("Could not fetch user information.", threadID, messageID);
-        }
-
-        const formatGender = (gender) => {
-            if (!gender) return "Not specified";
-            const g = gender.toLowerCase();
-            if (g === "male" || g === "male_singular") return "Male";
-            if (g === "female" || g === "female_singular") return "Female";
-            return gender;
-        };
-
-        const lines = [`𝗨𝗦𝗘𝗥 𝗣𝗥𝗢𝗙𝗜𝗟𝗘`, ``, `Name: ${userInfo.name || "Unknown"}`];
-
-        if (userInfo.firstName && userInfo.lastName) {
-            lines.push(`First Name: ${userInfo.firstName}`);
-            lines.push(`Last Name: ${userInfo.lastName}`);
-        }
-
-        lines.push(`User ID: ${userInfo.id || targetID}`);
-
-        if (userInfo.vanity) {
-            lines.push(`Username: @${userInfo.vanity}`);
-        }
-
-        lines.push(`Gender: ${formatGender(userInfo.gender)}`);
-
-        if (userInfo.type) {
-            lines.push(`Account Type: ${userInfo.type}`);
-        }
-
-        const ageEstimate = estimateAccountAge(targetID);
-        if (ageEstimate) {
-            lines.push(`Est. Created: ${ageEstimate}`);
-        }
-
-        if (userInfo.bio) {
-            lines.push(``);
-            lines.push(`Bio: ${userInfo.bio}`);
-        }
-
-        if (userInfo.headline) {
-            lines.push(`Headline: ${userInfo.headline}`);
-        }
-
-        if (userInfo.live_city) {
-            lines.push(`Location: ${userInfo.live_city}`);
-        }
-
-        lines.push(``);
-        lines.push(`Verified: ${userInfo.isVerified ? "Yes" : "No"}`);
-        lines.push(`Birthday Today: ${userInfo.isBirthday ? "Yes" : "No"}`);
-        lines.push(`Friend: ${userInfo.isFriend ? "Yes" : "No"}`);
-
-        if (userInfo.followers) {
-            lines.push(`Followers: ${userInfo.followers}`);
-        }
-
-        if (userInfo.following) {
-            lines.push(`Following: ${userInfo.following}`);
-        }
-
-        lines.push(``);
-        lines.push(`Profile: ${userInfo.profileUrl || `https://facebook.com/${targetID}`}`);
-
-        const message = lines.join("\n");
-
-        // Fetch profile picture and cover photo
-        const attachments = [];
-        const fetchPromises = [];
-
-        if (userInfo.profilePicUrl) {
-            fetchPromises.push(
-                fetchImage(userInfo.profilePicUrl, `profile_${targetID}.jpg`)
-                    .then((stream) => {
-                        attachments.unshift(stream);
-                    })
-                    .catch(() => {})
-            );
-        }
-
-        if (userInfo.coverPhoto) {
-            fetchPromises.push(
-                fetchImage(userInfo.coverPhoto, `cover_${targetID}.jpg`)
-                    .then((stream) => {
-                        attachments.push(stream);
-                    })
-                    .catch(() => {})
-            );
-        }
-
-        await Promise.all(fetchPromises);
-
-        api.sendMessage(
-            {
-                body: message,
-                attachment: attachments.length > 0 ? attachments : undefined,
-            },
-            threadID,
-            messageID
-        );
-    } catch (error) {
-        console.error("[STALK]", error);
-        return api.sendMessage(`Error: ${error.message || "Unknown error"}`, threadID, messageID);
-    }
     },
 };

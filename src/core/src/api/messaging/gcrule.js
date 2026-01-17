@@ -46,12 +46,15 @@ module.exports = function (defaultFuncs, api, ctx) {
                     error: `Invalid action. Must be one of: ${validActions.join(", ")}`,
                 });
             }
-            if (!userID)
+            if (!userID) {
                 return _callback(null, { type: "error_gc_rule", error: "userID is required." });
-            if (!threadID)
+            }
+            if (!threadID) {
                 return _callback(null, { type: "error_gc_rule", error: "threadID is required." });
-            if (!ctx.mqttClient)
+            }
+            if (!ctx.mqttClient) {
                 return _callback(null, { type: "error_gc_rule", error: "Not connected to MQTT" });
+            }
 
             const threadInfo = await api.getThreadInfo(threadID);
             if (!threadInfo) {

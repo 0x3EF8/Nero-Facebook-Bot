@@ -48,9 +48,7 @@ function trackMessage(threadID, messageID) {
     });
 
     // Remove expired messages
-    const filtered = threadMessages.filter(
-        (msg) => now - msg.timestamp < MESSAGE_EXPIRY
-    );
+    const filtered = threadMessages.filter((msg) => now - msg.timestamp < MESSAGE_EXPIRY);
 
     // Limit to max messages
     const limited = filtered.slice(0, MAX_MESSAGES_PER_THREAD);
@@ -142,22 +140,27 @@ module.exports = {
             api.setMessageReaction("⏳", messageID, () => {}, true);
 
             const unsentIDs = new Set();
-            
+
             // 1. Unsend tracked messages first (Fastest, from memory)
             const trackedMessages = getTrackedMessages(threadID);
-            
+
             for (const msg of trackedMessages) {
                 try {
                     await api.unsendMessage(msg.messageID);
                     untrackMessage(threadID, msg.messageID);
                     unsentIDs.add(msg.messageID);
                 } catch (error) {
-                    logger?.debug?.("Unsend", `Failed to unsend tracked ${msg.messageID}: ${error.message}`);
+                    logger?.debug?.(
+                        "Unsend",
+                        `Failed to unsend tracked ${msg.messageID}: ${error.message}`
+                    );
                 }
                 // Small delay to avoid rate limiting
-                await new Promise((r) => { setTimeout(r, 100); });
+                await new Promise((r) => {
+                    setTimeout(r, 100);
+                });
             }
-            
+
             // Clear memory tracking
             clearThread(threadID);
 
@@ -165,10 +168,10 @@ module.exports = {
             try {
                 // Fetch last 50 messages
                 const history = await api.getThreadHistory(threadID, 50);
-                
+
                 // Filter for messages sent by the bot that we haven't just unsent
                 const botHistoryMessages = history.filter(
-                    m => m.senderID === botID && !unsentIDs.has(m.messageID)
+                    (m) => m.senderID === botID && !unsentIDs.has(m.messageID)
                 );
 
                 for (const msg of botHistoryMessages) {
@@ -176,10 +179,15 @@ module.exports = {
                         await api.unsendMessage(msg.messageID);
                         unsentIDs.add(msg.messageID);
                     } catch (error) {
-                        logger?.debug?.("Unsend", `Failed to unsend history msg ${msg.messageID}: ${error.message}`);
+                        logger?.debug?.(
+                            "Unsend",
+                            `Failed to unsend history msg ${msg.messageID}: ${error.message}`
+                        );
                     }
                     // Small delay
-                    await new Promise((r) => { setTimeout(r, 200); });
+                    await new Promise((r) => {
+                        setTimeout(r, 200);
+                    });
                 }
             } catch (error) {
                 logger?.debug?.("Unsend", `Failed to fetch history: ${error.message}`);
@@ -192,13 +200,13 @@ module.exports = {
 
         // Single message unsend (requires reply)
         if (!messageReply) {
-            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : "";
             const commandName = this.config.name;
             return api.sendMessage(
                 "📝 **Unsend Command Usage**\n\n" +
-                `• Reply to a bot message and type \`${actualPrefix}${commandName}\` to unsend it\n` +
-                `• Type \`${actualPrefix}${commandName} all\` to unsend all recent bot messages\n\n` +
-                "Note: Only bot messages can be unsent.",
+                    `• Reply to a bot message and type \`${actualPrefix}${commandName}\` to unsend it\n` +
+                    `• Type \`${actualPrefix}${commandName} all\` to unsend all recent bot messages\n\n` +
+                    "Note: Only bot messages can be unsent.",
                 threadID,
                 messageID
             );
@@ -210,7 +218,7 @@ module.exports = {
         if (repliedSenderID !== botID) {
             return api.sendMessage(
                 "❌ I can only unsend my own messages!\n\n" +
-                "Please reply to one of my messages to unsend it.",
+                    "Please reply to one of my messages to unsend it.",
                 threadID,
                 messageID
             );
@@ -226,7 +234,7 @@ module.exports = {
             await api.unsendMessage(targetMessageID);
             untrackMessage(threadID, targetMessageID);
             logger?.info?.("Unsend", `Unsent message ${targetMessageID} in thread ${threadID}`);
-            
+
             // Set completion reaction
             api.setMessageReaction("✅", messageID, () => {}, true);
         } catch (error) {

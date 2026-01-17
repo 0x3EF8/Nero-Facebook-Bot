@@ -50,14 +50,14 @@ function getAllKeys() {
  */
 function getNextApiKey() {
     const allKeys = getAllKeys();
-    
+
     if (allKeys.length === 0) {
         console.log(chalk.red("✗ No Gemini API keys configured!"));
         return null;
     }
 
     const now = Date.now();
-    
+
     // Clean up expired failures
     for (const [key, data] of failedKeys.entries()) {
         if (now - data.failedAt > MODEL_CONFIG.keyCooldown) {
@@ -70,11 +70,11 @@ function getNextApiKey() {
     while (attempts < allKeys.length) {
         const key = allKeys[currentKeyIndex];
         const failData = failedKeys.get(key);
-        
+
         currentKeyIndex = (currentKeyIndex + 1) % allKeys.length;
         attempts++;
-        
-        if (!failData || (now - failData.failedAt > MODEL_CONFIG.keyCooldown)) {
+
+        if (!failData || now - failData.failedAt > MODEL_CONFIG.keyCooldown) {
             const keyType = getKeyType(key, allKeys);
             console.log(chalk.cyan(`► Using ${keyType} key: ${key.substring(0, 12)}...`));
             return key;
@@ -99,7 +99,7 @@ function getKeyType(key, allKeys) {
 function getOldestFailedKey(allKeys) {
     let oldestKey = allKeys[0];
     let oldestTime = Infinity;
-    
+
     for (const key of allKeys) {
         const failData = failedKeys.get(key);
         if (failData && failData.failedAt < oldestTime) {
@@ -107,7 +107,7 @@ function getOldestFailedKey(allKeys) {
             oldestKey = key;
         }
     }
-    
+
     console.log(chalk.yellow(`⚠ All keys on cooldown, retrying: ${oldestKey.substring(0, 12)}...`));
     return oldestKey;
 }
@@ -124,7 +124,7 @@ function markKeyFailed(apiKey, reason = "unknown") {
         failCount: existing.failCount + 1,
         reason,
     });
-    
+
     const allKeys = getAllKeys();
     const keyType = getKeyType(apiKey, allKeys);
     console.log(chalk.yellow(`⚠ ${keyType} key failed (${reason}), rotating...`));
@@ -171,16 +171,16 @@ function isKeyError(error) {
  */
 async function generate(prompt, imageParts = [], _maxRetries = 3) {
     const allKeys = getAllKeys();
-    
+
     if (allKeys.length === 0) {
         throw new Error("No Gemini API keys available - check your .env file");
     }
 
     stats.requests++;
     stats.lastRequest = Date.now();
-    
+
     let lastError = null;
-    
+
     // Strategy: Try every key, then try every key AGAIN (2 full passes)
     const maxAttempts = allKeys.length * 2;
 
@@ -189,44 +189,50 @@ async function generate(prompt, imageParts = [], _maxRetries = 3) {
         const keyIndex = attempt % allKeys.length;
         const apiKey = allKeys[keyIndex];
         const isRetryPass = attempt >= allKeys.length;
-        
+
         try {
             // Log which key we are trying
             const keyType = keyIndex === 0 ? "PRIMARY" : `BACKUP-${keyIndex}`;
             const passLabel = isRetryPass ? "(RETRY PASS)" : "";
-            console.log(chalk.cyan(`► Attempt ${attempt + 1}/${maxAttempts} using ${keyType} key ${passLabel}...`));
+            console.log(
+                chalk.cyan(
+                    `► Attempt ${attempt + 1}/${maxAttempts} using ${keyType} key ${passLabel}...`
+                )
+            );
 
             const genAI = new GoogleGenerativeAI(apiKey);
             const model = genAI.getGenerativeModel({ model: MODEL_CONFIG.name });
-            
-            const result = imageParts.length > 0
-                ? await model.generateContent([prompt, ...imageParts])
-                : await model.generateContent(prompt);
-            
+
+            const result =
+                imageParts.length > 0
+                    ? await model.generateContent([prompt, ...imageParts])
+                    : await model.generateContent(prompt);
+
             stats.success++;
-            
+
             // If we succeeded on a retry pass or backup, log it clearly
             if (keyIndex > 0 || isRetryPass) {
-                console.log(chalk.green(`✓ Success using ${keyType} key on attempt ${attempt + 1}!`));
+                console.log(
+                    chalk.green(`✓ Success using ${keyType} key on attempt ${attempt + 1}!`)
+                );
             } else {
                 console.log(chalk.green(`✓ Gemini response received`));
             }
-            
+
             return result;
-            
         } catch (error) {
             lastError = error;
             stats.failures++;
-            
+
             // Classify failure
             let reason = "other";
             if (isKeyError(error)) reason = "key_error";
             else if (isRetryable(error)) reason = "rate_limit";
-            
+
             markKeyFailed(apiKey, reason);
-            
+
             console.log(chalk.yellow(`⚠ Key failed (${reason}). Moving to next key...`));
-            
+
             // Small delay between attempts, longer delay between passes
             const delay = isRetryPass ? 2000 : 500;
             if (attempt < maxAttempts - 1) {
@@ -234,7 +240,7 @@ async function generate(prompt, imageParts = [], _maxRetries = 3) {
             }
         }
     }
-    
+
     console.log(chalk.red(`✗ All keys failed after ${maxAttempts} attempts (2 full passes)`));
     throw lastError;
 }
@@ -243,7 +249,9 @@ async function generate(prompt, imageParts = [], _maxRetries = 3) {
  * Sleep helper
  */
 function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => {
+        setTimeout(resolve, ms);
+    });
 }
 
 /**
@@ -271,9 +279,8 @@ function createModelProxy() {
 function getStats() {
     return {
         ...stats,
-        successRate: stats.requests > 0 
-            ? ((stats.success / stats.requests) * 100).toFixed(1) + "%" 
-            : "N/A",
+        successRate:
+            stats.requests > 0 ? ((stats.success / stats.requests) * 100).toFixed(1) + "%" : "N/A",
         activeKeys: getAllKeys().length,
         failedKeys: failedKeys.size,
     };

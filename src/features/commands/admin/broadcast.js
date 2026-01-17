@@ -114,25 +114,25 @@ function sleep(ms) {
 async function downloadAttachment(url, type) {
     try {
         const response = await axios({
-            method: 'GET',
+            method: "GET",
             url: url,
-            responseType: 'stream'
+            responseType: "stream",
         });
 
-        const tempDir = path.join(__dirname, '../../../../temp');
+        const tempDir = path.join(__dirname, "../../../../temp");
         if (!fs.existsSync(tempDir)) {
             fs.mkdirSync(tempDir, { recursive: true });
         }
 
-        const ext = type === 'video' ? 'mp4' : 'png';
+        const ext = type === "video" ? "mp4" : "png";
         const filePath = path.join(tempDir, `broadcast_${Date.now()}.${ext}`);
-        
+
         const writer = fs.createWriteStream(filePath);
         response.data.pipe(writer);
 
         return new Promise((resolve, reject) => {
-            writer.on('finish', () => resolve(filePath));
-            writer.on('error', reject);
+            writer.on("finish", () => resolve(filePath));
+            writer.on("error", reject);
         });
     } catch (error) {
         throw new Error(`Failed to download attachment: ${error.message}`);
@@ -177,8 +177,12 @@ module.exports = {
         // --- 1. Handle Attachments (Reply Mode) ---
         let attachmentPath = null;
         let attachmentType = null;
-        
-        if (event.type === "message_reply" && event.messageReply.attachments && event.messageReply.attachments.length > 0) {
+
+        if (
+            event.type === "message_reply" &&
+            event.messageReply.attachments &&
+            event.messageReply.attachments.length > 0
+        ) {
             const att = event.messageReply.attachments[0]; // Take first attachment
             if (att.type === "photo" || att.type === "video" || att.type === "animated_image") {
                 try {
@@ -186,7 +190,10 @@ module.exports = {
                     attachmentType = att.type === "video" ? "video" : "photo";
                     attachmentPath = await downloadAttachment(att.url, attachmentType);
                 } catch (err) {
-                    return api.sendMessage(`❌ Error downloading attachment: ${err.message}`, threadID);
+                    return api.sendMessage(
+                        `❌ Error downloading attachment: ${err.message}`,
+                        threadID
+                    );
                 }
             }
         }
@@ -195,7 +202,7 @@ module.exports = {
         const firstArg = args[0] ? args[0].toLowerCase().trim() : "";
         let filter = "all";
         let messageStart = 0;
-        let selectedIDs = [];
+        const selectedIDs = [];
 
         if (["-g", "-groups", "groups"].includes(firstArg)) {
             filter = "groups";
@@ -207,7 +214,7 @@ module.exports = {
             // Logic for -t <id1>, <id2> ... <message>
             filter = "custom";
             let i = 1;
-            
+
             // Collect IDs. Supports numeric IDs or IDs starting with 'c', allowing trailing commas
             while (i < args.length && /^(c|)\d+,?$/i.test(args[i])) {
                 // Strip the comma if present
@@ -215,9 +222,12 @@ module.exports = {
                 selectedIDs.push(cleanID);
                 i++;
             }
-            
+
             if (selectedIDs.length === 0) {
-                 return api.sendMessage("❌ Please provide at least one Thread ID after -t.\nExample: /broadcast -t c12345, c67890 Hello", threadID);
+                return api.sendMessage(
+                    "❌ Please provide at least one Thread ID after -t.\nExample: /broadcast -t c12345, c67890 Hello",
+                    threadID
+                );
             }
             messageStart = i;
         } else if (firstArg === "-list") {
@@ -226,58 +236,91 @@ module.exports = {
 
         // Show usage if no arguments and no attachment
         if (args.length === 0 && !attachmentPath) {
-            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : "";
             const commandName = this.config.name;
             return api.sendMessage(
                 "📢 **Broadcast Command**\n\n" +
                 "Send a message (text, photo, video) to multiple threads.\n" +
                 "Reply to an attachment to broadcast it.\n\n" +
                 "**Usage:**\n" +
-                `• ${actualPrefix}${commandName} <message>` + " - Send to all threads\n" +
-                `• ${actualPrefix}${commandName} -g <message>` + " - Send to groups only\n" +
-                `• ${actualPrefix}${commandName} -d <message>` + " - Send to DMs only\n" +
-                `• ${actualPrefix}${commandName} -s <message>` + " - Send to school GCs\n" +
-                `• ${actualPrefix}${commandName} -t <id1> <id2>... <msg>` + " - Send to target IDs\n" +
-                `• ${actualPrefix}${commandName} -list` + " - List all threads\n\n" +
+                `• ${actualPrefix}${commandName} <message>` +
+                " - Send to all threads\n" +
+                `• ${actualPrefix}${commandName} -g <message>` +
+                " - Send to groups only\n" +
+                `• ${actualPrefix}${commandName} -d <message>` +
+                " - Send to DMs only\n" +
+                `• ${actualPrefix}${commandName} -s <message>` +
+                " - Send to school GCs\n" +
+                `• ${actualPrefix}${commandName} -t <id1> <id2>... <msg>` +
+                " - Send to target IDs\n" +
+                `• ${actualPrefix}${commandName} -list` +
+                " - List all threads\n\n" +
                 "**Attachments:** Reply to a photo/video with the command to broadcast it.",
                 threadID,
                 messageID
             );
         }
 
-        // Get message text content
-        const broadcastMessage = args.slice(messageStart).join(" ").trim();
+        // Get message text content - Preserving whitespace
+        // Strategy: Locate where the actual message starts in event.body
+        let broadcastMessage = "";
 
-                // Validation: Must have either text OR attachment
-                if (!broadcastMessage && !attachmentPath) {
-                     const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
-                     return api.sendMessage(
-                        "❌ Please provide a message or reply to an attachment.\n\n" +
-                        `Usage: \`${actualPrefix}broadcast <message>\``,
-                        threadID,
-                        messageID
-                    );
+        if (args.length > messageStart) {
+            let searchBody = event.body.trim();
+
+            // 1. Remove command (first word)
+            // This handles prefix + commandName whatever casing was used
+            const firstSpace = searchBody.indexOf(" ");
+            if (firstSpace !== -1) {
+                searchBody = searchBody.substring(firstSpace).trim();
+            } else {
+                searchBody = ""; // Only command, no args
+            }
+
+            // 2. Remove consumed args (flags like -g, -t, etc.)
+            for (let i = 0; i < messageStart; i++) {
+                const arg = args[i];
+                // Find arg in remaining body (should be near start)
+                const argIndex = searchBody.indexOf(arg);
+                if (argIndex !== -1) {
+                    searchBody = searchBody.substring(argIndex + arg.length).trim();
                 }
-        
-                // Confirm broadcast
-                let filterText = filter;
-                if (filter === "all") filterText = "all threads";
-                else if (filter === "groups") filterText = "groups only";
-                else if (filter === "dms") filterText = "DMs only";
-                else if (filter === "school") filterText = "school GCs";
-                else if (filter === "custom") filterText = `target IDs (${selectedIDs.length})`;        
-                try {
-                    // Fetch threads
-                    let targetThreads = [];
-                    
-                    if (filter === "custom") {
-                        // Manually construct thread objects for custom IDs
-                        targetThreads = selectedIDs.map(id => ({ 
-                            threadID: id, 
-                            isGroup: true, // Assume group, doesn't matter much for sending
-                            threadName: `ID: ${id}` 
-                        }));
-                    } else {                const threads = await fetchThreads(api, filter);
+            }
+
+            broadcastMessage = searchBody;
+        }
+
+        // Validation: Must have either text OR attachment
+        if (!broadcastMessage && !attachmentPath) {
+            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : "";
+            return api.sendMessage(
+                "❌ Please provide a message or reply to an attachment.\n\n" +
+                `Usage: \`${actualPrefix}broadcast <message>\``,
+                threadID,
+                messageID
+            );
+        }
+
+        // Confirm broadcast
+        let filterText = filter;
+        if (filter === "all") filterText = "all threads";
+        else if (filter === "groups") filterText = "groups only";
+        else if (filter === "dms") filterText = "DMs only";
+        else if (filter === "school") filterText = "school GCs";
+        else if (filter === "custom") filterText = `target IDs (${selectedIDs.length})`;
+        try {
+            // Fetch threads
+            let targetThreads = [];
+
+            if (filter === "custom") {
+                // Manually construct thread objects for custom IDs
+                targetThreads = selectedIDs.map((id) => ({
+                    threadID: id,
+                    isGroup: true, // Assume group, doesn't matter much for sending
+                    threadName: `ID: ${id}`,
+                }));
+            } else {
+                const threads = await fetchThreads(api, filter);
                 if (threads.length === 0) {
                     return api.sendMessage(`📭 No ${filterText} found.`, threadID);
                 }
@@ -293,7 +336,9 @@ module.exports = {
             const confirmMsg = await api.sendMessage(
                 `📢 **Broadcasting to ${targetThreads.length} targets**\n` +
                 (attachmentPath ? `📎 With attachment (${attachmentType})\n` : "") +
-                (broadcastMessage ? `📝 Text: "${broadcastMessage.substring(0, 50)}..."\n` : "") +
+                (broadcastMessage
+                    ? `📝 Text: "${broadcastMessage.substring(0, 50)}..."\n`
+                    : "") +
                 `⏳ Starting...`,
                 threadID
             );
@@ -311,7 +356,7 @@ module.exports = {
             for (const thread of targetThreads) {
                 try {
                     const msgOptions = {};
-                    
+
                     // Add text if exists
                     if (broadcastMessage) {
                         msgOptions.body = `📢 **BROADCAST**\n\n${broadcastMessage}`;
@@ -326,8 +371,10 @@ module.exports = {
 
                     await api.sendMessage(msgOptions, thread.threadID);
                     successCount++;
-                    logger?.debug?.("Broadcast", `Sent to ${getThreadName(thread)} (${thread.threadID})`);
-                    
+                    logger?.debug?.(
+                        "Broadcast",
+                        `Sent to ${getThreadName(thread)} (${thread.threadID})`
+                    );
                 } catch (error) {
                     failCount++;
                     failedThreads.push({
@@ -335,7 +382,10 @@ module.exports = {
                         id: thread.threadID,
                         error: error.message,
                     });
-                    logger?.debug?.("Broadcast", `Failed: ${getThreadName(thread)} - ${error.message}`);
+                    logger?.debug?.(
+                        "Broadcast",
+                        `Failed: ${getThreadName(thread)} - ${error.message}`
+                    );
                 }
 
                 // Delay between messages
@@ -351,10 +401,14 @@ module.exports = {
             activeBroadcasts.delete(senderID);
 
             // Try to unsend confirmation
-            try { if (confirmMsg?.messageID) await api.unsendMessage(confirmMsg.messageID); } catch {}
+            try {
+                if (confirmMsg?.messageID) await api.unsendMessage(confirmMsg.messageID);
+            } catch {
+                /* ignore */
+            }
 
             // Send results
-            let resultMessage = 
+            let resultMessage =
                 `✅ **Broadcast Complete**\n` +
                 `📤 Sent: ${successCount}/${targetThreads.length}\n`;
 
@@ -366,12 +420,11 @@ module.exports = {
             }
 
             return api.sendMessage(resultMessage, threadID, messageID);
-
         } catch (error) {
             activeBroadcasts.delete(senderID);
             // Cleanup on error too
             if (attachmentPath && fs.existsSync(attachmentPath)) fs.unlinkSync(attachmentPath);
-            
+
             logger?.error?.("Broadcast", `Error: ${error.message}`);
             return api.sendMessage(`❌ Failed: ${error.message}`, threadID, messageID);
         }
@@ -383,12 +436,15 @@ module.exports = {
      * @param {Object} event - Event object
      * @param {string} filter - Filter type
      */
-    async listThreads(api, event, filter, config) {
+    async listThreads(api, event, filter, _config) {
         const threadID = event.threadID;
         const messageID = event.messageID;
 
         try {
-            const threads = await fetchThreads(api, filter === "groups" ? "groups" : filter === "dms" ? "dms" : "all");
+            const threads = await fetchThreads(
+                api,
+                filter === "groups" ? "groups" : filter === "dms" ? "dms" : "all"
+            );
 
             if (threads.length === 0) {
                 return api.sendMessage("📭 No threads found.", threadID, messageID);
@@ -423,7 +479,6 @@ module.exports = {
             }
 
             return api.sendMessage(list, threadID, messageID);
-
         } catch (error) {
             return api.sendMessage(
                 `❌ Failed to fetch threads: ${error.message}`,

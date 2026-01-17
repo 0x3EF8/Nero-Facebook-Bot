@@ -3,16 +3,16 @@
 const utils = require("../../../lib/utils");
 
 async function parseDelta(defaultFuncs, api, ctx, globalCallback, v) {
-    if (v.delta.class == "NewMessage") {
+    if (v.delta.class === "NewMessage") {
         utils.logEvent("NewMessage", {
             threadID:
                 v.delta.messageMetadata?.threadKey?.threadFbId ||
                 v.delta.messageMetadata?.threadKey?.otherUserFbId,
         });
 
-        if (ctx.globalOptions.pageID && ctx.globalOptions.pageID != v.queue) return;
+        if (ctx.globalOptions.pageID && ctx.globalOptions.pageID !== v.queue) return;
         (async function resolveAttachmentUrl(i) {
-            if (v.delta.attachments && i == v.delta.attachments.length) {
+            if (v.delta.attachments && i === v.delta.attachments.length) {
                 let fmtMsg;
                 try {
                     fmtMsg = utils.formatDeltaMessage(v);
@@ -32,8 +32,9 @@ async function parseDelta(defaultFuncs, api, ctx, globalCallback, v) {
                 if (fmtMsg) {
                     utils.incrementStat("messagesReceived");
                     utils.logMessage(fmtMsg);
-                    if (ctx.globalOptions.autoMarkDelivery)
+                    if (ctx.globalOptions.autoMarkDelivery) {
                         api.markAsDelivered(fmtMsg.threadID, fmtMsg.messageID);
+                    }
 
                     // Auto-store message for anti-unsend (always enabled)
                     utils.messageStore.store(fmtMsg);
@@ -45,7 +46,7 @@ async function parseDelta(defaultFuncs, api, ctx, globalCallback, v) {
                     return globalCallback(null, fmtMsg);
                 }
             } else {
-                if (v.delta.attachments && v.delta.attachments[i].mercury.attach_type == "photo") {
+                if (v.delta.attachments && v.delta.attachments[i].mercury.attach_type === "photo") {
                     api.resolvePhotoUrl(v.delta.attachments[i].fbid, (err, url) => {
                         if (!err) v.delta.attachments[i].mercury.metadata.url = url;
                         return resolveAttachmentUrl(i + 1);
@@ -57,11 +58,11 @@ async function parseDelta(defaultFuncs, api, ctx, globalCallback, v) {
         })(0);
     }
 
-    if (v.delta.class == "ClientPayload") {
+    if (v.delta.class === "ClientPayload") {
         const clientPayload = utils.decodeClientPayload(v.delta.payload);
         if (clientPayload && clientPayload.deltas) {
             for (const i in clientPayload.deltas) {
-                var delta = clientPayload.deltas[i];
+                const delta = clientPayload.deltas[i];
                 // console.log(delta);
                 if (delta.deltaMessageReaction && !!ctx.globalOptions.listenEvents) {
                     utils.logEvent("message_reaction", {
@@ -103,7 +104,7 @@ async function parseDelta(defaultFuncs, api, ctx, globalCallback, v) {
                     const mdata = delta.deltaMessageReply.message?.data?.prng
                         ? JSON.parse(delta.deltaMessageReply.message.data.prng)
                         : [];
-                    var mentions = {};
+                    const mentions = {};
                     if (mdata) {
                         mdata.forEach(
                             (m) =>
@@ -142,7 +143,7 @@ async function parseDelta(defaultFuncs, api, ctx, globalCallback, v) {
                     };
 
                     if (delta.deltaMessageReply.repliedToMessage) {
-                        var rmentions = {};
+                        const rmentions = {};
                         const rmdata = delta.deltaMessageReply.repliedToMessage?.data?.prng
                             ? JSON.parse(delta.deltaMessageReply.repliedToMessage.data.prng)
                             : [];
@@ -189,14 +190,16 @@ async function parseDelta(defaultFuncs, api, ctx, globalCallback, v) {
                             ).map((e) => e.toString()),
                         };
                     }
-                    if (ctx.globalOptions.autoMarkDelivery)
+                    if (ctx.globalOptions.autoMarkDelivery) {
                         api.markAsDelivered(callbackToReturn.threadID, callbackToReturn.messageID);
+                    }
 
                     // Auto-store reply message for anti-unsend (always enabled)
                     utils.messageStore.store(callbackToReturn);
 
-                    if (!ctx.globalOptions.selfListen && callbackToReturn.senderID === ctx.userID)
+                    if (!ctx.globalOptions.selfListen && callbackToReturn.senderID === ctx.userID) {
                         return;
+                    }
                     return globalCallback(null, callbackToReturn);
                 }
             }
@@ -206,8 +209,8 @@ async function parseDelta(defaultFuncs, api, ctx, globalCallback, v) {
 
     if (v.delta.class !== "NewMessage" && !ctx.globalOptions.listenEvents) return;
     switch (v.delta.class) {
-        case "ReadReceipt":
-            var fmtMsg;
+        case "ReadReceipt": {
+            let fmtMsg;
             try {
                 fmtMsg = utils.formatDeltaReadReceipt(v.delta);
             } catch (err) {
@@ -219,11 +222,12 @@ async function parseDelta(defaultFuncs, api, ctx, globalCallback, v) {
                 });
             }
             return globalCallback(null, fmtMsg);
+        }
         case "AdminTextMessage":
         case "ThreadName":
         case "ParticipantsAddedToGroupThread":
-        case "ParticipantLeftGroupThread":
-            var fmtEvent;
+        case "ParticipantLeftGroupThread": {
+            let fmtEvent;
             try {
                 fmtEvent = utils.formatDeltaEvent(v.delta);
             } catch (err) {
@@ -235,6 +239,7 @@ async function parseDelta(defaultFuncs, api, ctx, globalCallback, v) {
                 });
             }
             return globalCallback(null, fmtEvent);
+        }
     }
 }
 

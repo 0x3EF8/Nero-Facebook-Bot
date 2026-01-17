@@ -40,7 +40,7 @@ module.exports = {
     async execute({ api, event, args, config }) {
         const threadID = event.threadID;
         const messageID = event.messageID;
-        
+
         const query = args.join(" ");
 
         if (!query) {
@@ -61,7 +61,7 @@ module.exports = {
 
         try {
             api.setMessageReaction("⏳", messageID, () => {}, true);
-           // api.sendMessage(`🔎 Searching for "${query}"...`, threadID, messageID);
+            // api.sendMessage(`🔎 Searching for "${query}"...`, threadID, messageID);
 
             const youtube = await Innertube.create({
                 generate_session_locally: true,
@@ -76,12 +76,16 @@ module.exports = {
                     error.code === "ETIMEDOUT" ||
                     error.message?.includes("network"),
             });
-            
+
             const allVideos = search.results.filter((item) => item.type === "Video").slice(0, 20);
 
             if (allVideos.length === 0) {
                 api.setMessageReaction("❌", messageID, () => {}, true);
-                return api.sendMessage("❌ No music found for your search query.", threadID, messageID);
+                return api.sendMessage(
+                    "❌ No music found for your search query.",
+                    threadID,
+                    messageID
+                );
             }
 
             // Find video within duration limit
@@ -110,7 +114,7 @@ module.exports = {
                 videoTitle = selectedVideo.title.text;
                 channelName = selectedVideo.author?.name || "Unknown";
             }
-            
+
             const duration = selectedVideo.duration?.text || "Unknown";
 
             console.log(chalk.cyan(`🎵 Downloading: ${videoTitle}`));
@@ -146,7 +150,9 @@ module.exports = {
                     if (fs.existsSync(audioPath)) {
                         try {
                             fs.unlinkSync(audioPath);
-                        } catch { /* ignore */ }
+                        } catch {
+                            /* ignore */
+                        }
                     }
                     continue;
                 }
@@ -193,9 +199,10 @@ module.exports = {
             setTimeout(() => {
                 try {
                     if (fs.existsSync(audioPath)) fs.unlinkSync(audioPath);
-                } catch { /* ignore */ }
+                } catch {
+                    /* ignore */
+                }
             }, 5000);
-
         } catch (error) {
             console.error(chalk.red(`✗ Music command error: ${error.message}`));
             api.setMessageReaction("❌", messageID, () => {}, true);
@@ -203,7 +210,9 @@ module.exports = {
             if (audioPath && fs.existsSync(audioPath)) {
                 try {
                     fs.unlinkSync(audioPath);
-                } catch { /* ignore */ }
+                } catch {
+                    /* ignore */
+                }
             }
 
             return api.sendMessage(
@@ -212,6 +221,5 @@ module.exports = {
                 messageID
             );
         }
-    }
+    },
 };
-

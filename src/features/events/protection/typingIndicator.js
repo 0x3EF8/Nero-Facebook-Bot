@@ -19,7 +19,7 @@ module.exports = {
         description: "Logs typing indicators (debug)",
         eventTypes: ["typ"],
         priority: 1,
-        enabled: false, 
+        enabled: false,
     },
 
     /**

@@ -1,11 +1,11 @@
-const { generateText } = require('ai');
-const { createGoogleGenerativeAI } = require('@ai-sdk/google');
-const path = require('path');
-const config = require('../src/config/config');
+const { generateText } = require("ai");
+const { createGoogleGenerativeAI } = require("@ai-sdk/google");
+const path = require("path");
+const config = require("../src/config/config");
 
 async function testAISDK() {
     const keys = [config.apiKeys.gemini, ...config.apiKeys.geminiBackups].filter(Boolean);
-    const models = ['models/gemini-1.5-flash', 'models/gemini-1.5-pro', 'models/gemini-pro'];
+    const models = ["models/gemini-1.5-flash", "models/gemini-1.5-pro", "models/gemini-pro"];
 
     for (const apiKey of keys) {
         console.log(`
@@ -17,7 +17,7 @@ Trying key: ${apiKey.substring(0, 10)}...`);
                 console.log(`  Testing model: ${modelName}`);
                 const { text } = await generateText({
                     model: google(modelName),
-                    prompt: 'Hello',
+                    prompt: "Hello",
                 });
                 console.log("  Success! Response:", text);
                 return; // Exit on success

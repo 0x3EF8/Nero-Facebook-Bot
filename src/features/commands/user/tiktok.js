@@ -43,13 +43,17 @@ module.exports = {
     async execute({ api, event, args, messageID }, retries = 0) {
         const threadID = event.threadID;
         const query = args.join(" ");
-        
+
         // Prevent infinite loops
         if (retries > 5) {
             api.setMessageReaction("❌", event.messageID, () => {}, true);
-            return api.sendMessage("❌ Failed to send video after multiple attempts.", threadID, event.messageID);
+            return api.sendMessage(
+                "❌ Failed to send video after multiple attempts.",
+                threadID,
+                event.messageID
+            );
         }
-        
+
         // Set initial reaction
         api.setMessageReaction("⏳", event.messageID, () => {}, true);
 
@@ -61,58 +65,77 @@ module.exports = {
                 // USER SEARCH MODE
                 const username = query.substring(1); // Remove '@'
                 console.log(`[TikTok] Searching user: ${username}`);
-                
-                const response = await axios.post("https://www.tikwm.com/api/feed/search", {
-                    keywords: username,
-                    count: 12,
-                    cursor: 0,
-                    web: 1,
-                    hd: 1
-                }, { 
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' }
-                });
+
+                const response = await axios.post(
+                    "https://www.tikwm.com/api/feed/search",
+                    {
+                        keywords: username,
+                        count: 12,
+                        cursor: 0,
+                        web: 1,
+                        hd: 1,
+                    },
+                    {
+                        headers: {
+                            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                        },
+                    }
+                );
 
                 if (response.data?.data?.videos) {
                     // Filter for user
                     const allVideos = response.data.data.videos;
-                    videos = allVideos.filter(v => v.author && v.author.unique_id.toLowerCase() === username.toLowerCase());
+                    videos = allVideos.filter(
+                        (v) =>
+                            v.author && v.author.unique_id.toLowerCase() === username.toLowerCase()
+                    );
                     if (videos.length === 0) videos = allVideos; // Fallback
                 }
-
             } else if (query) {
                 // SEARCH MODE
                 console.log(`[TikTok] Searching for: ${query}`);
-                
+
                 // Random cursor for variety
                 const randomCursor = Math.floor(Math.random() * 10) * 12;
-                
-                const response = await axios.post("https://www.tikwm.com/api/feed/search", {
-                    keywords: query,
-                    count: 12,
-                    cursor: randomCursor,
-                    web: 1,
-                    hd: 1
-                }, { 
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' }
-                });
+
+                const response = await axios.post(
+                    "https://www.tikwm.com/api/feed/search",
+                    {
+                        keywords: query,
+                        count: 12,
+                        cursor: randomCursor,
+                        web: 1,
+                        hd: 1,
+                    },
+                    {
+                        headers: {
+                            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                        },
+                    }
+                );
 
                 if (response.data?.data?.videos) {
                     videos = response.data.data.videos;
                 }
-
             } else {
                 // VIRAL / TRENDING MODE
                 console.log(`[TikTok] Fetching viral videos (PH)`);
-                
+
                 const randomCursor = Math.floor(Math.random() * 50);
-                const response = await axios.get(`https://www.tikwm.com/api/feed/list?region=PH&count=20&cursor=${randomCursor}`, {
-                    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
-                });
+                const response = await axios.get(
+                    `https://www.tikwm.com/api/feed/list?region=PH&count=20&cursor=${randomCursor}`,
+                    {
+                        headers: {
+                            "User-Agent":
+                                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                        },
+                    }
+                );
 
                 if (response.data?.data) {
                     const allVideos = response.data.data;
                     // Strict viral filter
-                    videos = allVideos.filter(v => v.play_count > 100000 || v.digg_count > 10000);
+                    videos = allVideos.filter((v) => v.play_count > 100000 || v.digg_count > 10000);
                     if (videos.length === 0) {
                         // Fallback: sort by plays
                         allVideos.sort((a, b) => b.play_count - a.play_count);
@@ -122,7 +145,9 @@ module.exports = {
             }
 
             if (!videos || videos.length === 0) {
-                throw new Error(query ? `No videos found for "${query}"` : "No trending videos found.");
+                throw new Error(
+                    query ? `No videos found for "${query}"` : "No trending videos found."
+                );
             }
 
             // SELECT UNIQUE VIDEO
@@ -143,10 +168,10 @@ module.exports = {
             }
 
             const title = videoData.title || "TikTok Video";
-            const author = videoData.author ? videoData.author.nickname : "Unknown";
+            const _author = videoData.author ? videoData.author.nickname : "Unknown";
             const username = videoData.author ? videoData.author.unique_id : "unknown";
             const likes = videoData.digg_count ? `❤️ ${videoData.digg_count}` : "";
-            
+
             // Handle relative URLs
             let videoUrl = videoData.play;
             if (videoUrl && !videoUrl.startsWith("http")) {
@@ -161,11 +186,11 @@ module.exports = {
                 method: "GET",
                 url: videoUrl,
                 responseType: "stream",
-                timeout: 30000
+                timeout: 30000,
             });
 
             // Validate stream
-            const size = videoStream.headers['content-length'];
+            const size = videoStream.headers["content-length"];
             if (size && parseInt(size) > 50 * 1024 * 1024) {
                 throw new Error("Video too large (>50MB).");
             }
@@ -179,36 +204,42 @@ module.exports = {
             // Send message
             try {
                 const header = query ? `🔎 **Result for:** ${query}` : `🔥 **Viral TikTok (PH)**`;
-                
-                await api.sendMessage({
-                    body: `${header}\n\n👤 @${username}\n📝 ${title.substring(0, 100)}\n${likes}`,
-                    attachment: videoStream.data
-                }, threadID, event.messageID);
+
+                await api.sendMessage(
+                    {
+                        body: `${header}\n\n👤 @${username}\n📝 ${title.substring(0, 100)}\n${likes}`,
+                        attachment: videoStream.data,
+                    },
+                    threadID,
+                    event.messageID
+                );
 
                 api.setMessageReaction("✅", event.messageID, () => {}, true);
             } catch (sendError) {
                 // Check specifically for the metadata error which indicates FB rejection
                 // Also check if the error is about empty attachments (core throws this now)
-                const isMetadataError = sendError.message.includes("missing metadata") || 
-                                      sendError.message.includes("Upload failed") ||
-                                      (sendError.error && JSON.stringify(sendError.error).includes("metadata"));
-                
+                const isMetadataError =
+                    sendError.message.includes("missing metadata") ||
+                    sendError.message.includes("Upload failed") ||
+                    (sendError.error && JSON.stringify(sendError.error).includes("metadata"));
+
                 if (isMetadataError || sendError.message.includes("upload")) {
-                    console.warn(`[TikTok] Facebook rejected video. Retrying (Attempt ${retries + 1})...`);
+                    console.warn(
+                        `[TikTok] Facebook rejected video. Retrying (Attempt ${retries + 1})...`
+                    );
                     return this.execute({ api, event, args, messageID }, retries + 1);
                 }
                 throw sendError;
             }
-
         } catch (error) {
             console.error("[TikTok Command] Error:", error.message);
             api.setMessageReaction("❌", event.messageID, () => {}, true);
-            
+
             return api.sendMessage(
                 `❌ ${error.message || "Failed to fetch video."}`,
                 threadID,
                 event.messageID
             );
         }
-    }
+    },
 };

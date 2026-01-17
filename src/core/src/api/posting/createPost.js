@@ -67,8 +67,8 @@ module.exports = function (defaultFuncs, api, ctx) {
 
             // Upload attachments if provided
             if (options.attachment) {
-                const attachments = Array.isArray(options.attachment) 
-                    ? options.attachment 
+                const attachments = Array.isArray(options.attachment)
+                    ? options.attachment
                     : [options.attachment];
 
                 for (const attachment of attachments) {
@@ -142,12 +142,13 @@ module.exports = function (defaultFuncs, api, ctx) {
                 .then(utils.parseAndCheckLogin(ctx, defaultFuncs));
 
             const storyData = resData.data?.story_create?.story;
-            
+
             // Check if post was actually created (success even if errors array exists)
             if (storyData || resData.data?.story_create) {
                 const result = {
                     success: true,
-                    postID: storyData?.id || storyData?.post_id || resData.data?.story_create?.post_id,
+                    postID:
+                        storyData?.id || storyData?.post_id || resData.data?.story_create?.post_id,
                     url: storyData?.url,
                     message: "Post created successfully!",
                 };
@@ -163,7 +164,6 @@ module.exports = function (defaultFuncs, api, ctx) {
 
             // If no story data and no errors, something unexpected happened
             throw new Error("Failed to create post - no response data");
-
         } catch (err) {
             utils.error("createPost", err);
             _callback(err);
@@ -200,15 +200,15 @@ async function uploadMedia(defaultFuncs, ctx, attachment) {
         );
 
         const responseText = res.body.toString();
-        
+
         // Parse response - Facebook returns "for (;;);{json}"
         let jsonStr = responseText;
         if (responseText.startsWith("for (;;);")) {
             jsonStr = responseText.slice(9);
         }
-        
+
         const data = JSON.parse(jsonStr);
-        
+
         if (data.payload && data.payload.photoID) {
             return data.payload.photoID;
         }

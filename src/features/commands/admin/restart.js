@@ -32,26 +32,26 @@ module.exports = {
      * @param {Object} context - Command context
      */
     async execute({ api, event, logger }) {
-    const threadID = event.threadID;
-    const messageID = event.messageID;
+        const threadID = event.threadID;
+        const messageID = event.messageID;
 
-    logger.warn("Restart", `Bot restart initiated by ${event.senderID}`);
+        logger.warn("Restart", `Bot restart initiated by ${event.senderID}`);
 
-    // Send confirmation message
-    await api.sendMessage(
-        "🔄 Restarting bot...\n\n" + "The bot will be back online shortly.",
-        threadID,
-        messageID
-    );
+        // Send confirmation message
+        await api.sendMessage(
+            "🔄 Restarting bot...\n\n" + "The bot will be back online shortly.",
+            threadID,
+            messageID
+        );
 
-    // Log the restart
-    logger.info("Restart", "Shutting down for restart...");
+        // Log the restart
+        logger.info("Restart", "Shutting down for restart...");
 
-    // Give time for the message to send
-    setTimeout(() => {
-        // Exit with code 0 for clean restart
-        // Process manager (pm2, nodemon, etc.) should restart the process
-        process.exit(0);
-    }, 1000);
+        // Give time for the message to send
+        setTimeout(() => {
+            // Exit with code 0 for clean restart
+            // Process manager (pm2, nodemon, etc.) should restart the process
+            process.exit(0);
+        }, 1000);
     },
 };

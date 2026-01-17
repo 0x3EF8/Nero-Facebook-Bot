@@ -2,15 +2,6 @@
 
 const utils = require("../../lib/utils");
 
-function isCallable(func) {
-    try {
-        Reflect.apply(func, null, []);
-        return true;
-    } catch (error) {
-        return false;
-    }
-}
-
 module.exports = function (defaultFuncs, api, ctx) {
     return async function setMessageReactionMqtt(reaction, messageID, threadID) {
         if (!ctx.mqttClient) {

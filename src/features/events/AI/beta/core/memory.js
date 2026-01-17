@@ -77,7 +77,7 @@ function getFormattedHistory(threadID, limit = MEMORY_CONFIG.contextWindow) {
     const history = getHistory(threadID);
     return history
         .slice(-limit)
-        .map(h => `${h.name}: ${h.message}`)
+        .map((h) => `${h.name}: ${h.message}`)
         .join("\n");
 }
 
@@ -165,8 +165,10 @@ function getGlobalStats() {
     return {
         activeThreads: chatMemory.size,
         trackedMessages: betaMessageIDs.size,
-        totalMemoryEntries: Array.from(chatMemory.values())
-            .reduce((sum, history) => sum + history.length, 0),
+        totalMemoryEntries: Array.from(chatMemory.values()).reduce(
+            (sum, history) => sum + history.length,
+            0
+        ),
     };
 }
 
@@ -181,15 +183,15 @@ module.exports = {
         getHistory,
         getFormattedHistory,
         clearHistory,
-        
+
         // Message tracking
         trackBetaMessage,
         isBetaMessage,
-        
+
         // Analytics
         getThreadStats,
         getGlobalStats,
-        
+
         // Config
         MAX_HISTORY: MEMORY_CONFIG.maxHistory,
     },

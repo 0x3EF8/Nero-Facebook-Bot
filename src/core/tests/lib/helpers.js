@@ -486,7 +486,9 @@ function initApiModule(modulePath, contextOverrides = {}) {
  * Wait for specified milliseconds
  */
 function wait(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+    return new Promise((resolve) => {
+        setTimeout(resolve, ms);
+    });
 }
 
 /**

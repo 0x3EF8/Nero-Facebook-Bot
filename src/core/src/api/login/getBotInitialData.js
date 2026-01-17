@@ -36,10 +36,11 @@ module.exports = (defaultFuncs, api, ctx) => {
                     return callback(null, {
                         ...accountJson,
                     });
-                } else
+                } else {
                     return callback(null, {
                         error: "Something went wrong. Maybe its possible that it has a limitation due to spam requests. You can try again later.",
                     });
+                }
             },
             true
         );

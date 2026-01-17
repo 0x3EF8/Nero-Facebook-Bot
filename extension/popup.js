@@ -301,37 +301,48 @@ function updateBotStats(data) {
 
     // Messages stats
     if (messages) {
-        if (elements.statMsgTotal)
-            {elements.statMsgTotal.textContent = messages.total?.toLocaleString() || "0";}
-        if (elements.statMsgText)
-            {elements.statMsgText.textContent = messages.text?.toLocaleString() || "0";}
-        if (elements.statMsgAttach)
-            {elements.statMsgAttach.textContent = messages.attachments?.toLocaleString() || "0";}
-        if (elements.statMsgReact)
-            {elements.statMsgReact.textContent = messages.reactions?.toLocaleString() || "0";}
+        if (elements.statMsgTotal) {
+            elements.statMsgTotal.textContent = messages.total?.toLocaleString() || "0";
+        }
+        if (elements.statMsgText) {
+            elements.statMsgText.textContent = messages.text?.toLocaleString() || "0";
+        }
+        if (elements.statMsgAttach) {
+            elements.statMsgAttach.textContent = messages.attachments?.toLocaleString() || "0";
+        }
+        if (elements.statMsgReact) {
+            elements.statMsgReact.textContent = messages.reactions?.toLocaleString() || "0";
+        }
     }
     // Commands stats
     if (commands) {
-        if (elements.statCmdTotal)
-            {elements.statCmdTotal.textContent = commands.total?.toLocaleString() || "0";}
-        if (elements.statCmdSuccess)
-            {elements.statCmdSuccess.textContent = commands.successful?.toLocaleString() || "0";}
-        if (elements.statCmdFailed)
-            {elements.statCmdFailed.textContent = commands.failed?.toLocaleString() || "0";}
-        if (elements.statCmdBlocked)
-            {elements.statCmdBlocked.textContent = commands.blocked?.toLocaleString() || "0";}
+        if (elements.statCmdTotal) {
+            elements.statCmdTotal.textContent = commands.total?.toLocaleString() || "0";
+        }
+        if (elements.statCmdSuccess) {
+            elements.statCmdSuccess.textContent = commands.successful?.toLocaleString() || "0";
+        }
+        if (elements.statCmdFailed) {
+            elements.statCmdFailed.textContent = commands.failed?.toLocaleString() || "0";
+        }
+        if (elements.statCmdBlocked) {
+            elements.statCmdBlocked.textContent = commands.blocked?.toLocaleString() || "0";
+        }
     }
 
     // Activity stats
     if (activity) {
-        if (elements.statActiveUsers)
-            {elements.statActiveUsers.textContent = activity.activeUsers?.toLocaleString() || "0";}
-        if (elements.statActiveThreads)
-            {elements.statActiveThreads.textContent =
-                activity.activeThreads?.toLocaleString() || "0";}
-        if (elements.statTotalAccounts)
-            {elements.statTotalAccounts.textContent =
-                activity.totalAccounts?.toLocaleString() || "0";}
+        if (elements.statActiveUsers) {
+            elements.statActiveUsers.textContent = activity.activeUsers?.toLocaleString() || "0";
+        }
+        if (elements.statActiveThreads) {
+            elements.statActiveThreads.textContent =
+                activity.activeThreads?.toLocaleString() || "0";
+        }
+        if (elements.statTotalAccounts) {
+            elements.statTotalAccounts.textContent =
+                activity.totalAccounts?.toLocaleString() || "0";
+        }
         // Top commands
         if (
             activity.topCommands &&
@@ -354,21 +365,25 @@ function updateBotStats(data) {
 
     // Events stats
     if (events) {
-        if (elements.statEventsTriggered)
-            {elements.statEventsTriggered.textContent = events.triggered?.toLocaleString() || "0";}
+        if (elements.statEventsTriggered) {
+            elements.statEventsTriggered.textContent = events.triggered?.toLocaleString() || "0";
+        }
     }
 
     // System stats
     if (system) {
         if (system.memory) {
-            if (elements.statHeapUsed)
-                {elements.statHeapUsed.textContent = system.memory.heapUsed || "0 MB";}
-            if (elements.statHeapTotal)
-                {elements.statHeapTotal.textContent = system.memory.heapTotal || "0 MB";}
+            if (elements.statHeapUsed) {
+                elements.statHeapUsed.textContent = system.memory.heapUsed || "0 MB";
+            }
+            if (elements.statHeapTotal) {
+                elements.statHeapTotal.textContent = system.memory.heapTotal || "0 MB";
+            }
             if (elements.statRss) elements.statRss.textContent = system.memory.rss || "0 MB";
         }
-        if (elements.statNodeVersion)
-            {elements.statNodeVersion.textContent = system.nodeVersion || "-";}
+        if (elements.statNodeVersion) {
+            elements.statNodeVersion.textContent = system.nodeVersion || "-";
+        }
         if (elements.statPlatform) elements.statPlatform.textContent = system.platform || "-";
     }
 

@@ -47,15 +47,15 @@ module.exports = {
             "instagram.com/p/",
             "youtube.com/watch",
             "youtu.be/",
-            "youtube.com/shorts/"
+            "youtube.com/shorts/",
         ];
 
-        const isVideoLink = videoPatterns.some(pattern => body.includes(pattern));
+        const isVideoLink = videoPatterns.some((pattern) => body.includes(pattern));
 
         if (!isVideoLink) return;
 
         const url = body.split(/\s+/)[0];
-        
+
         logger.info("AutoDownloader", `Delegating ${url} to DL command...`);
 
         // Load the DL command dynamically and force fresh reload
@@ -71,7 +71,7 @@ module.exports = {
 
         // Mock context for the command
         const mockArgs = [url];
-        
+
         // We need a mock config object that matches what dl.js expects
         // dl.js uses config.bot.prefix in error messages, but since we are providing args,
         // it shouldn't trigger the "Please provide a URL" error.
@@ -80,7 +80,7 @@ module.exports = {
             event,
             args: mockArgs,
             config: config, // Pass the global config
-            logger
+            logger,
         };
 
         try {
@@ -89,5 +89,5 @@ module.exports = {
         } catch (error) {
             logger.error("AutoDownloader", "Command delegation failed: " + error.message);
         }
-    }
+    },
 };

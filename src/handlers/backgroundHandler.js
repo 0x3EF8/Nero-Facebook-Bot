@@ -89,10 +89,7 @@ class BackgroundHandler {
             }
         }
 
-        logger.success(
-            "BackgroundHandler",
-            `Loaded ${this.stats.loaded} background tasks. Ready.`
-        );
+        logger.success("BackgroundHandler", `Loaded ${this.stats.loaded} background tasks. Ready.`);
         return this.stats.loaded;
     }
 
@@ -104,8 +101,8 @@ class BackgroundHandler {
     async loadCategory(category) {
         // Handle root folder loading
         const isRoot = category === "root";
-        const categoryPath = isRoot 
-            ? config.paths.background 
+        const categoryPath = isRoot
+            ? config.paths.background
             : path.join(config.paths.background, category);
 
         if (!fs.existsSync(categoryPath)) {
@@ -207,7 +204,10 @@ class BackgroundHandler {
             try {
                 await taskData.onLoad();
             } catch (error) {
-                logger.warn("BackgroundHandler", `onLoad hook failed for ${taskData.name}: ${error.message}`);
+                logger.warn(
+                    "BackgroundHandler",
+                    `onLoad hook failed for ${taskData.name}: ${error.message}`
+                );
             }
         }
 
@@ -294,7 +294,10 @@ class BackgroundHandler {
         // Run immediately if runOnStart is true
         if (task.runOnStart && typeof task.execute === "function") {
             this.executeTask(task).catch((error) => {
-                logger.error("BackgroundHandler", `Initial execution failed for ${taskName}: ${error.message}`);
+                logger.error(
+                    "BackgroundHandler",
+                    `Initial execution failed for ${taskName}: ${error.message}`
+                );
             });
         }
 
@@ -359,10 +362,7 @@ class BackgroundHandler {
             // Track in global stats
             statsTracker.recordBackgroundTask(task.name, true, duration);
 
-            logger.debug(
-                "BackgroundHandler",
-                `Executed task: ${task.name} (${duration}ms)`
-            );
+            logger.debug("BackgroundHandler", `Executed task: ${task.name} (${duration}ms)`);
         } catch (error) {
             task.errorCount++;
             this.stats.errors++;
@@ -479,7 +479,10 @@ class BackgroundHandler {
             logger.info("BackgroundHandler", `Reloaded task: ${taskName}`);
             return true;
         } catch (error) {
-            logger.error("BackgroundHandler", `Failed to reload task ${taskName}: ${error.message}`);
+            logger.error(
+                "BackgroundHandler",
+                `Failed to reload task ${taskName}: ${error.message}`
+            );
             return false;
         }
     }

@@ -54,7 +54,7 @@ module.exports = function (defaultFuncs, api, ctx) {
             return cb(null, result);
         } catch (err) {
             utils.error("getPostPreview", err);
-            return cb(err);
+            cb(err);
         }
 
         return returnPromise;

@@ -77,9 +77,10 @@ async function getGroupContext(api, threadID) {
  * Build core system prompt
  */
 function buildSystemPrompt(text, imageCount) {
-    const imageNote = imageCount > 0
-        ? `\n[VISUAL INTEL]: ${imageCount} image(s) received. PRIORITIZE visual analysis. Describe key elements, read text, and answer queries about the image with high accuracy.`
-        : "";
+    const imageNote =
+        imageCount > 0
+            ? `\n[VISUAL INTEL]: ${imageCount} image(s) received. PRIORITIZE visual analysis. Describe key elements, read text, and answer queries about the image with high accuracy.`
+            : "";
 
     return `You are ${AI_IDENTITY.name}, an elite virtual assistant engineered by ${AI_IDENTITY.author}. You represent the pinnacle of AI capability—efficient, accurate, and polite.
 

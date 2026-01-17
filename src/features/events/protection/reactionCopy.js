@@ -108,7 +108,10 @@ module.exports = {
                     event.messageID,
                     (err) => {
                         if (err) {
-                            logger?.error?.("ReactionCopy", `Error copying reaction: ${err.message || err}`);
+                            logger?.error?.(
+                                "ReactionCopy",
+                                `Error copying reaction: ${err.message || err}`
+                            );
                             // Remove from cache on failure so it can be retried
                             reactedMessages.delete(event.messageID);
                         } else {
@@ -118,7 +121,6 @@ module.exports = {
                     true // Is reaction
                 );
             }, totalDelay);
-
         } catch (error) {
             logger?.error?.("ReactionCopy", `Handler error: ${error.message || error}`);
             // Remove from cache on error

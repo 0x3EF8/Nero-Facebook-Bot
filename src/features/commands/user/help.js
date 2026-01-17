@@ -52,15 +52,7 @@ module.exports = {
      * Command execution function
      * @param {Object} context - Command context
      */
-    async execute({
-        api,
-        event,
-        args,
-        prefix,
-        config,
-        commandHandler,
-        isAdmin,
-    }) {
+    async execute({ api, event, args, prefix, config, commandHandler, isAdmin }) {
         const threadID = event.threadID;
         const displayPrefix = prefix || config.bot.prefix || "";
 
@@ -126,8 +118,12 @@ module.exports = {
 
             // Skip admin commands for non-admins
             if (command.config.permissions === "admin" && !isAdmin) continue;
-            if (command.config.permissions === "superadmin" && !config.isSuperAdmin(event.senderID))
-                {continue;}
+            if (
+                command.config.permissions === "superadmin" &&
+                !config.isSuperAdmin(event.senderID)
+            ) {
+                continue;
+            }
 
             const category = command.config.category;
 
@@ -140,7 +136,7 @@ module.exports = {
 
         // Build the help message
         let helpMessage = `📚 **${config.bot.name.toUpperCase()} HELP**\n`;
-        
+
         if (config.bot.prefixEnabled) {
             helpMessage += `Prefix: \`${displayPrefix || "(None)"}\`\n\n`;
         } else {
@@ -153,7 +149,7 @@ module.exports = {
 
             helpMessage += `${formatCategoryName(category)}\n`;
             // Join with newlines and bullet points
-            helpMessage += commands.map(cmd => `• ${cmd}`).join("\n") + "\n\n";
+            helpMessage += commands.map((cmd) => `• ${cmd}`).join("\n") + "\n\n";
         }
 
         // Add stats and tip

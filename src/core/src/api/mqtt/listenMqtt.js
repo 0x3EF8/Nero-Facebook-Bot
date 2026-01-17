@@ -30,7 +30,7 @@ const topics = [
 function generateUUID() {
     return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
         const r = (Math.random() * 16) | 0,
-            v = c == "x" ? r : (r & 0x3) | 0x8;
+            v = c === "x" ? r : (r & 0x3) | 0x8;
         return v.toString(16);
     });
 }
@@ -129,8 +129,9 @@ async function listenMqtt(defaultFuncs, api, ctx, globalCallback, reconnectFn) {
         reconnectPeriod: 5000, // ✅ Changed from 1s to 5s (less aggressive)
     };
 
-    if (ctx.globalOptions.proxy)
+    if (ctx.globalOptions.proxy) {
         options.wsOptions.agent = new HttpsProxyAgent(ctx.globalOptions.proxy);
+    }
     const mqttClient = new mqtt.Client((_) => websocket(host, options.wsOptions), options);
     mqttClient.publishSync = mqttClient.publish.bind(mqttClient);
     mqttClient.publish = (topic, message, opts = {}, callback = () => {}) =>
@@ -216,7 +217,7 @@ async function listenMqtt(defaultFuncs, api, ctx, globalCallback, reconnectFn) {
                         botName = userInfo.name;
                     }
                 }
-            } catch (e) {
+            } catch (_e) {
                 // Ignore errors, use default name
             }
             utils.info(`AUTHENTICATION COMPLETE → ${botName} [UID: ${thisAccountUID}]`, false); // false = final (└─)
@@ -230,14 +231,14 @@ async function listenMqtt(defaultFuncs, api, ctx, globalCallback, reconnectFn) {
         });
     });
 
-    let presenceInterval;
+    let _presenceInterval;
     if (ctx.globalOptions.updatePresence) {
         // Function to schedule next presence update with randomized interval
         const scheduleNextPresence = () => {
             // Random interval 45-75 seconds
             const randomInterval = Math.floor(Math.random() * 30000) + 45000;
 
-            presenceInterval = setTimeout(() => {
+            _presenceInterval = setTimeout(() => {
                 if (mqttClient.connected) {
                     const presencePayload = utils.generatePresence(ctx.userID);
                     mqttClient.publish(
@@ -297,9 +298,8 @@ module.exports = (defaultFuncs, api, ctx) => {
     let globalCallback = () => {};
     let reconnectInterval;
     let form = {}; // Instance-specific form data
-    let getSeqID; // Instance-specific function
-
-    getSeqID = async () => {
+    const getSeqID = async () => {
+        // Instance-specific function
         try {
             form = {
                 queries: JSON.stringify({
@@ -318,8 +318,12 @@ module.exports = (defaultFuncs, api, ctx) => {
             const resData = await defaultFuncs
                 .post("https://www.facebook.com/api/graphqlbatch/", ctx.jar, form)
                 .then(utils.parseAndCheckLogin(ctx, defaultFuncs));
-            if (utils.getType(resData) != "Array" || (resData.error && resData.error !== 1357001))
+            if (
+                utils.getType(resData) !== "Array" ||
+                (resData.error && resData.error !== 1357001)
+            ) {
                 throw resData;
+            }
             ctx.lastSeqId = resData[0].o0.data.viewer.message_threads.sync_sequence_id;
             listenMqtt(defaultFuncs, api, ctx, globalCallback, getSeqID);
         } catch (err) {

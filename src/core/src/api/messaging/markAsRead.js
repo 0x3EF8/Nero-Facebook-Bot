@@ -21,7 +21,7 @@ module.exports = function (defaultFuncs, api, ctx) {
             callback = read;
             read = true;
         }
-        if (read == undefined) {
+        if (read === undefined) {
             read = true;
         }
 
@@ -71,7 +71,7 @@ module.exports = function (defaultFuncs, api, ctx) {
         } else {
             try {
                 if (ctx.mqttClient) {
-                    const err = await new Promise((r) =>
+                    const err = await new Promise((r) => {
                         ctx.mqttClient.publish(
                             "/mark_thread",
                             JSON.stringify({
@@ -81,8 +81,8 @@ module.exports = function (defaultFuncs, api, ctx) {
                             }),
                             { qos: 0, retain: false },
                             r
-                        )
-                    );
+                        );
+                    });
                     if (err) throw err;
                 } else {
                     throw {

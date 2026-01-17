@@ -53,6 +53,7 @@ describe("Messaging API Modules", () => {
         "theme",
         "stickers",
         "notes",
+        "uploadAttachment",
     ];
 
     it("should have messaging directory", () => {
@@ -219,7 +220,15 @@ describe("Users API Modules", () => {
 describe("Posting API Modules", () => {
     const postingDir = resolveApi("posting");
 
-    const postingModules = ["story", "comment", "follow", "friend", "share"];
+    const postingModules = [
+        "story",
+        "comment",
+        "follow",
+        "friend",
+        "share",
+        "createPost",
+        "setBio",
+    ];
 
     it("should have posting directory", () => {
         assert.ok(dirExists(postingDir));
@@ -340,11 +349,11 @@ describe("Extra API Modules", () => {
 
 describe("API Module Count Summary", () => {
     const expectedCounts = {
-        messaging: 24, // handleMessageRequest, muteThread, createPoll, createNewGroup, changeAdminStatus
+        messaging: 26, // handleMessageRequest, muteThread, createPoll, createNewGroup, changeAdminStatus, sendMessageDirect, uploadAttachment
         mqtt: 6,
-        threads: 3,
+        threads: 4,
         users: 1,
-        posting: 5,
+        posting: 7,
         http: 3,
         login: 3,
         extra: 2,

@@ -38,24 +38,24 @@ const PATTERNS = {
     NICKNAME_CLEAR_ALL: /NICKNAME_CLEAR_ALL/i,
     NICKNAME_CLEAR: /NICKNAME_CLEAR:\s*(\d+)/i,
     NICKNAME_CHANGE: /NICKNAME_CHANGE:\s*(\d+)\s*\|\s*(.+)/i,
-    
+
     // Media commands
     MUSIC_SUGGESTION: /MUSIC_SUGGESTION:\s*(.+?)\s*\|\s*(.+)/i,
     MUSIC_DOWNLOAD: /MUSIC_DOWNLOAD:\s*(.+)/i,
     VIDEO_DOWNLOAD: /VIDEO_DOWNLOAD:\s*(.+)/i,
-    
+
     // Utility commands
     WEATHER_CHECK: /WEATHER_CHECK:\s*(.+)/i,
     DATETIME_CHECK: /DATETIME_CHECK/i,
-    
+
     // Poll commands
     POLL_CREATE: /POLL_CREATE:\s*(.+)/i,
-    
+
     // Pairing commands
     PAIR_ME: /PAIR_ME/i,
     PAIR_WITH: /PAIR_WITH/i,
     PAIR_RANDOM: /PAIR_RANDOM/i,
-    
+
     // Detection helpers
     WANTS_LYRICS: /\b(lyrics?|letra|lirika)\b/i,
     MY_NAME: /my name|my nickname/i,
@@ -83,7 +83,9 @@ async function sendReply(api, threadID, messageID, text) {
  * Delay helper
  */
 function delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => {
+        setTimeout(resolve, ms);
+    });
 }
 
 /**
@@ -117,11 +119,11 @@ function formatLoveMatch(p1, p2, percent, message) {
 async function handleBulkNickname(api, threadID, messageID, bulkData, allMembers) {
     const changes = bulkData
         .split("||")
-        .map(pair => {
+        .map((pair) => {
             const [id, name] = pair.split("|");
             return { id: id?.trim(), name: name?.trim() };
         })
-        .filter(change => {
+        .filter((change) => {
             const isValid = isValidUserID(change.id);
             if (!isValid) {
                 console.log(chalk.red(`✗ Invalid ID: ${change.id}`));
@@ -138,19 +140,23 @@ async function handleBulkNickname(api, threadID, messageID, bulkData, allMembers
     logCommand("🎭", `Bulk nickname: ${changes.length} members`);
     react(api, messageID, REACTIONS.processing);
 
-    let success = 0, failed = 0;
+    let success = 0,
+        failed = 0;
 
     for (const change of changes) {
         const name = allMembers.get(change.id) || "Unknown";
         console.log(chalk.yellow(`${name} → "${change.name}"`));
-        
+
         const result = await changeNickname(api, threadID, change.id, change.name);
         result ? success++ : failed++;
         await delay(500);
     }
 
     console.log(chalk.green(`✓ Bulk: ${success} success, ${failed} failed`));
-    await sendReply(api, threadID, messageID, 
+    await sendReply(
+        api,
+        threadID,
+        messageID,
         `✨ Changed ${success} nickname${success !== 1 ? "s" : ""} successfully! 🎭\n\n💡 Tip: Try "beta change my name to [nickname]"`
     );
     react(api, messageID, REACTIONS.success);
@@ -164,7 +170,8 @@ async function handleClearAllNicknames(api, threadID, messageID, allMembers) {
     logCommand("🧹", "Clearing all nicknames");
     react(api, messageID, REACTIONS.processing);
 
-    let success = 0, failed = 0;
+    let success = 0,
+        failed = 0;
 
     for (const [userID, memberName] of allMembers.entries()) {
         console.log(chalk.yellow(`Clearing: ${memberName}`));
@@ -174,7 +181,10 @@ async function handleClearAllNicknames(api, threadID, messageID, allMembers) {
     }
 
     console.log(chalk.green(`✓ Cleared: ${success} success, ${failed} failed`));
-    await sendReply(api, threadID, messageID,
+    await sendReply(
+        api,
+        threadID,
+        messageID,
         `✨ Cleared ${success} nickname${success !== 1 ? "s" : ""}! 🧹`
     );
     react(api, messageID, REACTIONS.success);
@@ -195,7 +205,10 @@ async function handleClearNickname(api, threadID, messageID, targetID, text, sen
 
     const success = await changeNickname(api, threadID, targetID, "");
     react(api, messageID, success ? REACTIONS.success : REACTIONS.error);
-    await sendReply(api, threadID, messageID,
+    await sendReply(
+        api,
+        threadID,
+        messageID,
         success ? `✅ Nickname cleared for ${targetName}!` : "❌ Failed to clear nickname."
     );
     return true;
@@ -209,8 +222,11 @@ async function handleNicknameChange(api, threadID, messageID, targetID, newNickn
 
     const success = await changeNickname(api, threadID, targetID, newNickname);
     react(api, messageID, success ? REACTIONS.success : REACTIONS.error);
-    await sendReply(api, threadID, messageID,
-        success 
+    await sendReply(
+        api,
+        threadID,
+        messageID,
+        success
             ? `✅ Nickname changed to "${newNickname}"!`
             : "❌ Failed to change nickname. I might not have permission."
     );
@@ -226,7 +242,7 @@ async function handleNicknameChange(api, threadID, messageID, targetID, newNickn
  */
 async function handleMusicSuggestion(api, threadID, messageID, query, explanation, text) {
     logCommand("🎵", `Music suggestion: "${query}"`);
-    
+
     await sendReply(api, threadID, messageID, explanation);
     const wantsLyrics = PATTERNS.WANTS_LYRICS.test(text);
     await downloadMusic(api, threadID, messageID, query, null, wantsLyrics);
@@ -238,7 +254,7 @@ async function handleMusicSuggestion(api, threadID, messageID, query, explanatio
  */
 async function handleMusicDownload(api, threadID, messageID, query, text) {
     logCommand("🎵", `Music download: "${query}"`);
-    
+
     const wantsLyrics = PATTERNS.WANTS_LYRICS.test(text);
     await downloadMusic(api, threadID, messageID, query, null, wantsLyrics);
     return true;
@@ -249,7 +265,7 @@ async function handleMusicDownload(api, threadID, messageID, query, text) {
  */
 async function handleVideoDownload(api, threadID, messageID, query) {
     logCommand("🎬", `Video download: "${query}"`);
-    
+
     await downloadVideo(api, threadID, messageID, query, null);
     return true;
 }
@@ -263,7 +279,7 @@ async function handleVideoDownload(api, threadID, messageID, query) {
  */
 async function handleWeatherCheck(api, threadID, messageID, location) {
     logCommand("🌤️", `Weather: "${location}"`);
-    
+
     await getWeather(api, threadID, messageID, location);
     return true;
 }
@@ -279,7 +295,10 @@ async function handleDateTimeCheck(api, threadID, messageID) {
         timeStyle: "long",
     });
 
-    await sendReply(api, threadID, messageID,
+    await sendReply(
+        api,
+        threadID,
+        messageID,
         `📅 Current Date & Time\n\n🕐 ${manilaTime}\n📍 Timezone: ${config.bot.timeZone}`
     );
     react(api, messageID, REACTIONS.success);
@@ -291,11 +310,18 @@ async function handleDateTimeCheck(api, threadID, messageID) {
  */
 async function handlePollCreate(api, threadID, messageID, argsString) {
     // Parse: Question | Option1 | Option2...
-    const parts = argsString.split("|").map(s => s.trim()).filter(Boolean);
-    
+    const parts = argsString
+        .split("|")
+        .map((s) => s.trim())
+        .filter(Boolean);
+
     if (parts.length < 3) {
         react(api, messageID, REACTIONS.error);
-        return api.sendMessage("❌ Poll needs a question and at least 2 options.", threadID, messageID);
+        return api.sendMessage(
+            "❌ Poll needs a question and at least 2 options.",
+            threadID,
+            messageID
+        );
     }
 
     const question = parts[0];
@@ -327,7 +353,10 @@ async function handlePairMe(api, threadID, messageID, senderID, userName, allMem
         const p2 = pairs[0].person2;
 
         const { percent, message } = await analyzeLoveCompatibility(
-            p1.name, p1.gender, p2.name, p2.gender
+            p1.name,
+            p1.gender,
+            p2.name,
+            p2.gender
         );
 
         react(api, messageID, "💕");
@@ -351,7 +380,10 @@ async function handlePairWith(api, threadID, messageID, _event, senderID, allMem
 
     if (mentionedIDs.length === 0) {
         react(api, messageID, REACTIONS.error);
-        await sendReply(api, threadID, messageID,
+        await sendReply(
+            api,
+            threadID,
+            messageID,
             "❌ Please mention someone to pair with! Example: beta pair @person"
         );
         return true;
@@ -363,12 +395,19 @@ async function handlePairWith(api, threadID, messageID, _event, senderID, allMem
         // Two mentions: pair them together
         const id1 = mentionedIDs[0];
         const id2 = mentionedIDs[1];
-        person1 = { id: id1, name: allMembers.get(id1) || mentions[id1]?.replace(/@/g, "") || "User 1" };
-        person2 = { id: id2, name: allMembers.get(id2) || mentions[id2]?.replace(/@/g, "") || "User 2" };
+        person1 = {
+            id: id1,
+            name: allMembers.get(id1) || mentions[id1]?.replace(/@/g, "") || "User 1",
+        };
+        person2 = {
+            id: id2,
+            name: allMembers.get(id2) || mentions[id2]?.replace(/@/g, "") || "User 2",
+        };
     } else {
         // One mention: pair with random member
         const targetID = mentionedIDs[0];
-        const targetName = allMembers.get(targetID) || mentions[targetID]?.replace(/@/g, "") || "User";
+        const targetName =
+            allMembers.get(targetID) || mentions[targetID]?.replace(/@/g, "") || "User";
 
         const pool = Array.from(allMembers.entries())
             .filter(([id]) => id !== targetID && id !== senderID)
@@ -388,21 +427,36 @@ async function handlePairWith(api, threadID, messageID, _event, senderID, allMem
     // Get AI-powered gender analysis
     const { males, females } = await analyzeGenders([person1, person2]);
 
-    const gender1 = males.some(m => m.id === person1.id) ? "♂️" 
-        : females.some(m => m.id === person1.id) ? "♀️" : "❓";
-    const gender2 = males.some(m => m.id === person2.id) ? "♂️"
-        : females.some(m => m.id === person2.id) ? "♀️" : "❓";
+    const gender1 = males.some((m) => m.id === person1.id)
+        ? "♂️"
+        : females.some((m) => m.id === person1.id)
+          ? "♀️"
+          : "❓";
+    const gender2 = males.some((m) => m.id === person2.id)
+        ? "♂️"
+        : females.some((m) => m.id === person2.id)
+          ? "♀️"
+          : "❓";
 
     const { percent, message } = await analyzeLoveCompatibility(
-        person1.name, gender1, person2.name, gender2
+        person1.name,
+        gender1,
+        person2.name,
+        gender2
     );
 
     react(api, messageID, "💕");
-    await sendReply(api, threadID, messageID, formatLoveMatch(
-        { ...person1, gender: gender1 },
-        { ...person2, gender: gender2 },
-        percent, message
-    ));
+    await sendReply(
+        api,
+        threadID,
+        messageID,
+        formatLoveMatch(
+            { ...person1, gender: gender1 },
+            { ...person2, gender: gender2 },
+            percent,
+            message
+        )
+    );
     return true;
 }
 
@@ -463,12 +517,26 @@ async function handleCommands({
 
     const clearMatch = responseText.match(PATTERNS.NICKNAME_CLEAR);
     if (clearMatch) {
-        return handleClearNickname(api, threadID, messageID, clearMatch[1].trim(), text, senderID, allMembers);
+        return handleClearNickname(
+            api,
+            threadID,
+            messageID,
+            clearMatch[1].trim(),
+            text,
+            senderID,
+            allMembers
+        );
     }
 
     const nicknameMatch = responseText.match(PATTERNS.NICKNAME_CHANGE);
     if (nicknameMatch) {
-        return handleNicknameChange(api, threadID, messageID, nicknameMatch[1].trim(), nicknameMatch[2].trim());
+        return handleNicknameChange(
+            api,
+            threadID,
+            messageID,
+            nicknameMatch[1].trim(),
+            nicknameMatch[2].trim()
+        );
     }
 
     // ─────────────────────────────────────────────────────────────────
@@ -477,7 +545,14 @@ async function handleCommands({
 
     const musicSuggestionMatch = responseText.match(PATTERNS.MUSIC_SUGGESTION);
     if (musicSuggestionMatch) {
-        return handleMusicSuggestion(api, threadID, messageID, musicSuggestionMatch[1].trim(), musicSuggestionMatch[2].trim(), text);
+        return handleMusicSuggestion(
+            api,
+            threadID,
+            messageID,
+            musicSuggestionMatch[1].trim(),
+            musicSuggestionMatch[2].trim(),
+            text
+        );
     }
 
     const musicMatch = responseText.match(PATTERNS.MUSIC_DOWNLOAD);

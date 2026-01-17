@@ -56,7 +56,9 @@ function formatThreadGraphQLResponse(data) {
     return {
         threadID: threadID,
         threadName: messageThread.name,
-        participantIDs: (messageThread.all_participants?.edges || []).map((d) => d.node.messaging_actor.id),
+        participantIDs: (messageThread.all_participants?.edges || []).map(
+            (d) => d.node.messaging_actor.id
+        ),
         userInfo: (messageThread.all_participants?.edges || []).map((d) => ({
             id: d.node.messaging_actor.id,
             name: d.node.messaging_actor.name,
@@ -74,7 +76,7 @@ function formatThreadGraphQLResponse(data) {
         messageCount: messageThread.messages_count,
         timestamp: messageThread.updated_time_precise,
         muteUntil: messageThread.mute_until,
-        isGroup: messageThread.thread_type == "GROUP",
+        isGroup: messageThread.thread_type === "GROUP",
         isSubscribed: messageThread.is_viewer_subscribed,
         isArchived: messageThread.has_viewer_archived,
         folder: messageThread.folder,
@@ -119,19 +121,19 @@ function formatThreadGraphQLResponse(data) {
         serverTimestamp: messageThread.updated_time_precise,
         imageSrc: messageThread.image ? messageThread.image.uri : null,
         isCanonicalUser: messageThread.is_canonical_neo_user,
-        isCanonical: messageThread.thread_type != "GROUP",
+        isCanonical: messageThread.thread_type !== "GROUP",
         recipientsLoadable: true,
         hasEmailParticipant: false,
         readOnly: false,
-        canReply: messageThread.cannot_reply_reason == null,
+        canReply: messageThread.cannot_reply_reason === null,
         lastMessageTimestamp: messageThread.last_message
             ? messageThread.last_message.timestamp_precise
             : null,
         lastMessageType: "message",
         lastReadTimestamp: lastReadTimestamp,
-        threadType: messageThread.thread_type == "GROUP" ? 2 : 1,
+        threadType: messageThread.thread_type === "GROUP" ? 2 : 1,
         inviteLink: {
-            enable: messageThread.joinable_mode ? messageThread.joinable_mode.mode == 1 : false,
+            enable: messageThread.joinable_mode ? messageThread.joinable_mode.mode === 1 : false,
             link: messageThread.joinable_mode ? messageThread.joinable_mode.link : null,
         },
     };

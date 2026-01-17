@@ -77,17 +77,17 @@ module.exports = {
      * Command execution function
      */
     async execute({ api, event, args, config, logger }) {
-    const threadID = event.threadID;
-    const messageID = event.messageID ? String(event.messageID) : null;
+        const threadID = event.threadID;
+        const messageID = event.messageID ? String(event.messageID) : null;
 
-    if (args.length === 0) {
-        const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
-        const commandName = this.config.name;
-        const platform = os.platform();
-        const shell = platform === "win32" ? "cmd.exe" : "/bin/bash";
+        if (args.length === 0) {
+            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : "";
+            const commandName = this.config.name;
+            const platform = os.platform();
+            const shell = platform === "win32" ? "cmd.exe" : "/bin/bash";
 
-        return api.sendMessage(
-            `🖥️ SHELL COMMAND\n\n` +
+            return api.sendMessage(
+                `🖥️ SHELL COMMAND\n\n` +
                 `Usage: ${actualPrefix}${commandName} <command>\n\n` +
                 `📋 System Info:\n` +
                 `   Platform: ${platform}\n` +
@@ -100,52 +100,64 @@ module.exports = {
                 `   ${actualPrefix}${commandName} echo Hello\n` +
                 `   ${actualPrefix}${commandName} node -v\n` +
                 `   ${actualPrefix}${commandName} npm list --depth=0`,
-            threadID,
-            messageID
-        );
-    }
+                threadID,
+                messageID
+            );
+        }
 
-    const command = args.join(" ");
+        // Parse command from body to preserve whitespace
+        let command = "";
+        const fullBody = event.body || "";
 
-    // Log the command execution
-    logger.warn("Shell", `Executing: ${command} (by ${event.senderID})`);
+        // Remove the command prefix and name
+        const prefix = config.bot.prefixEnabled ? (Array.isArray(config.bot.prefix) ? config.bot.prefix[0] : config.bot.prefix) : "";
+        const commandMatch = fullBody.match(new RegExp(`^[${prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}]?\\s*${this.config.name}\\s+`, 'i'));
 
-    // Send "executing" message
-    // await api.sendMessage(`⏳ Executing: ${command}`, threadID);
+        if (commandMatch) {
+            command = fullBody.substring(commandMatch[0].length);
+        } else {
+            command = args.join(" ");
+        }
 
-    // Execute the command
-    const result = await executeCommand(command);
+        // Log the command execution
+        logger.warn("Shell", `Executing: ${command} (by ${event.senderID})`);
 
-    // Build response
-    let response = `🖥️ SHELL OUTPUT\n\n`;
-    response += `📝 Command: ${command}\n`;
-    response += `⏱️ Time: ${result.executionTime}ms\n`;
-    response += `📊 Exit Code: ${result.exitCode}\n`;
+        // Send "executing" message
+        // await api.sendMessage(`⏳ Executing: ${command}`, threadID);
 
-    if (result.killed) {
-        response += `⚠️ Process was killed (timeout)\n`;
-    }
+        // Execute the command
+        const result = await executeCommand(command);
 
-    if (result.stdout) {
-        response += `\n📤 Output:\n${truncate(result.stdout)}`;
-    }
+        // Build response
+        let response = `🖥️ SHELL OUTPUT\n\n`;
+        response += `📝 Command: ${command}\n`;
+        response += `⏱️ Time: ${result.executionTime}ms\n`;
+        response += `📊 Exit Code: ${result.exitCode}\n`;
 
-    if (result.stderr) {
-        response += `\n\n❌ Errors:\n${truncate(result.stderr)}`;
-    }
+        if (result.killed) {
+            response += `⚠️ Process was killed (timeout)\n`;
+        }
 
-    if (!result.stdout && !result.stderr) {
-        response += `\n📭 No output`;
-    }
+        if (result.stdout) {
+            response += `\n📤 Output:\n${truncate(result.stdout)}`;
+        }
 
-    await api.sendMessage(response, threadID, messageID);
+        if (result.stderr) {
+            response += `\n\n❌ Errors:\n${truncate(result.stderr)}`;
+        }
 
-    // Log result
-    if (result.exitCode === 0) {
-        logger.success("Shell", `Command completed in ${result.executionTime}ms`);
-    } else {
-        logger.error("Shell", `Command failed with exit code ${result.exitCode}`);
-    }
+        if (!result.stdout && !result.stderr) {
+            response += `\n📭 No output`;
+        }
+
+        await api.sendMessage(response, threadID, messageID);
+
+        // Log result
+        if (result.exitCode === 0) {
+            logger.success("Shell", `Command completed in ${result.executionTime}ms`);
+        } else {
+            logger.error("Shell", `Command failed with exit code ${result.exitCode}`);
+        }
     },
 
     onLoad() {

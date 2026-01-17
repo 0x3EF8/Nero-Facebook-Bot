@@ -171,7 +171,7 @@ function clamp(value, min, max) {
 /**
  * Linear interpolation
  */
-function lerp(a, b, t) {
+function _lerp(a, b, t) {
     // Guard parameters
     if (!isFinite(a) || isNaN(a)) a = 0;
     if (!isFinite(b) || isNaN(b)) b = 0;
@@ -183,7 +183,7 @@ function lerp(a, b, t) {
 /**
  * Smooth step interpolation (eased)
  */
-function smoothStep(a, b, t) {
+function _smoothStep(a, b, t) {
     t = clamp((t - a) / (b - a), 0, 1);
     return t * t * (3 - 2 * t);
 }
@@ -853,7 +853,7 @@ function initializeBehaviorState() {
  * Initialize the fingerprint anti-detection system
  */
 function initializeFingerprintState() {
-    const config = BEHAVIOR_CONFIG.fingerprint;
+    const _config = BEHAVIOR_CONFIG.fingerprint;
 
     // Generate unique behavioral DNA for this session
     fingerprintState.behavioralDNA = generateBehavioralDNA();
@@ -1114,7 +1114,7 @@ function getTemporalOffset() {
 /**
  * Gets behavioral DNA modifier for current action
  */
-function getBehavioralDNAModifier(actionType = "typing") {
+function getBehavioralDNAModifier(_actionType = "typing") {
     const dna = fingerprintState.behavioralDNA;
 
     if (!dna || !dna.typingRhythm) return 1.0;
@@ -1405,21 +1405,24 @@ function applyAntiDetection(baseDelay, actionType = "generic") {
     if (anomaly.detected) {
         // Apply corrective measures
         switch (anomaly.type) {
-            case "regular_intervals":
+            case "regular_intervals": {
                 // Add significant random variation
                 const variation = gaussianRandom(1.0, 0.4);
                 if (!isNaN(variation)) delay *= variation;
                 break;
-            case "burst_pattern":
+            }
+            case "burst_pattern": {
                 // Add longer pause
                 const burst = exponentialRandom(1000);
                 if (!isNaN(burst)) delay += burst;
                 break;
-            case "repeated_delays":
+            }
+            case "repeated_delays": {
                 // Offset delay slightly
                 const offset = gaussianRandom(0, 200);
                 if (!isNaN(offset)) delay += offset;
                 break;
+            }
         }
     }
 
@@ -1474,7 +1477,7 @@ function applyAntiDetection(baseDelay, actionType = "generic") {
  * Generates browser-like fingerprint data for session
  */
 function generateSessionFingerprint() {
-    const config = BEHAVIOR_CONFIG.fingerprint;
+    const _config = BEHAVIOR_CONFIG.fingerprint;
     const dna = fingerprintState.behavioralDNA;
 
     return {
@@ -1496,7 +1499,7 @@ function generateSessionFingerprint() {
  * Gets platform fingerprint based on device profile
  */
 function getPlatformFingerprint() {
-    const device = DEVICE_PROFILES[behaviorState.device];
+    const _device = DEVICE_PROFILES[behaviorState.device];
 
     const platforms = {
         mobile: ["iPhone", "Android", "iPad"],
@@ -1797,10 +1800,13 @@ function getRateLimitMultiplier() {
  * Calculates realistic typing time for a message
  * Uses character-by-character simulation
  */
-function calculateTypingTime(message, options = {}) {
+async function calculateTypingTime(message, _options = {}) {
     if (!message || typeof message !== "string" || message.length === 0) {
         return 0;
     }
+    const _config = BEHAVIOR_CONFIG.cognitive;
+    const _state = fingerprintState;
+    const _device = DEVICE_PROFILES[behaviorState.device || "desktop"];
 
     const config = BEHAVIOR_CONFIG.typing;
     const deviceProfile = DEVICE_PROFILES[behaviorState.device || "desktop"];
@@ -2134,7 +2140,9 @@ function shouldGetDistracted() {
 function delay(ms) {
     // Guard against NaN, undefined, or negative values
     const safeMs = typeof ms === "number" && !isNaN(ms) && ms > 0 ? Math.round(ms) : 1;
-    return new Promise((resolve) => setTimeout(resolve, safeMs));
+    return new Promise((resolve) => {
+        setTimeout(resolve, safeMs);
+    });
 }
 
 /**
@@ -2203,7 +2211,7 @@ async function beforeSendMessage(ctx, api, threadID, messageBody) {
     // PHASE 4: Apply Circadian Rhythm (time of day affects speed)
     // ═══════════════════════════════════════════════════════════════════════
     const circadianMult = getCircadianMultiplier();
-    const originalTypingTime = typingTime;
+    const _originalTypingTime = typingTime;
     typingTime = Math.round(typingTime * circadianMult);
 
     let tiredPause = 0;

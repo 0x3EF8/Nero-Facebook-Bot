@@ -7,10 +7,10 @@ const HttpsProxyAgent = require("https-proxy-agent");
 
 function formatNotification(data) {
     if (!data.data || !data.data.viewer) return null;
-    
+
     const edges = data.data.viewer.notifications_page?.edges;
     if (!edges || !Array.isArray(edges) || edges.length === 0) return null;
-    
+
     // Find the first valid notification edge
     for (const edge of edges) {
         const notifEdge = edge?.node?.notif;
@@ -26,7 +26,7 @@ function formatNotification(data) {
             };
         }
     }
-    
+
     return null;
 }
 

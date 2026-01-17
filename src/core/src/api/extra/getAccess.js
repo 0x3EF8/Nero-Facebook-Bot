@@ -114,7 +114,7 @@ module.exports = function (defaultFuncs, api, ctx) {
                         return rtPromise;
                     }
 
-                    if (authCode.length == 6 && !isNaN(authCode)) {
+                    if (authCode.length === 6 && !isNaN(authCode)) {
                         submitCode(authCode.toString());
                     } else if (typeof callback === "function") {
                         throw {

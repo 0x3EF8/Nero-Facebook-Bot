@@ -69,8 +69,9 @@ module.exports = function (defaultFuncs, api, ctx) {
         }
 
         if (!ctx.mqttClient) throw new Error("MQTT not connected.");
-        if (!threadID || !messageID)
+        if (!threadID || !messageID) {
             throw new Error(`"${action}" requires threadID and messageID.`);
+        }
 
         const epoch_id = parseInt(utils.generateOfflineThreadingID());
         const version_id = "9523201934447612";

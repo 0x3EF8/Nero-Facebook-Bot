@@ -74,8 +74,7 @@ module.exports = {
         const prefixInfo = config.bot.prefixEnabled ? `\nPrefix: ${config.bot.prefix}` : "";
 
         // Build the info message - Pure text only
-        const infoMessage = 
-`NERO SYSTEM INFORMATION
+        const infoMessage = `NERO SYSTEM INFORMATION
 
 GENERAL INFORMATION
 Name: ${config.bot.name}

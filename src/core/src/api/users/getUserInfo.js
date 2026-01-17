@@ -20,7 +20,7 @@ function findMainUserObject(data, userID) {
             return;
         }
         for (const k in obj) {
-            if (obj.hasOwnProperty(k)) {
+            if (Object.prototype.hasOwnProperty.call(obj, k)) {
                 deepFind(obj[k]);
             }
         }
@@ -56,12 +56,12 @@ function findFirstValueByKey(dataArray, key) {
     let found = null;
     function deepSearch(obj) {
         if (found !== null || typeof obj !== "object" || obj === null) return;
-        if (obj.hasOwnProperty(key)) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
             found = obj[key];
             return;
         }
         for (const k in obj) {
-            if (obj.hasOwnProperty(k)) {
+            if (Object.prototype.hasOwnProperty.call(obj, k)) {
                 deepSearch(obj[k]);
             }
         }
@@ -105,7 +105,7 @@ function findLiveCityFromProfileTiles(allJsonData) {
         }
 
         return null;
-    } catch (err) {
+    } catch (_err) {
         return null;
     }
 }
@@ -127,7 +127,7 @@ module.exports = (defaultFuncs, api, ctx) => {
         };
     }
 
-    return function getUserInfo(id, usePayload, callback, groupFields = []) {
+    return function getUserInfo(id, usePayload, callback, _groupFields = []) {
         let resolveFunc = () => {};
         let rejectFunc = () => {};
         const returnPromise = new Promise((resolve, reject) => {
@@ -141,8 +141,8 @@ module.exports = (defaultFuncs, api, ctx) => {
         }
         if (usePayload === undefined) usePayload = true;
         if (!callback) {
-            callback = (err, data) => {
-                if (err) return rejectFunc(err);
+            callback = (_err, data) => {
+                if (_err) return rejectFunc(_err);
                 resolveFunc(data);
             };
         }
@@ -166,7 +166,7 @@ module.exports = (defaultFuncs, api, ctx) => {
                     const profiles = resData?.payload?.profiles;
                     if (profiles) {
                         for (const prop in profiles) {
-                            if (profiles.hasOwnProperty(prop)) {
+                            if (Object.prototype.hasOwnProperty.call(profiles, prop)) {
                                 const inner = profiles[prop];
                                 const nameParts = inner.name ? inner.name.split(" ") : [];
                                 retObj[prop] = {
@@ -213,11 +213,13 @@ module.exports = (defaultFuncs, api, ctx) => {
                         ctx.globalOptions,
                         ctx
                     );
-                    if (!allJsonData || allJsonData.length === 0)
+                    if (!allJsonData || allJsonData.length === 0) {
                         throw new Error(`Could not find JSON data for ID: ${userID}`);
+                    }
                     const mainUserObject = findMainUserObject(allJsonData, userID);
-                    if (!mainUserObject)
+                    if (!mainUserObject) {
                         throw new Error(`Could not isolate main user object for ID: ${userID}`);
+                    }
                     const get = (obj, path) => {
                         if (!obj || !path) return null;
                         return path

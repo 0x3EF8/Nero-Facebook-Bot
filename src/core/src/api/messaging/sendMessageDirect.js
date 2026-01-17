@@ -28,51 +28,10 @@ const allowedProperties = {
     location: true,
 };
 
+const uploadAttachmentFactory = require("./uploadAttachment");
+
 module.exports = (defaultFuncs, api, ctx) => {
-    /**
-     * Upload attachments to Facebook
-     * @param {Array} attachments - Array of readable streams
-     * @returns {Promise<Array>} Upload metadata
-     */
-    async function uploadAttachment(attachments) {
-        const uploads = [];
-        for (let i = 0; i < attachments.length; i++) {
-            try {
-                const attachment = attachments[i];
-
-                if (!utils.isReadableStream(attachment)) {
-                    throw new Error(
-                        "Attachment should be a readable stream and not " +
-                            utils.getType(attachment) +
-                            "."
-                    );
-                }
-
-                const response = await defaultFuncs
-                    .postFormData(
-                        "https://upload.facebook.com/ajax/mercury/upload.php",
-                        ctx.jar,
-                        {
-                            upload_1024: attachment,
-                            voice_clip: "true",
-                        },
-                        {}
-                    )
-                    .then(utils.parseAndCheckLogin(ctx, defaultFuncs));
-
-                if (response.error) {
-                    throw new Error(JSON.stringify(response));
-                }
-
-                if (response.payload && response.payload.metadata && response.payload.metadata[0]) {
-                    uploads.push(response.payload.metadata[0]);
-                }
-            } catch (err) {
-                utils.warn("sendMessageDirect", `Upload error: ${err.message}`);
-            }
-        }
-        return uploads;
-    }
+    const uploadAttachment = uploadAttachmentFactory(defaultFuncs, api, ctx);
 
     /**
      * Send content to Facebook
@@ -131,9 +90,12 @@ module.exports = (defaultFuncs, api, ctx) => {
         }
 
         const messageInfo = resData.payload.actions.reduce((p, v) => {
-            return p || (v.thread_fbid && v.message_id && v.timestamp
-                ? { threadID: v.thread_fbid, messageID: v.message_id, timestamp: v.timestamp }
-                : null);
+            return (
+                p ||
+                (v.thread_fbid && v.message_id && v.timestamp
+                    ? { threadID: v.thread_fbid, messageID: v.message_id, timestamp: v.timestamp }
+                    : null)
+            );
         }, null);
 
         return messageInfo;
@@ -249,7 +211,12 @@ module.exports = (defaultFuncs, api, ctx) => {
 
         // Handle location
         if (msg.location) {
-            if (msg.location.latitude == null || msg.location.longitude == null) {
+            if (
+                msg.location.latitude === null ||
+                msg.location.latitude === undefined ||
+                msg.location.longitude === null ||
+                msg.location.longitude === undefined
+            ) {
                 throw new Error("location property needs both latitude and longitude");
             }
             form["location_attachment[coordinates][latitude]"] = msg.location.latitude;

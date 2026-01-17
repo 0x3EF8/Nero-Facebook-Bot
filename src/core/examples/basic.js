@@ -20,7 +20,7 @@ const fs = require("fs");
 let appState;
 try {
     appState = JSON.parse(fs.readFileSync("appstate.json", "utf8"));
-} catch (err) {
+} catch (_err) {
     console.error("❌ Could not load appstate.json");
     console.log("📝 Please create an appstate.json file with your Facebook session cookies");
     process.exit(1);
@@ -279,8 +279,8 @@ nero({ appState }, (err, api) => {
                     console.log(
                         `   └─ Total Response Time: ${totalTime}ms (${(totalTime / 1000).toFixed(2)}s)`
                     );
-                } catch (err) {
-                    console.error("Send error:", err);
+                } catch (_err) {
+                    console.error("Send error:", _err);
                 }
             };
 

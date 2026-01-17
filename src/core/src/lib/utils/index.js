@@ -52,7 +52,7 @@ async function json(url, jar, qs, options, ctx, customHeader) {
                 if (jsonContent) {
                     allJsonData.push(JSON.parse(jsonContent));
                 }
-            } catch (e) {
+            } catch (_e) {
                 constants.warn(`Could not parse JSON from script #${index + 1} on ${url}`);
             }
         });
@@ -164,5 +164,8 @@ module.exports = {
     json,
     makeDefaults,
     promisify: (func) => util.promisify(func),
-    delay: (ms) => new Promise((r) => setTimeout(r, ms)),
+    delay: (ms) =>
+        new Promise((r) => {
+            setTimeout(r, ms);
+        }),
 };

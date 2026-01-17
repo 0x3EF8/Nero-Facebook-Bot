@@ -321,9 +321,12 @@ class StatsTracker {
                 total: this.stats.background.total,
                 successful: this.stats.background.successful,
                 failed: this.stats.background.failed,
-                avgTime: this.stats.background.successful > 0 
-                    ? Math.round(this.stats.background.totalTime / this.stats.background.successful) 
-                    : 0,
+                avgTime:
+                    this.stats.background.successful > 0
+                        ? Math.round(
+                              this.stats.background.totalTime / this.stats.background.successful
+                          )
+                        : 0,
             },
             topCommands: this.getTopCommands(5),
             activeUsers: this.userActivity.size,

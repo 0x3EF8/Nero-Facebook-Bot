@@ -22,30 +22,30 @@ async function getPendingRequests(api) {
     try {
         // Try to get threads from PENDING folder (message requests)
         let pendingThreads = await api.getThreadList(20, null, ["PENDING"]);
-        
+
         // Filter out threads where bot has left
         if (pendingThreads) {
-            pendingThreads = pendingThreads.filter(t => {
+            pendingThreads = pendingThreads.filter((t) => {
                 if (t.isSubscribed === false) return false;
                 if (t.snippet && t.snippet.includes("You left the group")) return false;
                 return true;
             });
         }
-        
+
         return pendingThreads || [];
     } catch {
         // If PENDING doesn't work, try OTHER folder
         try {
             let otherThreads = await api.getThreadList(20, null, ["OTHER"]);
-            
+
             if (otherThreads) {
-                otherThreads = otherThreads.filter(t => {
+                otherThreads = otherThreads.filter((t) => {
                     if (t.isSubscribed === false) return false;
                     if (t.snippet && t.snippet.includes("You left the group")) return false;
                     return true;
                 });
             }
-            
+
             return otherThreads || [];
         } catch {
             return [];
@@ -103,11 +103,11 @@ function formatThreadInfo(thread, index) {
 
     let info = `${index}. **${name}** (${typeLabel})\n`;
     info += `   ID: ${id}`;
-    
+
     if (isGroup) {
         info += ` | ${participants} members`;
     }
-    
+
     info += ` | "${snippet}"`;
 
     return info;
@@ -132,216 +132,218 @@ module.exports = {
      * @param {Object} context - Command context
      */
     async execute({ api, event, args, config }) {
-    const threadID = event.threadID;
-    const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
-    const commandName = this.config.name;
+        const threadID = event.threadID;
+        const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : "";
+        const commandName = this.config.name;
 
-    // If no arguments, show list of pending message requests
-    if (!args[0]) {
-        try {
-            const pendingRequests = await getPendingRequests(api);
+        // If no arguments, show list of pending message requests
+        if (!args[0]) {
+            try {
+                const pendingRequests = await getPendingRequests(api);
 
-            if (pendingRequests.length === 0) {
+                if (pendingRequests.length === 0) {
+                    return api.sendMessage(
+                        `📭 No pending message requests!\n\n` +
+                            `All caught up! There are no message requests waiting for approval.`,
+                        threadID
+                    );
+                }
+
+                let response = `📬 **Pending Message Requests** (${pendingRequests.length})\n\n`;
+
+                pendingRequests.forEach((thread, index) => {
+                    response += formatThreadInfo(thread, index + 1) + "\n\n";
+                });
+
+                response += `📖 **Usage:** ${actualPrefix}${commandName} <accept/decline/list> <number/all>`;
+
+                return api.sendMessage(response, threadID);
+            } catch (error) {
                 return api.sendMessage(
-                    `📭 No pending message requests!\n\n` +
-                        `All caught up! There are no message requests waiting for approval.`,
+                    `❌ Failed to fetch message requests!\n\n` + `Error: ${error.message || error}`,
+                    threadID
+                );
+            }
+        }
+
+        const action = args[0].toLowerCase();
+
+        // Handle "list" action explicitly
+        if (action === "list" || action === "l") {
+            try {
+                const pendingRequests = await getPendingRequests(api);
+
+                if (pendingRequests.length === 0) {
+                    return api.sendMessage(`📭 No pending message requests!`, threadID);
+                }
+
+                let response = `📬 **Pending Message Requests** (${pendingRequests.length})\n\n`;
+
+                pendingRequests.forEach((thread, index) => {
+                    response += formatThreadInfo(thread, index + 1) + "\n\n";
+                });
+
+                return api.sendMessage(response, threadID);
+            } catch (error) {
+                return api.sendMessage(
+                    `❌ Failed to fetch message requests!\n\n` + `Error: ${error.message || error}`,
+                    threadID
+                );
+            }
+        }
+
+        // Validate action
+        if (!["accept", "decline", "a", "d", "list", "l"].includes(action)) {
+            return api.sendMessage(
+                `❌ Invalid action: "${action}"\n\n` +
+                    `Valid actions:\n` +
+                    `• (no args) - Show pending requests\n` +
+                    `• ${actualPrefix}${commandName} list (or l) - Show pending requests\n` +
+                    `• ${actualPrefix}${commandName} accept (or a) - Accept message request\n` +
+                    `• ${actualPrefix}${commandName} decline (or d) - Decline message request`,
+                threadID
+            );
+        }
+
+        // Get the numbers/arguments after the action
+        const targetArgs = args.slice(1);
+
+        // Fetch pending requests first (we need them to map numbers to IDs)
+        let pendingRequests;
+        try {
+            pendingRequests = await getPendingRequests(api);
+        } catch (error) {
+            return api.sendMessage(
+                `❌ Failed to fetch pending requests!\n\n` + `Error: ${error.message || error}`,
+                threadID
+            );
+        }
+
+        if (pendingRequests.length === 0) {
+            return api.sendMessage(`📭 No pending message requests to ${action}!`, threadID);
+        }
+
+        let targetThreadIDs = [];
+        let selectedNames = [];
+
+        // Handle "accept all" or "decline all"
+        if (targetArgs.length === 1 && targetArgs[0].toLowerCase() === "all") {
+            targetThreadIDs = pendingRequests.map((t) => t.threadID);
+            selectedNames = pendingRequests.map((t) => getThreadDisplayName(t));
+        } else if (targetArgs.length === 0) {
+            return api.sendMessage(
+                `❌ Please provide at least one number!\n\n` +
+                    `Usage:
+` +
+                    `• ${actualPrefix}${commandName} ${action} 1 - Single
+` +
+                    `• ${actualPrefix}${commandName} ${action} 1,2,3 - Multiple
+` +
+                    `• ${actualPrefix}${commandName} ${action} 1 2 3 - Multiple
+` +
+                    `• ${actualPrefix}${commandName} ${action} all - All requests`,
+                threadID
+            );
+        } else {
+            // Parse numbers - support both "1,2,3" and "1 2 3" formats
+            const numbers = targetArgs
+                .join(",")
+                .split(",")
+                .map((n) => n.trim())
+                .filter((n) => n.length > 0)
+                .map((n) => parseInt(n, 10))
+                .filter((n) => !isNaN(n));
+
+            if (numbers.length === 0) {
+                return api.sendMessage(
+                    `❌ Invalid numbers provided!\n\n` +
+                        `Use list numbers like: msgreq ${action} 1,2,3`,
                     threadID
                 );
             }
 
-            let response = `📬 **Pending Message Requests** (${pendingRequests.length})\n\n`;
-
-            pendingRequests.forEach((thread, index) => {
-                response += formatThreadInfo(thread, index + 1) + "\n\n";
-            });
-
-            response += `📖 **Usage:** ${actualPrefix}${commandName} <accept/decline/list> <number/all>`;
-
-            return api.sendMessage(response, threadID);
-        } catch (error) {
-            return api.sendMessage(
-                `❌ Failed to fetch message requests!\n\n` + `Error: ${error.message || error}`,
-                threadID
-            );
-        }
-    }
-
-    const action = args[0].toLowerCase();
-
-    // Handle "list" action explicitly
-    if (action === "list" || action === "l") {
-        try {
-            const pendingRequests = await getPendingRequests(api);
-
-            if (pendingRequests.length === 0) {
-                return api.sendMessage(`📭 No pending message requests!`, threadID);
+            // Validate numbers are in range
+            const invalidNumbers = numbers.filter((n) => n < 1 || n > pendingRequests.length);
+            if (invalidNumbers.length > 0) {
+                return api.sendMessage(
+                    `❌ Invalid number(s): ${invalidNumbers.join(", ")}\n\n` +
+                        `Valid range: 1 to ${pendingRequests.length}\n` +
+                        `Use "${actualPrefix}${commandName}" to see the list.`,
+                    threadID
+                );
             }
 
-            let response = `📬 **Pending Message Requests** (${pendingRequests.length})\n\n`;
-
-            pendingRequests.forEach((thread, index) => {
-                response += formatThreadInfo(thread, index + 1) + "\n\n";
-            });
-
-            return api.sendMessage(response, threadID);
-        } catch (error) {
-            return api.sendMessage(
-                `❌ Failed to fetch message requests!\n\n` + `Error: ${error.message || error}`,
-                threadID
-            );
+            // Map numbers to thread IDs (1-indexed to 0-indexed)
+            const uniqueNumbers = [...new Set(numbers)]; // Remove duplicates
+            for (const num of uniqueNumbers) {
+                const thread = pendingRequests[num - 1];
+                targetThreadIDs.push(thread.threadID);
+                selectedNames.push(getThreadDisplayName(thread));
+            }
         }
-    }
 
-    // Validate action
-    if (!["accept", "decline", "a", "d", "list", "l"].includes(action)) {
-        return api.sendMessage(
-            `❌ Invalid action: "${action}"\n\n` +
-                            `Valid actions:\n` +
-                            `• (no args) - Show pending requests\n` +
-                            `• ${actualPrefix}${commandName} list (or l) - Show pending requests\n` +
-                            `• ${actualPrefix}${commandName} accept (or a) - Accept message request\n` +
-                            `• ${actualPrefix}${commandName} decline (or d) - Decline message request`,            threadID
-        );
-    }
+        // Determine if accepting or declining
+        const isAccept = ["accept", "a"].includes(action);
+        const actionText = isAccept ? "Accepting" : "Declining";
+        const actionPast = isAccept ? "accepted" : "declined";
+        const emoji = isAccept ? "✅" : "🚫";
 
-    // Get the numbers/arguments after the action
-    const targetArgs = args.slice(1);
-
-    // Fetch pending requests first (we need them to map numbers to IDs)
-    let pendingRequests;
-    try {
-        pendingRequests = await getPendingRequests(api);
-    } catch (error) {
-        return api.sendMessage(
-            `❌ Failed to fetch pending requests!\n\n` + `Error: ${error.message || error}`,
+        // Send processing message
+        await api.sendMessage(
+            `⏳ ${actionText} ${targetThreadIDs.length} message request(s)...`,
             threadID
         );
-    }
 
-    if (pendingRequests.length === 0) {
-        return api.sendMessage(`📭 No pending message requests to ${action}!`, threadID);
-    }
+        try {
+            // Check if handleMessageRequest exists
+            if (!api.handleMessageRequest) {
+                return api.sendMessage(
+                    `❌ Message request handling is not available in this API version.`,
+                    threadID
+                );
+            }
 
-    let targetThreadIDs = [];
-    let selectedNames = [];
+            // Handle the message requests
+            await api.handleMessageRequest(targetThreadIDs, isAccept);
 
-    // Handle "accept all" or "decline all"
-    if (targetArgs.length === 1 && targetArgs[0].toLowerCase() === "all") {
-        targetThreadIDs = pendingRequests.map((t) => t.threadID);
-        selectedNames = pendingRequests.map((t) => getThreadDisplayName(t));
-    } else if (targetArgs.length === 0) {
-        return api.sendMessage(
-            `❌ Please provide at least one number!\n\n` +
-                `Usage:
-` +
-                `• ${actualPrefix}${commandName} ${action} 1 - Single
-` +
-                `• ${actualPrefix}${commandName} ${action} 1,2,3 - Multiple
-` +
-                `• ${actualPrefix}${commandName} ${action} 1 2 3 - Multiple
-` +
-                `• ${actualPrefix}${commandName} ${action} all - All requests`,
-            threadID
-        );
-    } else {
-        // Parse numbers - support both "1,2,3" and "1 2 3" formats
-        const numbers = targetArgs
-            .join(",")
-            .split(",")
-            .map((n) => n.trim())
-            .filter((n) => n.length > 0)
-            .map((n) => parseInt(n, 10))
-            .filter((n) => !isNaN(n));
+            // Send welcome message to accepted threads
+            if (isAccept) {
+                const welcomeMessage =
+                    `👋 Hello!\n\n` +
+                    `✅ Your message request has been accepted.\n` +
+                    `You can now chat with me freely!\n\n` +
+                    `Type "help" to see available commands.`;
 
-        if (numbers.length === 0) {
-            return api.sendMessage(
-                `❌ Invalid numbers provided!\n\n` +
-                    `Use list numbers like: msgreq ${action} 1,2,3`,
-                threadID
-            );
-        }
-
-        // Validate numbers are in range
-        const invalidNumbers = numbers.filter((n) => n < 1 || n > pendingRequests.length);
-        if (invalidNumbers.length > 0) {
-            return api.sendMessage(
-                `❌ Invalid number(s): ${invalidNumbers.join(", ")}\n\n` +
-                    `Valid range: 1 to ${pendingRequests.length}\n` +
-                    `Use "${actualPrefix}${commandName}" to see the list.`,
-                threadID
-            );
-        }
-
-        // Map numbers to thread IDs (1-indexed to 0-indexed)
-        const uniqueNumbers = [...new Set(numbers)]; // Remove duplicates
-        for (const num of uniqueNumbers) {
-            const thread = pendingRequests[num - 1];
-            targetThreadIDs.push(thread.threadID);
-            selectedNames.push(getThreadDisplayName(thread));
-        }
-    }
-
-    // Determine if accepting or declining
-    const isAccept = ["accept", "a"].includes(action);
-    const actionText = isAccept ? "Accepting" : "Declining";
-    const actionPast = isAccept ? "accepted" : "declined";
-    const emoji = isAccept ? "✅" : "🚫";
-
-    // Send processing message
-    await api.sendMessage(
-        `⏳ ${actionText} ${targetThreadIDs.length} message request(s)...`,
-        threadID
-    );
-
-    try {
-        // Check if handleMessageRequest exists
-        if (!api.handleMessageRequest) {
-            return api.sendMessage(
-                `❌ Message request handling is not available in this API version.`,
-                threadID
-            );
-        }
-
-        // Handle the message requests
-        await api.handleMessageRequest(targetThreadIDs, isAccept);
-
-        // Send welcome message to accepted threads
-        if (isAccept) {
-            const welcomeMessage =
-                `👋 Hello!\n\n` +
-                `✅ Your message request has been accepted.\n` +
-                `You can now chat with me freely!\n\n` +
-                `Type "help" to see available commands.`;
-
-            for (const acceptedThreadID of targetThreadIDs) {
-                try {
-                    await api.sendMessage(welcomeMessage, acceptedThreadID);
-                } catch {
-                    // Silently ignore if message fails to send
+                for (const acceptedThreadID of targetThreadIDs) {
+                    try {
+                        await api.sendMessage(welcomeMessage, acceptedThreadID);
+                    } catch {
+                        // Silently ignore if message fails to send
+                    }
                 }
             }
-        }
 
-        // Build success message
-        let response = `${emoji} Successfully ${actionPast} ${targetThreadIDs.length} message request(s)!\n\n`;
-        response += `📋 Threads:\n`;
-        selectedNames.slice(0, 10).forEach((name, index) => {
-            response += `  ${index + 1}. ${name}\n`;
-        });
-        if (selectedNames.length > 10) {
-            response += `  ... and ${selectedNames.length - 10} more`;
-        }
+            // Build success message
+            let response = `${emoji} Successfully ${actionPast} ${targetThreadIDs.length} message request(s)!\n\n`;
+            response += `📋 Threads:\n`;
+            selectedNames.slice(0, 10).forEach((name, index) => {
+                response += `  ${index + 1}. ${name}\n`;
+            });
+            if (selectedNames.length > 10) {
+                response += `  ... and ${selectedNames.length - 10} more`;
+            }
 
-        if (isAccept) {
-            response += `\n\n📨 Welcome messages sent to accepted threads!`;
-        }
+            if (isAccept) {
+                response += `\n\n📨 Welcome messages sent to accepted threads!`;
+            }
 
-        await api.sendMessage(response, threadID);
-    } catch (error) {
-        await api.sendMessage(
-            `❌ Failed to ${action} message request(s)!\n\n` + `Error: ${error.message || error}`,
-            threadID
-        );
-    }
+            await api.sendMessage(response, threadID);
+        } catch (error) {
+            await api.sendMessage(
+                `❌ Failed to ${action} message request(s)!\n\n` +
+                    `Error: ${error.message || error}`,
+                threadID
+            );
+        }
     },
 };

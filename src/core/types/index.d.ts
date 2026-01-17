@@ -3,314 +3,402 @@ import { ReadStream } from "fs";
 import { EventEmitter } from "events";
 
 declare module "nero-core" {
-    export type UserID = string;
-    export type ThreadID = string;
-    export type MessageID = string;
-    export type Callback<T = any> = (err: any, result?: T) => void;
+    export type UserID = string;
+    export type ThreadID = string;
+    export type MessageID = string;
+    export type Callback<T = any> = (err: any, result?: T) => void;
 
-    export interface Coordinates {
-        latitude: number;
-        longitude: number;
-    }
+    export interface Coordinates {
+        latitude: number;
+        longitude: number;
+    }
 
-    export interface Mention {
-        tag: string;
-        id: UserID;
-        fromIndex?: number;
-    }
+    export interface Mention {
+        tag: string;
+        id: UserID;
+        fromIndex?: number;
+    }
 
-    export interface Reaction {
-        reaction: string;
-        userID: UserID;
-    }
+    export interface Reaction {
+        reaction: string;
+        userID: UserID;
+    }
 
-    export interface StickerPackInfo {
-        id: string;
-        name: string;
-        thumbnail?: string;
-    }
+    export interface StickerPackInfo {
+        id: string;
+        name: string;
+        thumbnail?: string;
+    }
 
-    export interface StickerInfo {
-        type: "sticker";
-        ID: string;
-        url?: string;
-        animatedUrl?: string;
-        packID?: string;
-        label: string;
-        stickerID: string;
-    }
+    export interface StickerInfo {
+        type: "sticker";
+        ID: string;
+        url?: string;
+        animatedUrl?: string;
+        packID?: string;
+        label: string;
+        stickerID: string;
+    }
 
-    export interface AddedStickerPackInfo {
-        id: string;
-        name: string;
-        in_sticker_tray: boolean;
-        artist?: string;
-        preview_image?: { uri: string };
-        thumbnail_image?: { uri: string };
-    }
+    export interface AddedStickerPackInfo {
+        id: string;
+        name: string;
+        in_sticker_tray: boolean;
+        artist?: string;
+        preview_image?: { uri: string };
+        thumbnail_image?: { uri: string };
+    }
 
-    export interface CommentMessage {
-        body: string;
-        attachment?: ReadStream[];
-        mentions?: Mention[];
-        url?: string;
-        sticker?: string;
-    }
+    export interface CommentMessage {
+        body: string;
+        attachment?: ReadStream[];
+        mentions?: Mention[];
+        url?: string;
+        sticker?: string;
+    }
 
-    export interface CommentResult {
-        id: string;
-        url: string;
-        count: number;
-    }
+    export interface CommentResult {
+        id: string;
+        url: string;
+        count: number;
+    }
 
-    export interface ShareResult {
-        postID: string;
-        url: string;
-    }
+    export interface ShareResult {
+        postID: string;
+        url: string;
+    }
 
-    export interface Attachment {
-        type: "photo" | "animated_image" | "video" | "audio" | "file" | "sticker" | "share" | "location" | "unknown";
-        ID: string;
-        filename: string;
-        url?: string;
-        name?: string;
-    }
+    export interface Attachment {
+        type:
+            | "photo"
+            | "animated_image"
+            | "video"
+            | "audio"
+            | "file"
+            | "sticker"
+            | "share"
+            | "location"
+            | "unknown";
+        ID: string;
+        filename: string;
+        url?: string;
+        name?: string;
+    }
 
-    export interface PhotoAttachment extends Attachment {
-        type: "photo";
-        thumbnailUrl: string;
-        previewUrl: string;
-        previewWidth: number;
-        previewHeight: number;
-        largePreviewUrl: string;
-        largePreviewWidth: number;
-        largePreviewHeight: number;
-        width: number;
-        height: number;
-    }
+    export interface PhotoAttachment extends Attachment {
+        type: "photo";
+        thumbnailUrl: string;
+        previewUrl: string;
+        previewWidth: number;
+        previewHeight: number;
+        largePreviewUrl: string;
+        largePreviewWidth: number;
+        largePreviewHeight: number;
+        width: number;
+        height: number;
+    }
 
-    export interface VideoAttachment extends Attachment {
-        type: "video";
-        duration: number;
-        width: number;
-        height: number;
-        previewUrl: string;
-        previewWidth: number;
-        previewHeight: number;
-        videoType: "file_attachment" | "native_video" | "unknown";
-    }
+    export interface VideoAttachment extends Attachment {
+        type: "video";
+        duration: number;
+        width: number;
+        height: number;
+        previewUrl: string;
+        previewWidth: number;
+        previewHeight: number;
+        videoType: "file_attachment" | "native_video" | "unknown";
+    }
 
-    export interface AudioAttachment extends Attachment {
-        type: "audio";
-        duration: number;
-        audioType: string;
-        isVoiceMail: boolean;
-    }
+    export interface AudioAttachment extends Attachment {
+        type: "audio";
+        duration: number;
+        audioType: string;
+        isVoiceMail: boolean;
+    }
 
-    export interface FileAttachment extends Attachment {
-        type: "file";
-        isMalicious: boolean;
-        contentType: string;
-    }
+    export interface FileAttachment extends Attachment {
+        type: "file";
+        isMalicious: boolean;
+        contentType: string;
+    }
 
-    export interface StickerAttachment extends Attachment {
-        type: "sticker";
-        packID: string;
-        spriteUrl?: string;
-        spriteUrl2x?: string;
-        width: number;
-        height: number;
-        caption: string;
-        description: string;
-        frameCount: number;
-        frameRate: number;
-        framesPerRow: number;
-        framesPerCol: number;
-    }
+    export interface StickerAttachment extends Attachment {
+        type: "sticker";
+        packID: string;
+        spriteUrl?: string;
+        spriteUrl2x?: string;
+        width: number;
+        height: number;
+        caption: string;
+        description: string;
+        frameCount: number;
+        frameRate: number;
+        framesPerRow: number;
+        framesPerCol: number;
+    }
 
-    export interface ShareAttachment extends Attachment {
-        type: "share";
-        title: string;
-        description?: string;
-        source?: string;
-        image?: string;
-        width?: number;
-        height?: number;
-        playable?: boolean;
-        subattachments?: any[];
-        properties: Record<string, any>;
-    }
+    export interface ShareAttachment extends Attachment {
+        type: "share";
+        title: string;
+        description?: string;
+        source?: string;
+        image?: string;
+        width?: number;
+        height?: number;
+        playable?: boolean;
+        subattachments?: any[];
+        properties: Record<string, any>;
+    }
 
-    export type AnyAttachment = PhotoAttachment | VideoAttachment | AudioAttachment | FileAttachment | StickerAttachment | ShareAttachment;
+    export type AnyAttachment =
+        | PhotoAttachment
+        | VideoAttachment
+        | AudioAttachment
+        | FileAttachment
+        | StickerAttachment
+        | ShareAttachment;
 
-    export interface MessageReply {
-        messageID: MessageID;
-        senderID: UserID;
-        body: string;
-        attachments: AnyAttachment[];
-        timestamp: string;
-        isReply: true;
-    }
+    export interface MessageReply {
+        messageID: MessageID;
+        senderID: UserID;
+        body: string;
+        attachments: AnyAttachment[];
+        timestamp: string;
+        isReply: true;
+    }
 
-    export interface Message {
-        type: "message";
-        senderID: UserID;
-        body: string;
-        threadID: ThreadID;
-        messageID: MessageID;
-        attachments: AnyAttachment[];
-        mentions: Record<string, string>;
-        timestamp: string;
-        isGroup: boolean;
-        participantIDs?: UserID[];
-        messageReply?: MessageReply;
-        isUnread?: boolean;
-        reactions?: Reaction[];
-    }
+    export interface Message {
+        type: "message";
+        senderID: UserID;
+        body: string;
+        threadID: ThreadID;
+        messageID: MessageID;
+        attachments: AnyAttachment[];
+        mentions: Record<string, string>;
+        timestamp: string;
+        isGroup: boolean;
+        participantIDs?: UserID[];
+        messageReply?: MessageReply;
+        isUnread?: boolean;
+        reactions?: Reaction[];
+    }
 
-    export interface Event {
-        type: "event";
-        threadID: ThreadID;
-        logMessageType: string;
-        logMessageData: any;
-        logMessageBody: string;
-        timestamp: string;
-        author: UserID;
-    }
+    export interface Event {
+        type: "event";
+        threadID: ThreadID;
+        logMessageType: string;
+        logMessageData: any;
+        logMessageBody: string;
+        timestamp: string;
+        author: UserID;
+    }
 
-    export interface TypingIndicator {
-        type: "typ";
-        isTyping: boolean;
-        from: UserID;
-        threadID: ThreadID;
-        fromMobile: boolean;
-    }
+    export interface TypingIndicator {
+        type: "typ";
+        isTyping: boolean;
+        from: UserID;
+        threadID: ThreadID;
+        fromMobile: boolean;
+    }
 
-    export type ListenEvent = Message | Event | TypingIndicator;
+    export type ListenEvent = Message | Event | TypingIndicator;
 
-    export interface UserInfo {
-        id: UserID;
-        name: string;
-        firstName: string;
-        lastName?: string;
-        vanity: string;
-        profileUrl: string;
-        profilePicUrl: string;
-        gender: string;
-        type: "user" | "page";
-        isFriend: boolean;
-        isBirthday: boolean;
-        bio?: string;
-        live_city?: string;
-        followers?: string;
-        following?: string;
-        coverPhoto?: string;
-    }
+    export interface UserInfo {
+        id: UserID;
+        name: string;
+        firstName: string;
+        lastName?: string;
+        vanity: string;
+        profileUrl: string;
+        profilePicUrl: string;
+        gender: string;
+        type: "user" | "page";
+        isFriend: boolean;
+        isBirthday: boolean;
+        bio?: string;
+        live_city?: string;
+        followers?: string;
+        following?: string;
+        coverPhoto?: string;
+    }
 
-    export interface ThreadInfo {
-        threadID: ThreadID;
-        threadName?: string;
-        participantIDs: UserID[];
-        userInfo: UserInfo[];
-        unreadCount: number;
-        messageCount: number;
-        imageSrc?: string;
-        timestamp: string;
-        muteUntil: number;
-        isGroup: boolean;
-        isArchived: boolean;
-        isSubscribed: boolean;
-        folder: string;
-        nicknames: Record<UserID, string>;
-        adminIDs: UserID[];
-        emoji?: string;
-        color?: string;
-        canReply: boolean;
-        inviteLink: {
-            enable: boolean;
-            link: string | null;
-        };
-    }
+    export interface ThreadInfo {
+        threadID: ThreadID;
+        threadName?: string;
+        participantIDs: UserID[];
+        userInfo: UserInfo[];
+        unreadCount: number;
+        messageCount: number;
+        imageSrc?: string;
+        timestamp: string;
+        muteUntil: number;
+        isGroup: boolean;
+        isArchived: boolean;
+        isSubscribed: boolean;
+        folder: string;
+        nicknames: Record<UserID, string>;
+        adminIDs: UserID[];
+        emoji?: string;
+        color?: string;
+        canReply: boolean;
+        inviteLink: {
+            enable: boolean;
+            link: string | null;
+        };
+    }
 
-    export interface MessageObject {
-        body?: string;
-        attachment?: ReadStream[];
-        sticker?: string;
-        emoji?: string;
-        emojiSize?: "small" | "medium" | "large";
-        mentions?: Mention[];
-        edit?: [string, number][];
-    }
+    export interface MessageObject {
+        body?: string;
+        attachment?: ReadStream[];
+        sticker?: string;
+        emoji?: string;
+        emojiSize?: "small" | "medium" | "large";
+        mentions?: Mention[];
+        edit?: [string, number][];
+    }
 
-    export interface API {
-        setOptions(options: LoginOptions): void;
-        getAppState(): any[];
-        getCurrentUserID(): UserID;
+    export interface API {
+        setOptions(options: LoginOptions): void;
+        getAppState(): any[];
+        getCurrentUserID(): UserID;
 
-        listen(callback: (err: any, event: ListenEvent) => void): EventEmitter;
+        listen(callback: (err: any, event: ListenEvent) => void): EventEmitter;
 
-        sendMessageMqtt(
-            message: string | MessageObject,
-            threadID: ThreadID,
-            replyToMessage?: MessageID,
-            callback?: Callback<Message>,
-        ): void;
+        sendMessageMqtt(
+            message: string | MessageObject,
+            threadID: ThreadID,
+            replyToMessage?: MessageID,
+            callback?: Callback<Message>
+        ): void;
 
-        editMessage(text: string, messageID: MessageID, callback?: Callback): void;
+        editMessage(text: string, messageID: MessageID, callback?: Callback): void;
 
-        shareContact(text: string, senderID: UserID, threadID: ThreadID, callback?: Callback): void;
-        shareContact(senderID: UserID, threadID: ThreadID, callback?: Callback): void;
-        resolvePhotoUrl(photoID: string, callback?: Callback<string>): Promise<string>;
+        shareContact(text: string, senderID: UserID, threadID: ThreadID, callback?: Callback): void;
+        shareContact(senderID: UserID, threadID: ThreadID, callback?: Callback): void;
+        resolvePhotoUrl(photoID: string, callback?: Callback<string>): Promise<string>;
 
-        pin(action: "pin" | "unpin", threadID: ThreadID, messageID: MessageID): Promise<any>;
-        pin(action: "list", threadID: ThreadID): Promise<Message[]>;
+        pin(action: "pin" | "unpin", threadID: ThreadID, messageID: MessageID): Promise<any>;
+        pin(action: "list", threadID: ThreadID): Promise<Message[]>;
 
-        markAsRead(threadID: ThreadID, read?: boolean, callback?: Callback): Promise<any>;
-        markAsReadAll(callback?: Callback): Promise<void>;
-        markAsSeen(timestamp?: number, callback?: Callback): Promise<void>;
-        markAsDelivered(threadID: ThreadID, messageID: MessageID, callback?: Callback): Promise<void>;
+        markAsRead(threadID: ThreadID, read?: boolean, callback?: Callback): Promise<any>;
+        markAsReadAll(callback?: Callback): Promise<void>;
+        markAsSeen(timestamp?: number, callback?: Callback): Promise<void>;
+        markAsDelivered(
+            threadID: ThreadID,
+            messageID: MessageID,
+            callback?: Callback
+        ): Promise<void>;
 
-        sendTypingIndicator(sendTyping: boolean, threadID: ThreadID, callback?: Callback): Promise<void>;
+        sendTypingIndicator(
+            sendTyping: boolean,
+            threadID: ThreadID,
+            callback?: Callback
+        ): Promise<void>;
 
-        getThreadInfo(threadID: ThreadID, callback?: Callback<ThreadInfo>): Promise<ThreadInfo>;
-        getThreadInfo(threadID: ThreadID[], callback?: Callback<Record<ThreadID, ThreadInfo>>): Promise<Record<ThreadID, ThreadInfo>>;
+        getThreadInfo(threadID: ThreadID, callback?: Callback<ThreadInfo>): Promise<ThreadInfo>;
+        getThreadInfo(
+            threadID: ThreadID[],
+            callback?: Callback<Record<ThreadID, ThreadInfo>>
+        ): Promise<Record<ThreadID, ThreadInfo>>;
 
-        getThreadList(limit: number, timestamp: number | null, tags: string[], callback?: Callback<ThreadInfo[]>): Promise<ThreadInfo[]>;
-        getThreadHistory(threadID: ThreadID, amount: number, timestamp: number | null, callback?: Callback<Message[]>): Promise<Message[]>;
+        getThreadList(
+            limit: number,
+            timestamp: number | null,
+            tags: string[],
+            callback?: Callback<ThreadInfo[]>
+        ): Promise<ThreadInfo[]>;
+        getThreadHistory(
+            threadID: ThreadID,
+            amount: number,
+            timestamp: number | null,
+            callback?: Callback<Message[]>
+        ): Promise<Message[]>;
 
-        getUserInfo(id: UserID, usePayload?: boolean, callback?: Callback<UserInfo>): Promise<UserInfo>;
-        getUserInfo(id: UserID[], usePayload?: boolean, callback?: Callback<Record<UserID, UserInfo>>): Promise<Record<UserID, UserInfo>>;
+        getUserInfo(
+            id: UserID,
+            usePayload?: boolean,
+            callback?: Callback<UserInfo>
+        ): Promise<UserInfo>;
+        getUserInfo(
+            id: UserID[],
+            usePayload?: boolean,
+            callback?: Callback<Record<UserID, UserInfo>>
+        ): Promise<Record<UserID, UserInfo>>;
 
-        logout(callback?: (err: any) => void): Promise<void>;
+        logout(callback?: (err: any) => void): Promise<void>;
 
-        addExternalModule(moduleObj: Record<string, Function>): void;
-        getAccess(authCode?: string, callback?: Callback<string>): Promise<string>;
+        addExternalModule(moduleObj: Record<string, Function>): void;
+        getAccess(authCode?: string, callback?: Callback<string>): Promise<string>;
 
-        httpGet(url: string, form?: any, customHeader?: any, callback?: Callback<string>, notAPI?: boolean): Promise<string>;
-        httpPost(url: string, form?: any, customHeader?: any, callback?: Callback<string>, notAPI?: boolean): Promise<string>;
-        httpPostFormData(url: string, form?: any, customHeader?: any, callback?: Callback<string>, notAPI?: boolean): Promise<string>;
+        httpGet(
+            url: string,
+            form?: any,
+            customHeader?: any,
+            callback?: Callback<string>,
+            notAPI?: boolean
+        ): Promise<string>;
+        httpPost(
+            url: string,
+            form?: any,
+            customHeader?: any,
+            callback?: Callback<string>,
+            notAPI?: boolean
+        ): Promise<string>;
+        httpPostFormData(
+            url: string,
+            form?: any,
+            customHeader?: any,
+            callback?: Callback<string>,
+            notAPI?: boolean
+        ): Promise<string>;
 
-        stickers: {
-            search(query: string): Promise<StickerInfo[]>;
-            listPacks(): Promise<StickerPackInfo[]>;
-            getStorePacks(): Promise<StickerPackInfo[]>;
-            listAllPacks(): Promise<StickerPackInfo[]>;
-            addPack(packID: string): Promise<AddedStickerPackInfo>;
-            getStickersInPack(packID: string): Promise<StickerInfo[]>;
-            getAiStickers(options?: { limit?: number }): Promise<StickerInfo[]>;
-        };
+        stickers: {
+            search(query: string): Promise<StickerInfo[]>;
+            listPacks(): Promise<StickerPackInfo[]>;
+            getStorePacks(): Promise<StickerPackInfo[]>;
+            listAllPacks(): Promise<StickerPackInfo[]>;
+            addPack(packID: string): Promise<AddedStickerPackInfo>;
+            getStickersInPack(packID: string): Promise<StickerInfo[]>;
+            getAiStickers(options?: { limit?: number }): Promise<StickerInfo[]>;
+        };
 
-        comment(msg: string | CommentMessage, postID: string, replyCommentID?: string, callback?: Callback<CommentResult>): Promise<CommentResult>;
-        share(text: string, postID: string, callback?: Callback<ShareResult>): Promise<ShareResult>;
-        share(postID: string, callback?: Callback<ShareResult>): Promise<ShareResult>;
+        comment(
+            msg: string | CommentMessage,
+            postID: string,
+            replyCommentID?: string,
+            callback?: Callback<CommentResult>
+        ): Promise<CommentResult>;
+        share(text: string, postID: string, callback?: Callback<ShareResult>): Promise<ShareResult>;
+        share(postID: string, callback?: Callback<ShareResult>): Promise<ShareResult>;
 
-        follow(senderID: UserID, follow: boolean, callback?: Callback): void;
+        follow(senderID: UserID, follow: boolean, callback?: Callback): void;
 
-        unsent(messageID: MessageID, threadID: ThreadID, callback?: Callback<UnsendMessageEvent>): Promise<UnsendMessageEvent>;
-        emoji(emoji: string, threadID?: ThreadID, callback?: Callback<EmojiEvent>): Promise<EmojiEvent>;
-        gcname(newName: string, threadID?: ThreadID, callback?: Callback<GroupNameEvent>): Promise<GroupNameEvent>;
-        nickname(nickname: string, threadID: ThreadID, participantID: UserID, callback?: Callback<NicknameEvent>): Promise<NicknameEvent>;
-        theme(newName: string, threadID?: ThreadID, callback?: Callback<GroupNameEvent>): Promise<GroupNameEvent>;
+        unsent(
+            messageID: MessageID,
+            threadID: ThreadID,
+            callback?: Callback<UnsendMessageEvent>
+        ): Promise<UnsendMessageEvent>;
+        emoji(
+            emoji: string,
+            threadID?: ThreadID,
+            callback?: Callback<EmojiEvent>
+        ): Promise<EmojiEvent>;
+        gcname(
+            newName: string,
+            threadID?: ThreadID,
+            callback?: Callback<GroupNameEvent>
+        ): Promise<GroupNameEvent>;
+        nickname(
+            nickname: string,
+            threadID: ThreadID,
+            participantID: UserID,
+            callback?: Callback<NicknameEvent>
+        ): Promise<NicknameEvent>;
+        theme(
+            newName: string,
+            threadID?: ThreadID,
+            callback?: Callback<GroupNameEvent>
+        ): Promise<GroupNameEvent>;
 
         // ═══════════════════════════════════════════════════════════════════════
         // MESSAGE REQUEST & THREAD MANAGEMENT APIs
@@ -322,7 +410,11 @@ declare module "nero-core" {
          * @param accept - true to accept (move to inbox), false to decline
          * @param callback - Optional callback
          */
-        handleMessageRequest(threadID: ThreadID | ThreadID[], accept: boolean, callback?: Callback<HandleMessageRequestResult>): Promise<HandleMessageRequestResult>;
+        handleMessageRequest(
+            threadID: ThreadID | ThreadID[],
+            accept: boolean,
+            callback?: Callback<HandleMessageRequestResult>
+        ): Promise<HandleMessageRequestResult>;
 
         /**
          * Mutes or unmutes a thread's notifications
@@ -330,7 +422,11 @@ declare module "nero-core" {
          * @param muteSeconds - Duration: -1 (permanent), 0 (unmute), or seconds (e.g., 3600 for 1 hour)
          * @param callback - Optional callback
          */
-        muteThread(threadID: ThreadID, muteSeconds: number, callback?: Callback<MuteThreadResult>): Promise<MuteThreadResult>;
+        muteThread(
+            threadID: ThreadID,
+            muteSeconds: number,
+            callback?: Callback<MuteThreadResult>
+        ): Promise<MuteThreadResult>;
 
         /**
          * Creates a poll in a group chat
@@ -339,7 +435,12 @@ declare module "nero-core" {
          * @param options - Array of poll options (e.g., [{ text: "Option A" }, { text: "Option B" }])
          * @param callback - Optional callback
          */
-        createPoll(threadID: ThreadID, question: string, options: PollOption[], callback?: Callback<CreatePollResult>): Promise<CreatePollResult>;
+        createPoll(
+            threadID: ThreadID,
+            question: string,
+            options: PollOption[],
+            callback?: Callback<CreatePollResult>
+        ): Promise<CreatePollResult>;
 
         /**
          * Creates a new group chat
@@ -347,7 +448,11 @@ declare module "nero-core" {
          * @param groupTitle - Optional group name
          * @param callback - Optional callback
          */
-        createNewGroup(participantIDs: UserID[], groupTitle?: string, callback?: Callback<CreateNewGroupResult>): Promise<CreateNewGroupResult>;
+        createNewGroup(
+            participantIDs: UserID[],
+            groupTitle?: string,
+            callback?: Callback<CreateNewGroupResult>
+        ): Promise<CreateNewGroupResult>;
 
         /** Get debug statistics for monitoring API activity */
         getDebugStats(): DebugStats;
@@ -359,7 +464,7 @@ declare module "nero-core" {
         // ═══════════════════════════════════════════════════════════════════════
         // MESSAGE STORE API (Built-in Anti-Unsend Support)
         // ═══════════════════════════════════════════════════════════════════════
-        
+
         /**
          * Get a stored message by ID (for anti-unsend feature)
          * Messages are automatically stored when received
@@ -369,9 +474,10 @@ declare module "nero-core" {
         getStoredMessage(messageID: MessageID): StoredMessage | null;
 
         [key: string]: any;
-    }    export interface LoginCredentials {
-        appState?: any;
-    }
+    }
+    export interface LoginCredentials {
+        appState?: any;
+    }
 
     export interface LoginOptions {
         online?: boolean;
@@ -388,25 +494,25 @@ declare module "nero-core" {
         emitReady?: boolean;
         randomUserAgent?: boolean;
         bypassRegion?: string;
-        /** 
+        /**
          * Debug logging level for verbose Facebook API activity.
          * - 'silent': No debug output (default)
          * - 'minimal': Only errors and critical events
          * - 'normal': Standard logging (errors, warnings, key events)
          * - 'verbose': Full debug output (all HTTP requests, MQTT events, deltas, etc.)
          */
-        debugLevel?: 'silent' | 'minimal' | 'normal' | 'verbose';
+        debugLevel?: "silent" | "minimal" | "normal" | "verbose";
         /** Enable/disable timestamps in debug output. Default: true */
         debugTimestamps?: boolean;
-        
+
         // ═══════════════════════════════════════════════════════════════════════
         // ADVANCED HUMAN BEHAVIOR ANTI-DETECTION OPTIONS
         // ═══════════════════════════════════════════════════════════════════════
-        
+
         /**
          * Enable advanced human-like behavior patterns to evade Facebook's automated
          * behavior detection systems. This system implements:
-         * 
+         *
          * - Statistical typing models with Gaussian distributions
          * - Circadian rhythm simulation (time-of-day patterns)
          * - Cognitive load modeling (fatigue, attention, emotions)
@@ -416,7 +522,7 @@ declare module "nero-core" {
          * - Session management with breaks
          * - Adaptive rate limiting
          * - Behavioral fingerprint randomization
-         * 
+         *
          * Can be set to:
          * - true/false: Enable/disable with default settings
          * - HumanBehaviorConfig: Fine-tune all behavior parameters
@@ -431,17 +537,17 @@ declare module "nero-core" {
     /**
      * Device behavior profiles
      */
-    export type DeviceProfile = 'mobile' | 'desktop' | 'tablet';
+    export type DeviceProfile = "mobile" | "desktop" | "tablet";
 
     /**
      * Personality profiles affecting response patterns
      */
-    export type PersonalityProfile = 'casual' | 'professional' | 'enthusiastic' | 'busy';
+    export type PersonalityProfile = "casual" | "professional" | "enthusiastic" | "busy";
 
     /**
      * Emotional states for cognitive modeling
      */
-    export type EmotionalState = 'neutral' | 'happy' | 'stressed' | 'tired' | 'excited';
+    export type EmotionalState = "neutral" | "happy" | "stressed" | "tired" | "excited";
 
     /**
      * Advanced configuration for human behavior simulation
@@ -451,7 +557,7 @@ declare module "nero-core" {
          * Device profile to simulate (affects typing speed, typo rate, etc.)
          */
         device?: DeviceProfile;
-        
+
         /**
          * Personality profile (affects response times, message length, etc.)
          */
@@ -589,9 +695,21 @@ declare module "nero-core" {
             };
             /** Break patterns */
             breaks?: {
-                microBreak?: { interval?: { min: number; max: number }; duration?: { min: number; max: number }; chance?: number };
-                shortBreak?: { interval?: { min: number; max: number }; duration?: { min: number; max: number }; chance?: number };
-                longBreak?: { interval?: { min: number; max: number }; duration?: { min: number; max: number }; chance?: number };
+                microBreak?: {
+                    interval?: { min: number; max: number };
+                    duration?: { min: number; max: number };
+                    chance?: number;
+                };
+                shortBreak?: {
+                    interval?: { min: number; max: number };
+                    duration?: { min: number; max: number };
+                    chance?: number;
+                };
+                longBreak?: {
+                    interval?: { min: number; max: number };
+                    duration?: { min: number; max: number };
+                    chance?: number;
+                };
             };
         };
 
@@ -637,14 +755,14 @@ declare module "nero-core" {
                 variance?: number;
                 reshuffleInterval?: number;
             };
-            
+
             /** Behavioral DNA generation for session uniqueness */
             behavioralDNA?: {
                 typingRhythmSamples?: number;
                 rhythmVariance?: number;
                 regenerateInterval?: number;
             };
-            
+
             /** Entropy injection for unpredictable variations */
             entropyInjection?: {
                 enabled?: boolean;
@@ -652,7 +770,7 @@ declare module "nero-core" {
                 poolSize?: number;
                 refreshInterval?: number;
             };
-            
+
             /** Temporal variation simulation */
             temporal?: {
                 enabled?: boolean;
@@ -666,7 +784,7 @@ declare module "nero-core" {
                     amount?: number;
                 };
             };
-            
+
             /** Pattern breaking to avoid detection */
             patternBreaking?: {
                 enabled?: boolean;
@@ -674,7 +792,7 @@ declare module "nero-core" {
                 breakDuration?: number;
                 breakProbability?: number;
             };
-            
+
             /** Session authenticity simulation */
             sessionAuthenticity?: {
                 warmupDuration?: number;
@@ -688,12 +806,12 @@ declare module "nero-core" {
      * Fingerprint state information
      */
     export interface FingerprintState {
-        sessionPhase: 'warmup' | 'active' | 'cooldown';
+        sessionPhase: "warmup" | "active" | "cooldown";
         consistencyScore: number;
         adjustmentFactor: number;
         patternBreakMode: boolean;
         behavioralDNA: {
-            responseStyle?: 'quick' | 'slow' | 'variable' | 'consistent';
+            responseStyle?: "quick" | "slow" | "variable" | "consistent";
             generatedAt?: number;
         };
         entropyPoolSize: number;
@@ -849,4 +967,4 @@ declare module "nero-core" {
         options: LoginOptions | Callback<API>,
         callback?: Callback<API>
     ): void;
-        }
+}

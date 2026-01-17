@@ -23,8 +23,8 @@ module.exports = function (defaultFuncs, api, ctx) {
         });
 
         if (
-            utils.getType(seen_timestamp) == "Function" ||
-            utils.getType(seen_timestamp) == "AsyncFunction"
+            utils.getType(seen_timestamp) === "Function" ||
+            utils.getType(seen_timestamp) === "AsyncFunction"
         ) {
             callback = seen_timestamp;
             seen_timestamp = Date.now();
@@ -58,10 +58,10 @@ module.exports = function (defaultFuncs, api, ctx) {
             return callback();
         } catch (err) {
             utils.error("markAsSeen", err);
-            if (utils.getType(err) == "Object" && err.error === "Not logged in.") {
+            if (utils.getType(err) === "Object" && err.error === "Not logged in.") {
                 ctx.loggedIn = false;
             }
-            return callback(err);
+            callback(err);
         }
 
         return returnPromise;

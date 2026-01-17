@@ -100,39 +100,45 @@ nero/
 ### Quick Start
 
 1. **Clone the repository**
-   ```bash
-   git clone https://github.com/0x3EF8/Nero.git
-   cd Nero
-   ```
+
+    ```bash
+    git clone https://github.com/0x3EF8/Nero.git
+    cd Nero
+    ```
 
 2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+
+    ```bash
+    npm install
+    ```
 
 3. **Configure environment variables**
-   ```bash
-   cp .env.template .env
-   # Edit .env with your API keys (Gemini, etc.)
-   ```
+
+    ```bash
+    cp .env.template .env
+    # Edit .env with your API keys (Gemini, etc.)
+    ```
 
 4. **Add your Facebook account**
-   
-   Place your appstate JSON file in the `accounts/` folder:
-   ```
-   accounts/
-   └── 100044343889036.json    # Named with your Facebook UID
-   ```
+
+    Place your appstate JSON file in the `accounts/` folder:
+
+    ```
+    accounts/
+    └── 100044343889036.json    # Named with your Facebook UID
+    ```
 
 5. **Start the bot**
-   ```bash
-   npm start
-   ```
 
-   Or with auto-restart on file changes:
-   ```bash
-   npm run dev
-   ```
+    ```bash
+    npm start
+    ```
+
+    Or with auto-restart on file changes:
+
+    ```bash
+    npm run dev
+    ```
 
 ---
 
@@ -141,17 +147,17 @@ nero/
 ### Option A: Using the Browser Extension (Recommended)
 
 1. **Install the extension**
-   - Open Chrome/Edge/Brave and go to `chrome://extensions`
-   - Enable "Developer Mode"
-   - Click "Load unpacked" and select the `extension/` folder
+    - Open Chrome/Edge/Brave and go to `chrome://extensions`
+    - Enable "Developer Mode"
+    - Click "Load unpacked" and select the `extension/` folder
 
 2. **Extract cookies**
-   - Log in to Facebook at facebook.com
-   - Click the Nero Cookie Extractor icon
-   - Click "Send to Bot" to submit cookies to your bot's API
+    - Log in to Facebook at facebook.com
+    - Click the Nero Cookie Extractor icon
+    - Click "Send to Bot" to submit cookies to your bot's API
 
 3. **Bot receives cookies**
-   - The bot will save cookies and restart automatically
+    - The bot will save cookies and restart automatically
 
 ### Option B: Manual Setup
 
@@ -162,6 +168,7 @@ nero/
 ### Waiting Mode
 
 If no accounts are configured, the bot starts in **waiting mode**:
+
 ```
 🌐 Server running at http://0.0.0.0:30174
 📌 Waiting for appstate submission via API...
@@ -212,6 +219,9 @@ NERO_API_KEY=NERO-XXXX-XXXX-XXXX
 # Environment
 NODE_ENV=development
 DEBUG=false
+
+# Security
+SUPER_ADMINS=100080000000001,100080000000002
 ```
 
 ---
@@ -222,16 +232,17 @@ The bot includes a REST API server for remote management.
 
 ### Endpoints
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| `GET` | `/` | Public | API info and status |
-| `GET` | `/api/stats` | Public | Bot statistics and accounts |
-| `POST` | `/api/cookies` | Required | Upload or validate cookies |
-| `GET` | `/api/cookies/appstate` | Required | Retrieve account appstate |
+| Method | Endpoint                | Auth     | Description                 |
+| ------ | ----------------------- | -------- | --------------------------- |
+| `GET`  | `/`                     | Public   | API info and status         |
+| `GET`  | `/api/stats`            | Public   | Bot statistics and accounts |
+| `POST` | `/api/cookies`          | Required | Upload or validate cookies  |
+| `GET`  | `/api/cookies/appstate` | Required | Retrieve account appstate   |
 
 ### Authentication
 
 Protected endpoints require the `X-API-Key` header:
+
 ```bash
 curl -H "X-API-Key: YOUR_API_KEY" http://localhost:30174/api/cookies/appstate
 ```
@@ -251,49 +262,53 @@ curl -X POST http://localhost:30174/api/cookies \
 
 ### Admin Commands
 
-| Command | Description | Permission |
-|---------|-------------|------------|
-| `!accounts` | Manage bot accounts | Admin |
-| `!admin` | Manage administrators | Super Admin |
-| `!eval <code>` | Execute JavaScript | Super Admin |
-| `!kick <@user>` | Kick user from group | Admin |
-| `!maintenance` | Toggle maintenance mode | Admin |
-| `!messagerequest` | Handle message requests | Admin |
-| `!reload <type> <name>` | Hot-reload command/event | Admin |
-| `!restart` | Restart the bot | Admin |
-| `!setprefix <prefix>` | Change command prefix | Admin |
-| `!shell <command>` | Execute shell command | Super Admin |
+| Command                 | Description              | Permission  |
+| ----------------------- | ------------------------ | ----------- |
+| `!accounts`             | Manage bot accounts      | Admin       |
+| `!admin`                | Manage administrators    | Super Admin |
+| `!eval <code>`          | Execute JavaScript       | Super Admin |
+| `!kick <@user>`         | Kick user from group     | Admin       |
+| `!maintenance`          | Toggle maintenance mode  | Admin       |
+| `!messagerequest`       | Handle message requests  | Admin       |
+| `!reload <type> <name>` | Hot-reload command/event | Admin       |
+| `!restart`              | Restart the bot          | Admin       |
+| `!setprefix <prefix>`   | Change command prefix    | Admin       |
+| `!shell <command>`      | Execute shell command    | Super Admin |
 
 ### User Commands
 
-| Command | Description |
-|---------|-------------|
-| `!help [command]` | Show help or command details |
-| `!info` | Bot information and stats |
-| `!newgc <name>` | Create new group chat |
-| `!ping` | Check bot latency |
-| `!poll <question>` | Create a poll |
-| `!stalk <@user>` | User profile information |
-| `!uid [@user]` | Get Facebook UID |
-| `!uptime` | Bot uptime |
+| Command            | Description                  |
+| ------------------ | ---------------------------- |
+| `!help [command]`  | Show help or command details |
+| `!info`            | Bot information and stats    |
+| `!newgc <name>`    | Create new group chat        |
+| `!ping`            | Check bot latency            |
+| `!poll <question>` | Create a poll                |
+| `!stalk <@user>`   | User profile information     |
+| `!uid [@user]`     | Get Facebook UID             |
+| `!uptime`          | Bot uptime                   |
 
 ---
 
 ## 📡 Events
 
 ### AI Events
+
 - **beta.js** - Gemini AI integration for intelligent responses
 
 ### Protection Events
+
 - **antiLeave.js** - Prevent/track users leaving groups
 - **antiSpam.js** - Detect and block spam messages
 - **antiUnsend.js** - Log unsent/deleted messages
 
 ### Interaction Events
+
 - **mentionResponse.js** - Respond when bot is mentioned
 - **typingIndicator.js** - Handle typing status
 
 ### Welcome Events
+
 - **welcome.js** - Greet new group members
 - **goodbye.js** - Farewell messages for leaving members
 
@@ -313,13 +328,13 @@ module.exports.config = {
     usage: "mycommand <args>",
     category: "user",
     cooldown: 5,
-    permissions: "user",  // "user", "admin", "superadmin"
+    permissions: "user", // "user", "admin", "superadmin"
     enabled: true,
 };
 
-module.exports.execute = async function({ api, event, args, config, logger }) {
+module.exports.execute = async function ({ api, event, args, config, logger }) {
     const { threadID, messageID } = event;
-    
+
     api.sendMessage("Hello!", threadID, messageID);
 };
 ```
@@ -337,13 +352,12 @@ module.exports.config = {
     name: "myevent",
     description: "What the event does",
     eventTypes: ["message", "message_reply"],
-    priority: 10,  // Higher runs first
+    priority: 10, // Higher runs first
     enabled: true,
 };
 
-module.exports.execute = async function({ api, event, config, logger }) {
+module.exports.execute = async function ({ api, event, config, logger }) {
     // Your logic here
-    
     // Block further processing:
     // event.__blocked = true;
 };
@@ -353,20 +367,20 @@ module.exports.execute = async function({ api, event, config, logger }) {
 
 ## 📋 NPM Scripts
 
-| Script | Description |
-|--------|-------------|
-| `npm start` | Start the bot |
-| `npm run dev` | Start with auto-restart on changes |
-| `npm run pm2` | Start with PM2 (production) |
-| `npm run pm2:stop` | Stop PM2 process |
-| `npm run pm2:restart` | Restart PM2 process |
-| `npm run pm2:logs` | View PM2 logs |
-| `npm run lint` | Run ESLint |
-| `npm run lint:fix` | Fix ESLint issues |
-| `npm run format` | Format code with Prettier |
-| `npm test` | Run tests |
-| `npm run clean` | Remove log files |
-| `npm run update` | Check for updates |
+| Script                | Description                        |
+| --------------------- | ---------------------------------- |
+| `npm start`           | Start the bot                      |
+| `npm run dev`         | Start with auto-restart on changes |
+| `npm run pm2`         | Start with PM2 (production)        |
+| `npm run pm2:stop`    | Stop PM2 process                   |
+| `npm run pm2:restart` | Restart PM2 process                |
+| `npm run pm2:logs`    | View PM2 logs                      |
+| `npm run lint`        | Run ESLint                         |
+| `npm run lint:fix`    | Fix ESLint issues                  |
+| `npm run format`      | Format code with Prettier          |
+| `npm test`            | Run tests                          |
+| `npm run clean`       | Remove log files                   |
+| `npm run update`      | Check for updates                  |
 
 ---
 
@@ -392,15 +406,15 @@ pm2 start ecosystem.config.js
 
 ### PM2 Commands
 
-| Command | Description |
-|---------|-------------|
-| `pm2 start ecosystem.config.js` | Start the bot |
-| `pm2 stop nero` | Stop the bot |
-| `pm2 restart nero` | Restart the bot |
-| `pm2 logs nero` | View live logs |
-| `pm2 monit` | Open monitoring dashboard |
-| `pm2 status` | Check process status |
-| `pm2 delete nero` | Remove from PM2 |
+| Command                         | Description               |
+| ------------------------------- | ------------------------- |
+| `pm2 start ecosystem.config.js` | Start the bot             |
+| `pm2 stop nero`                 | Stop the bot              |
+| `pm2 restart nero`              | Restart the bot           |
+| `pm2 logs nero`                 | View live logs            |
+| `pm2 monit`                     | Open monitoring dashboard |
+| `pm2 status`                    | Check process status      |
+| `pm2 delete nero`               | Remove from PM2           |
 
 ### Auto-Start on System Boot
 

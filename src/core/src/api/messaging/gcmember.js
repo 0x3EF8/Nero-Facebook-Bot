@@ -128,7 +128,9 @@ module.exports = function (defaultFuncs, api, ctx) {
             ctx.mqttClient.publish("/ls_req", JSON.stringify(context), { qos: 0, retain: false });
 
             // Small delay to let MQTT process
-            await new Promise((resolve) => setTimeout(resolve, 200));
+            await new Promise((resolve) => {
+                setTimeout(resolve, 200);
+            });
 
             const gcmemberInfo = {
                 type: "gc_member_update",
@@ -140,9 +142,9 @@ module.exports = function (defaultFuncs, api, ctx) {
                 timestamp: Date.now(),
             };
 
-            return _callback(null, gcmemberInfo);
+            _callback(null, gcmemberInfo);
         } catch (err) {
-            return _callback(null, {
+            _callback(null, {
                 type: "error_gc",
                 error: err.message || "An unknown error occurred.",
             });

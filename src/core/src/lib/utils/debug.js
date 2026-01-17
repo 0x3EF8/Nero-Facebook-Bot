@@ -25,7 +25,7 @@ const chalk = require("chalk");
 
 let debugLevel = "silent";
 let logTimestamps = true;
-const sessionStartTime = Date.now();
+const _sessionStartTime = Date.now();
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  COLOR PALETTE - Monochrome with Accent Colors
@@ -181,7 +181,9 @@ function getTimestamp() {
 function formatPrefix(category, colorFn = theme.primary) {
     const ts = getTimestamp();
     const cat = colorFn(category.padEnd(6));
-    return ts ? `${ts} ${theme.bracket("│")} ${cat}` : cat;
+    return function (_options) {
+        return ts ? `${ts} ${theme.bracket("│")} ${cat}` : cat;
+    };
 }
 
 /**
@@ -247,7 +249,7 @@ function formatDuration(ms) {
  * @param {string} url - Request URL
  * @param {object} [options] - Additional options
  */
-function logHttpRequest(method, url, options = {}) {
+function logHttpRequest(method, url, _options = {}) {
     if (!shouldLog("verbose")) return;
 
     const methodColors = {
@@ -638,7 +640,7 @@ const stats = {
  * @param {'httpRequests' | 'httpErrors' | 'mqttMessages' | 'messagesReceived' | 'messagesSent' | 'apiCalls'} stat
  */
 function incrementStat(stat) {
-    if (stats.hasOwnProperty(stat)) {
+    if (Object.prototype.hasOwnProperty.call(stats, stat)) {
         stats[stat]++;
     }
 }

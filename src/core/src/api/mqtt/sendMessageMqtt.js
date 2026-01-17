@@ -1,7 +1,10 @@
 "use strict";
 
 const utils = require("../../lib/utils");
-const delay = async (ms) => await new Promise((res) => setTimeout(res, ms));
+const _delay = (ms) =>
+    new Promise((resolve) => {
+        setTimeout(resolve, ms);
+    });
 
 module.exports = (defaultFuncs, api, ctx) => {
     /**

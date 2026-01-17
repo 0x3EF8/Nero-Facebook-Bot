@@ -98,7 +98,7 @@ module.exports = function (defaultFuncs, api, ctx) {
             ctx.wsReqNumber = (ctx.wsReqNumber || 0) + 1;
             ctx.wsTaskNumber = ctx.wsTaskNumber || 0;
 
-            usersToModify.forEach((id, index) => {
+            usersToModify.forEach((id) => {
                 ctx.wsTaskNumber++;
                 tasks.push({
                     failure_count: null,

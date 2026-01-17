@@ -2,8 +2,9 @@
 
 const chalk = require("chalk");
 const Table = require("cli-table3");
+const os = require("os");
 
-const ws = chalk.cyan("⚡ NΞRO-CORE");
+const _ws = chalk.cyan("⚡ NΞRO-CORE");
 
 let h;
 const i = {};
@@ -175,7 +176,7 @@ function getGUID() {
     const id = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
         const r = Math.floor((sectionLength + Math.random() * 16) % 16);
         sectionLength = Math.floor(sectionLength / 16);
-        const _guid = (c == "x" ? r : (r & 7) | 8).toString(16);
+        const _guid = (c === "x" ? r : (r & 7) | 8).toString(16);
         return _guid;
     });
     return id;
@@ -281,7 +282,7 @@ function showBanner() {
         ];
 
         // System information (right side)
-        const os = require("os");
+        const _ws = require("ws");
         const hostname = os.hostname();
         const platform = os.platform();
         const osName = platform === "win32" ? "Windows" : platform === "darwin" ? "macOS" : "Linux";
@@ -304,8 +305,8 @@ function showBanner() {
         }
 
         console.log("");
-    } catch (err) {
-        // Fallback
+    } catch (_err) {
+        log("Utils", "warn", "request", "error sending data");
         console.log("\n" + chalk.cyan.bold("  NΞRO NEURAL CORE") + "\n");
     }
 }

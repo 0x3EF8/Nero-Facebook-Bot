@@ -13,74 +13,11 @@ const allowedProperties = {
     location: true,
 };
 
+const uploadAttachmentFactory = require("./uploadAttachment");
+
 module.exports = (defaultFuncs, api, ctx) => {
-    async function uploadAttachment(attachments) {
-        const uploads = [];
-        for (let i = 0; i < attachments.length; i++) {
-            try {
-                const attachment = attachments[i];
-                utils.log(
-                    "uploadAttachment",
-                    `Processing attachment ${i + 1}/${attachments.length}, type: ${utils.getType(attachment)}`
-                );
+    const uploadAttachment = uploadAttachmentFactory(defaultFuncs, api, ctx);
 
-                if (!utils.isReadableStream(attachment)) {
-                    utils.warn(
-                        "uploadAttachment",
-                        `Attachment is not a readable stream, it's: ${utils.getType(attachment)}`
-                    );
-                    throw new Error(
-                        "Attachment should be a readable stream and not " +
-                            utils.getType(attachment) +
-                            "."
-                    );
-                }
-
-                utils.log("uploadAttachment", `Starting upload to Facebook...`);
-                const oksir = await defaultFuncs
-                    .postFormData(
-                        "https://upload.facebook.com/ajax/mercury/upload.php",
-                        ctx.jar,
-                        {
-                            upload_1024: attachment,
-                            voice_clip: "true",
-                        },
-                        {}
-                    )
-                    .then(utils.parseAndCheckLogin(ctx, defaultFuncs));
-
-                utils.log(
-                    "uploadAttachment",
-                    `Raw response received: ${JSON.stringify(oksir).substring(0, 500)}`
-                );
-
-                if (oksir.error) {
-                    utils.warn("uploadAttachment", `Upload error: ${JSON.stringify(oksir)}`);
-                    throw new Error(JSON.stringify(oksir));
-                }
-
-                // Validate metadata exists before pushing
-                if (oksir.payload && oksir.payload.metadata && oksir.payload.metadata[0]) {
-                    utils.log(
-                        "uploadAttachment",
-                        `Success! Metadata: ${JSON.stringify(oksir.payload.metadata[0])}`
-                    );
-                    uploads.push(oksir.payload.metadata[0]);
-                } else {
-                    utils.warn(
-                        "uploadAttachment",
-                        "Upload response missing metadata: " + JSON.stringify(oksir)
-                    );
-                }
-            } catch (uploadErr) {
-                utils.warn(
-                    "uploadAttachment",
-                    `Exception uploading attachment ${i + 1}: ${uploadErr.message}`
-                );
-            }
-        }
-        return uploads;
-    }
 
     async function getUrl(url) {
         const resData = await defaultFuncs
@@ -95,7 +32,7 @@ module.exports = (defaultFuncs, api, ctx) => {
         }
     }
 
-    async function sendContent(form, threadID, isSingleUser, messageAndOTID, callback) {
+    async function sendContent(form, threadID, isSingleUser, messageAndOTID, _callback) {
         // There are three cases here:
         // 1. threadID is of type array, where we're starting a new group chat with users
         //    specified in the array.
@@ -143,27 +80,30 @@ module.exports = (defaultFuncs, api, ctx) => {
                 utils.warn(
                     "sendMessage",
                     "Got error 1545012. This might mean that you're not part of the conversation " +
-                        threadID
+                    threadID
                 );
             }
             const errMsg = `Error ${resData.error}: ${resData.errorSummary || resData.errorDescription || JSON.stringify(resData)}`;
             throw new Error(errMsg);
         }
         const messageInfo = resData.payload.actions.reduce((p, v) => {
-            return (
-                { threadID: v.thread_fbid, messageID: v.message_id, timestamp: v.timestamp } || p
-            );
+            return { threadID: v.thread_fbid, messageID: v.message_id, timestamp: v.timestamp };
         }, null);
         return messageInfo;
     }
 
-    return async (msg, threadID, replyToMessage, isSingleUser = false) => {
+    return async function sendMessage(
+        msg,
+        threadID,
+        _callback,
+        replyToMessage,
+        isSingleUser = false
+    ) {
         utils.incrementStat("apiCalls");
         utils.logApiCall("sendMessage", {
             threadID,
             hasBody: !!msg.body || typeof msg === "string",
             hasAttachment: !!msg.attachment,
-            hasReply: !!replyToMessage,
         });
 
         // Convert replyToMessage to primitive string if it's a String object
@@ -178,14 +118,17 @@ module.exports = (defaultFuncs, api, ctx) => {
         const msgType = utils.getType(msg);
         const threadIDType = utils.getType(threadID);
         const messageIDType = utils.getType(replyToMessage);
-        if (msgType !== "String" && msgType !== "Object")
+        if (msgType !== "String" && msgType !== "Object") {
             throw new Error("Message should be of type string or object and not " + msgType + ".");
-        if (threadIDType !== "Array" && threadIDType !== "Number" && threadIDType !== "String")
+        }
+        if (threadIDType !== "Array" && threadIDType !== "Number" && threadIDType !== "String") {
             throw new Error(
                 "ThreadID should be of type number, string, or array and not " + threadIDType + "."
             );
-        if (replyToMessage && messageIDType !== "String")
+        }
+        if (replyToMessage && messageIDType !== "String") {
             throw new Error("MessageID should be of type string and not " + messageIDType + ".");
+        }
         if (msgType === "String") {
             msg = { body: msg };
         }
@@ -238,8 +181,9 @@ module.exports = (defaultFuncs, api, ctx) => {
         };
 
         if (msg.location) {
-            if (!msg.location.latitude || !msg.location.longitude)
+            if (!msg.location.latitude || !msg.location.longitude) {
                 throw new Error("location property needs both latitude and longitude");
+            }
             form["location_attachment[coordinates][latitude]"] = msg.location.latitude;
             form["location_attachment[coordinates][longitude]"] = msg.location.longitude;
             form["location_attachment[is_current_location]"] = !!msg.location.current;
@@ -285,7 +229,11 @@ module.exports = (defaultFuncs, api, ctx) => {
             );
 
             // Check if uploads failed silently (empty arrays despite attachments provided)
-            const totalUploaded = form.image_ids.length + form.audio_ids.length + form.video_ids.length + form.file_ids.length;
+            const totalUploaded =
+                form.image_ids.length +
+                form.audio_ids.length +
+                form.video_ids.length +
+                form.file_ids.length;
             if (msg.attachment.length > 0 && totalUploaded === 0) {
                 const err = new Error("Upload failed: missing metadata (Facebook rejected file)");
                 utils.warn("sendMessage", err.message);
@@ -322,11 +270,12 @@ module.exports = (defaultFuncs, api, ctx) => {
                     throw new Error("Mention tags must be strings.");
                 }
                 const offset = msg.body.indexOf(tag, mention.fromIndex || 0);
-                if (offset < 0)
+                if (offset < 0) {
                     utils.warn(
                         "handleMention",
                         'Mention for "' + tag + '" not found in message string.'
                     );
+                }
                 if (!mention.id) utils.warn("handleMention", "Mention id should be non-null.");
                 const id = mention.id || 0;
                 const emptyChar = "\u200E";

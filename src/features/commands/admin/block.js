@@ -31,36 +31,38 @@ module.exports = {
 
     async execute({ api, event, args, config }) {
         const { threadID, messageReply, mentions } = event;
-        const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+        const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : "";
         const commandName = this.config.name;
 
         if (args.length === 0) {
             return api.sendMessage(
                 `❌ Invalid usage!\n\n` +
-                `Usage:\n` +
-                `• ${actualPrefix}${commandName} -a @user : Block user\n` +
-                `• ${actualPrefix}${commandName} -r @user : Unblock user\n` +
-                `• ${actualPrefix}${commandName} -l       : List blocked users`,
+                    `Usage:\n` +
+                    `• ${actualPrefix}${commandName} -a @user : Block user\n` +
+                    `• ${actualPrefix}${commandName} -r @user : Unblock user\n` +
+                    `• ${actualPrefix}${commandName} -l       : List blocked users`,
                 threadID
             );
         }
 
         const action = args[0].toLowerCase();
-        
+
         // List Blocked Users
         if (action === "-l" || action === "list") {
             const blockedUsers = config.bot.blockedUsers;
-            
+
             let msg = "🚫 **Blocked Users** 🚫\n\n";
-            
+
             if (blockedUsers.length > 0) {
                 // Determine if we can fetch names, for now just list IDs
                 // In a real scenario, you might want to resolve names asynchronously
-                blockedUsers.forEach((id, index) => { msg += `${index + 1}. ${id}\n`; });
+                blockedUsers.forEach((id, index) => {
+                    msg += `${index + 1}. ${id}\n`;
+                });
             } else {
                 msg += "None\n";
             }
-            
+
             return api.sendMessage(msg, threadID);
         }
 
@@ -70,7 +72,7 @@ module.exports = {
 
         if (messageReply) {
             targetID = messageReply.senderID;
-            targetName = "Replied User"; 
+            targetName = "Replied User";
         } else if (Object.keys(mentions).length > 0) {
             targetID = Object.keys(mentions)[0];
             targetName = mentions[targetID].replace("@", "");
@@ -88,38 +90,44 @@ module.exports = {
 
         // Prevent blocking admins
         if (config.isAdmin(targetID)) {
-             return api.sendMessage("🛡️ You cannot block a Bot Admin.", threadID);
+            return api.sendMessage("🛡️ You cannot block a Bot Admin.", threadID);
         }
 
         // Action: Block User
         if (action === "-a" || action === "add" || action === "ban") {
             const success = config.blockUser(targetID);
             if (success) {
-                return api.sendMessage(`🚫 Successfully blocked ${targetName} from using the bot.`, threadID);
+                return api.sendMessage(
+                    `🚫 Successfully blocked ${targetName} from using the bot.`,
+                    threadID
+                );
             } else {
                 return api.sendMessage(`⚠️ User is already blocked.`, threadID);
             }
         }
-        
+
         // Action: Unblock User
-        else if (action === "-r" || action === "remove" || action === "unban" || action === "unblock") {
+        else if (
+            action === "-r" ||
+            action === "remove" ||
+            action === "unban" ||
+            action === "unblock"
+        ) {
             const success = config.unblockUser(targetID);
             if (success) {
                 return api.sendMessage(`✅ Successfully unblocked ${targetName}.`, threadID);
             } else {
                 return api.sendMessage(`⚠️ User is not blocked.`, threadID);
             }
-        }
-        
-        else {
+        } else {
             return api.sendMessage(
                 `❌ Unknown action: ${action}\n\n` +
-                `Usage:\n` +
-                `• ${actualPrefix}${commandName} -a @user : Block user\n` +
-                `• ${actualPrefix}${commandName} -r @user : Unblock user\n` +
-                `• ${actualPrefix}${commandName} -l       : List blocked users`,
+                    `Usage:\n` +
+                    `• ${actualPrefix}${commandName} -a @user : Block user\n` +
+                    `• ${actualPrefix}${commandName} -r @user : Unblock user\n` +
+                    `• ${actualPrefix}${commandName} -l       : List blocked users`,
                 threadID
             );
         }
-    }
+    },
 };

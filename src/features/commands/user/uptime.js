@@ -61,48 +61,49 @@ module.exports = {
      * @param {Object} context - Command context
      */
     async execute({ api, event, config }) {
-    const threadID = event.threadID;
-    const messageID = event.messageID ? String(event.messageID) : null;
+        const threadID = event.threadID;
+        const messageID = event.messageID ? String(event.messageID) : null;
 
-    const uptimeSeconds = process.uptime();
-    const time = formatTime(uptimeSeconds);
+        const uptimeSeconds = process.uptime();
+        const time = formatTime(uptimeSeconds);
 
-    // Create progress bars (relative to day)
-    const hoursBar = createProgressBar(time.hours, 24);
-    const minutesBar = createProgressBar(time.minutes, 60);
-    const secondsBar = createProgressBar(time.seconds, 60);
+        // Create progress bars (relative to day)
+        const hoursBar = createProgressBar(time.hours, 24);
+        const minutesBar = createProgressBar(time.minutes, 60);
+        const secondsBar = createProgressBar(time.seconds, 60);
 
-    // Calculate percentage of day
-    const percentOfDay = (((uptimeSeconds % 86400) / 86400) * 100).toFixed(1);
+        // Calculate percentage of day
+        const percentOfDay = (((uptimeSeconds % 86400) / 86400) * 100).toFixed(1);
 
-    // Get start time
-    const startTime = new Date(Date.now() - uptimeSeconds * 1000);
-    const startTimeStr = startTime.toLocaleString();
+        // Get start time
+        const startTime = new Date(Date.now() - uptimeSeconds * 1000);
+        const startTimeStr = startTime.toLocaleString();
 
-    const response = `⏰ ${config.bot.name} Uptime
-
-` +
-        `📅 Days: ${time.days}
-` +
-        `⏱️ Hours: ${time.hours.toString().padStart(2, "0")}
-` +
-        `${hoursBar} ${time.hours}/24h
+        const response =
+            `⏰ ${config.bot.name} Uptime
 
 ` +
-        `⏱️ Minutes: ${time.minutes.toString().padStart(2, "0")}
+            `📅 Days: ${time.days}
 ` +
-        `${minutesBar} ${time.minutes}/60m
+            `⏱️ Hours: ${time.hours.toString().padStart(2, "0")}
+` +
+            `${hoursBar} ${time.hours}/24h
 
 ` +
-        `⏱️ Seconds: ${time.seconds.toString().padStart(2, "0")}
+            `⏱️ Minutes: ${time.minutes.toString().padStart(2, "0")}
 ` +
-        `${secondsBar} ${time.seconds}/60s
+            `${minutesBar} ${time.minutes}/60m
 
 ` +
-        `📊 Day Progress: ${percentOfDay}%
+            `⏱️ Seconds: ${time.seconds.toString().padStart(2, "0")}
 ` +
-        `🚀 Started: ${startTimeStr}`;
+            `${secondsBar} ${time.seconds}/60s
 
-    api.sendMessage(response, threadID, messageID);
+` +
+            `📊 Day Progress: ${percentOfDay}%
+` +
+            `🚀 Started: ${startTimeStr}`;
+
+        api.sendMessage(response, threadID, messageID);
     },
 };

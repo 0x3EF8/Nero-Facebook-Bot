@@ -133,23 +133,26 @@ module.exports = {
 
         // Show usage if no arguments
         if (args.length === 0) {
-            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : "";
             const commandName = this.config.name;
             return api.sendMessage(
                 "🧹 **Clean Command**\n\n" +
-                "Delete conversations from your inbox.\n\n" +
-                "⚠️ **WARNING:** This is destructive and cannot be undone!\n\n" +
-                "**Usage:**\n" +
-                `• 
+                    "Delete conversations from your inbox.\n\n" +
+                    "⚠️ **WARNING:** This is destructive and cannot be undone!\n\n" +
+                    "**Usage:**\n" +
+                    `• 
 ${actualPrefix}${commandName} all confirm
  - Delete ALL threads
-` +                `• 
+` +
+                    `• 
 ${actualPrefix}${commandName} groups confirm
  - Delete groups only
-` +                `• 
+` +
+                    `• 
 ${actualPrefix}${commandName} dms confirm
  - Delete DMs only
-` +                `• 
+` +
+                    `• 
 ${actualPrefix}${commandName} list
  - Preview threads before deleting`,
                 threadID,
@@ -168,11 +171,11 @@ ${actualPrefix}${commandName} list
 
         // Validate filter
         if (!["all", "groups", "dms"].includes(filterArg)) {
-            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : "";
             const commandName = this.config.name;
             return api.sendMessage(
                 "❌ Invalid option.\n\n" +
-                `Use: 
+                    `Use: 
 ${actualPrefix}${commandName} all
 , 
 ${actualPrefix}${commandName} groups
@@ -186,18 +189,22 @@ ${actualPrefix}${commandName} dms
 
         // Require confirmation
         if (confirmArg !== "confirm") {
-            const filterText = filterArg === "all" ? "ALL threads" :
-                filterArg === "groups" ? "all GROUPS" : "all DMs";
-            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+            const filterText =
+                filterArg === "all"
+                    ? "ALL threads"
+                    : filterArg === "groups"
+                      ? "all GROUPS"
+                      : "all DMs";
+            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : "";
             const commandName = this.config.name;
 
             return api.sendMessage(
                 `⚠️ **Confirmation Required**\n\n` +
-                `You are about to delete ${filterText}.\n\n` +
-                `This action CANNOT be undone!\n\n` +
-                `To confirm, type:
+                    `You are about to delete ${filterText}.\n\n` +
+                    `This action CANNOT be undone!\n\n` +
+                    `To confirm, type:
 ` +
-                `
+                    `
 ${actualPrefix}${commandName} ${filterArg} confirm
 `,
                 threadID,
@@ -210,29 +217,21 @@ ${actualPrefix}${commandName} ${filterArg} confirm
             const threads = await fetchThreads(api, filterArg);
 
             if (threads.length === 0) {
-                return api.sendMessage(
-                    "📭 No threads found to delete.",
-                    threadID,
-                    messageID
-                );
+                return api.sendMessage("📭 No threads found to delete.", threadID, messageID);
             }
 
             // Filter out current thread
             const targetThreads = threads.filter((t) => t.threadID !== threadID);
 
             if (targetThreads.length === 0) {
-                return api.sendMessage(
-                    "📭 No other threads to delete.",
-                    threadID,
-                    messageID
-                );
+                return api.sendMessage("📭 No other threads to delete.", threadID, messageID);
             }
 
             // Send status
             const statusMsg = await api.sendMessage(
                 `🧹 **Starting cleanup...**\n\n` +
-                `📋 Threads to delete: ${targetThreads.length}\n\n` +
-                `⏳ This may take a while...`,
+                    `📋 Threads to delete: ${targetThreads.length}\n\n` +
+                    `⏳ This may take a while...`,
                 threadID
             );
 
@@ -250,8 +249,11 @@ ${actualPrefix}${commandName} ${filterArg} confirm
                 try {
                     await api.deleteThread(thread.threadID);
                     successCount++;
-                    
-                    logger?.debug?.("Clean", `Deleted: ${getThreadName(thread)} (${thread.threadID})`);
+
+                    logger?.debug?.(
+                        "Clean",
+                        `Deleted: ${getThreadName(thread)} (${thread.threadID})`
+                    );
                 } catch (error) {
                     failCount++;
                     failedThreads.push({
@@ -259,7 +261,7 @@ ${actualPrefix}${commandName} ${filterArg} confirm
                         id: thread.threadID,
                         error: error.message,
                     });
-                    
+
                     logger?.debug?.("Clean", `Failed: ${getThreadName(thread)} - ${error.message}`);
                 }
 
@@ -280,7 +282,7 @@ ${actualPrefix}${commandName} ${filterArg} confirm
             }
 
             // Send results
-            let resultMessage = 
+            let resultMessage =
                 `✅ **Cleanup Complete**\n\n` +
                 `🗑️ Deleted: ${successCount}/${targetThreads.length}`;
 
@@ -291,7 +293,6 @@ ${actualPrefix}${commandName} ${filterArg} confirm
             logger?.success?.("Clean", `Completed: ${successCount} deleted, ${failCount} failed`);
 
             return api.sendMessage(resultMessage, threadID, messageID);
-
         } catch (error) {
             activeCleans.delete(senderID);
             logger?.error?.("Clean", `Error: ${error.message}`);
@@ -310,7 +311,7 @@ ${actualPrefix}${commandName} ${filterArg} confirm
      * @param {Object} event - Event object
      * @param {string} filter - Filter type
      */
-    async listThreads(api, event, filter, config) {
+    async listThreads(api, event, filter, _config) {
         const threadID = event.threadID;
         const messageID = event.messageID;
 
@@ -354,7 +355,6 @@ ${actualPrefix}${commandName} ${filterArg} confirm
             list += `\n⚠️ Total to delete: ${deletable.length}`;
 
             return api.sendMessage(list, threadID, messageID);
-
         } catch (error) {
             return api.sendMessage(
                 `❌ Failed to fetch threads: ${error.message}`,

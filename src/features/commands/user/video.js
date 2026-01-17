@@ -44,11 +44,14 @@ async function attemptVideoDownload(api, threadID, messageID, query, downloadDir
             try {
                 const info = await youtube.getInfo(video.id);
                 const dur = info.basic_info.duration;
-                if (dur > 0 && dur <= 600) { // Max 10 mins
+                if (dur > 0 && dur <= 600) {
+                    // Max 10 mins
                     selectedVideo = video;
                     break;
                 }
-            } catch { continue; }
+            } catch {
+                continue;
+            }
         }
 
         if (!selectedVideo) return false;
@@ -56,7 +59,7 @@ async function attemptVideoDownload(api, threadID, messageID, query, downloadDir
         const videoTitle = selectedVideo.title.text;
         const channelName = selectedVideo.author?.name || "Unknown";
         const duration = selectedVideo.duration?.text || "Unknown";
-        
+
         console.log(chalk.cyan(`🎬 Downloading: ${videoTitle}`));
 
         const sanitizedTitle = videoTitle.replace(/[/\\?%*:|"<>]/g, "-").slice(0, 50);
@@ -75,11 +78,19 @@ async function attemptVideoDownload(api, threadID, messageID, query, downloadDir
                 const fileStream = fs.createWriteStream(videoPath);
                 for await (const chunk of Utils.streamToIterable(stream)) fileStream.write(chunk);
                 fileStream.end();
-                await new Promise(resolve => { fileStream.on("finish", resolve); });
+                await new Promise((resolve) => {
+                    fileStream.on("finish", resolve);
+                });
                 downloadSuccess = true;
                 break;
             } catch {
-                if (fs.existsSync(videoPath)) try { fs.unlinkSync(videoPath); } catch { /* ignore */ }
+                if (fs.existsSync(videoPath)) {
+                    try {
+                        fs.unlinkSync(videoPath);
+                    } catch {
+                        /* ignore */
+                    }
+                }
             }
         }
 
@@ -92,22 +103,35 @@ async function attemptVideoDownload(api, threadID, messageID, query, downloadDir
         }
 
         // Upload
-        api.setMessageReaction("🔃", messageID, () => {}, true);
-        await api.sendMessage({
-            body: `🎬 ${videoTitle}\n👤 ${channelName}\n⏱️ ${duration}`,
-            attachment: fs.createReadStream(videoPath),
-        }, threadID, messageID);
+        api.setMessageReaction("🔃", messageID, () => { }, true);
+        await api.sendMessage(
+            {
+                body: `🎬 ${videoTitle}\n👤 ${channelName}\n⏱️ ${duration}`,
+                attachment: fs.createReadStream(videoPath),
+            },
+            threadID,
+            messageID
+        );
 
-        api.setMessageReaction("✅", messageID, () => {}, true);
+        api.setMessageReaction("✅", messageID, () => { }, true);
         console.log(chalk.green(`✓ Video sent: ${videoTitle}`));
 
         // Cleanup
-        setTimeout(() => { if (fs.existsSync(videoPath)) fs.unlinkSync(videoPath); }, 5000);
+        setTimeout(() => {
+            if (fs.existsSync(videoPath)) {
+                fs.unlinkSync(videoPath);
+            }
+        }, 5000);
         return true;
-
     } catch (error) {
         console.error(`Video download helper failed: ${error.message}`);
-        if (videoPath && fs.existsSync(videoPath)) try { fs.unlinkSync(videoPath); } catch { /* ignore */ }
+        if (videoPath && fs.existsSync(videoPath)) {
+            try {
+                fs.unlinkSync(videoPath);
+            } catch {
+                /* ignore */
+            }
+        }
         return false;
     }
 }
@@ -145,14 +169,14 @@ module.exports = {
         const downloadDir = path.join(process.cwd(), "data", "temp");
         if (!fs.existsSync(downloadDir)) fs.mkdirSync(downloadDir, { recursive: true });
 
-        api.setMessageReaction("⏳", messageID, () => {}, true);
-       // api.sendMessage(`🔎 Searching for "${query}"...`, threadID, messageID);
+        api.setMessageReaction("⏳", messageID, () => { }, true);
+        // api.sendMessage(`🔎 Searching for "${query}"...`, threadID, messageID);
 
         // Retry Strategy
         const queries = [
-            query,                          // Attempt 1: Raw query
-            `${query} short`,               // Attempt 2: Short version
-            `${query} clip`                 // Attempt 3: Clip
+            query, // Attempt 1: Raw query
+            `${query} short`, // Attempt 2: Short version
+            `${query} clip`, // Attempt 3: Clip
         ];
 
         // Deduplicate queries
@@ -162,16 +186,26 @@ module.exports = {
             const currentQuery = uniqueQueries[i];
             if (i > 0) console.log(chalk.yellow(`⚠ Retry ${i}: "${currentQuery}"`));
 
-            const success = await attemptVideoDownload(api, threadID, messageID, currentQuery, downloadDir);
+            const success = await attemptVideoDownload(
+                api,
+                threadID,
+                messageID,
+                currentQuery,
+                downloadDir
+            );
             if (success) return;
-            
-            await new Promise(resolve => { setTimeout(resolve, 1000); });
+
+            await new Promise((resolve) => {
+                setTimeout(resolve, 1000);
+            });
         }
 
         // All failed
-        api.setMessageReaction("❌", messageID, () => {}, true);
-        return api.sendMessage("❌ Failed to download video after multiple attempts.", threadID, messageID);
-    }
+        api.setMessageReaction("❌", messageID, () => { }, true);
+        return api.sendMessage(
+            "❌ Failed to download video after multiple attempts.",
+            threadID,
+            messageID
+        );
+    },
 };
-
-

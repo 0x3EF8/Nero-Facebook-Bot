@@ -12,14 +12,14 @@ module.exports = function (defaultFuncs, api, ctx) {
             rejectFunc = reject;
         });
 
-        if (utils.getType(form) == "Function" || utils.getType(form) == "AsyncFunction") {
+        if (utils.getType(form) === "Function" || utils.getType(form) === "AsyncFunction") {
             callback = form;
             form = {};
         }
 
         if (
-            utils.getType(customHeader) == "Function" ||
-            utils.getType(customHeader) == "AsyncFunction"
+            utils.getType(customHeader) === "Function" ||
+            utils.getType(customHeader) === "AsyncFunction"
         ) {
             callback = customHeader;
             customHeader = {};
@@ -27,7 +27,7 @@ module.exports = function (defaultFuncs, api, ctx) {
 
         customHeader = customHeader || {};
 
-        if (utils.getType(callback) == "Boolean") {
+        if (utils.getType(callback) === "Boolean") {
             notAPI = callback;
             callback = null;
         }

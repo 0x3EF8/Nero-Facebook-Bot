@@ -34,11 +34,11 @@ module.exports = {
      * Command execution function
      * @param {Object} context - Command context
      */
-    async execute({ api, event, args, prefix }) {
+    async execute({ api, event, args, _prefix, config }) {
         const { threadID, messageID } = event;
 
         if (args.length === 0) {
-            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : "";
             const commandName = this.config.name;
             return api.sendMessage(
                 `⚠️ Please provide a query.\nExample: ${actualPrefix}${commandName} Explain quantum physics`,
@@ -79,11 +79,10 @@ Instructions:
             // Send response
             api.setMessageReaction("✅", messageID, () => {}, true);
             return api.sendMessage(responseText.trim(), threadID, messageID);
-
         } catch (error) {
             console.error("AI Command Error:", error);
             api.setMessageReaction("❌", messageID, () => {}, true);
-            
+
             let errorMessage = "❌ An error occurred while processing your request.";
             if (error.message?.includes("quota") || error.message?.includes("429")) {
                 errorMessage = "❌ AI usage limit reached. Please try again later.";

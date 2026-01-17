@@ -77,16 +77,16 @@ const COMMAND_PATTERNS = {
     nicknameClear: /NICKNAME_CLEAR:\s*(\d+)/i,
     nicknameClearAll: /NICKNAME_CLEAR_ALL/i,
     nicknameChange: /NICKNAME_CHANGE:\s*(\d+)\s*\|\s*(.+)/i,
-    
+
     // Media
     musicDownload: /MUSIC_DOWNLOAD:\s*(.+)/i,
     musicSuggestion: /MUSIC_SUGGESTION:\s*(.+?)\s*\|\s*(.+)/i,
     videoDownload: /VIDEO_DOWNLOAD:\s*(.+)/i,
-    
+
     // Utilities
     weatherCheck: /WEATHER_CHECK:\s*(.+)/i,
     datetimeCheck: /DATETIME_CHECK/i,
-    
+
     // Pairing
     pairMe: /PAIR_ME/i,
     pairWith: /PAIR_WITH/i,

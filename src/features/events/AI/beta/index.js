@@ -67,7 +67,7 @@ module.exports.execute = async function ({ api, event, logger }) {
     // ─────────────────────────────────────────────────────────────────────────
     // VALIDATION
     // ─────────────────────────────────────────────────────────────────────────
-    
+
     if (!text || typeof text !== "string") return;
 
     const botID = api.getCurrentUserID?.() || config.botID;
@@ -76,17 +76,17 @@ module.exports.execute = async function ({ api, event, logger }) {
     // ─────────────────────────────────────────────────────────────────────────
     // ACTIVATION CHECK
     // ─────────────────────────────────────────────────────────────────────────
-    
-    const isMentioned = AI_IDENTITY.triggerPatterns.some(pattern => pattern.test(text));
-    const isReplyToBeta = event.type === "message_reply" && 
-                          memory.isBetaMessage(event.messageReply?.messageID);
+
+    const isMentioned = AI_IDENTITY.triggerPatterns.some((pattern) => pattern.test(text));
+    const isReplyToBeta =
+        event.type === "message_reply" && memory.isBetaMessage(event.messageReply?.messageID);
 
     if (!isMentioned && !isReplyToBeta) return;
 
     // ─────────────────────────────────────────────────────────────────────────
     // PREPROCESSING
     // ─────────────────────────────────────────────────────────────────────────
-    
+
     let cleanText = text;
     for (const pattern of AI_IDENTITY.triggerPatterns) {
         cleanText = cleanText.replace(new RegExp(pattern, "gi"), "").trim();
@@ -99,7 +99,7 @@ module.exports.execute = async function ({ api, event, logger }) {
     // ─────────────────────────────────────────────────────────────────────────
     // MAIN PROCESSING
     // ─────────────────────────────────────────────────────────────────────────
-    
+
     try {
         setReaction(api, messageID, REACTIONS.loading);
         logger.debug("BetaAI", `Processing: "${truncate(cleanText, 50)}"`);
@@ -114,8 +114,13 @@ module.exports.execute = async function ({ api, event, logger }) {
 
         // Build prompt & generate response
         const prompt = await buildPrompt({
-            api, _event: event, text: cleanText,
-            userName, threadID, senderID, images,
+            api,
+            _event: event,
+            text: cleanText,
+            userName,
+            threadID,
+            senderID,
+            images,
         });
 
         const result = await gemini.generate(prompt, images);
@@ -129,10 +134,16 @@ module.exports.execute = async function ({ api, event, logger }) {
         // ─────────────────────────────────────────────────────────────────────
         // COMMAND DETECTION & RESPONSE
         // ─────────────────────────────────────────────────────────────────────
-        
+
         const handled = await handleCommands({
-            api, _event: event, response: responseText,
-            text: cleanText, threadID, senderID, userName, messageID,
+            api,
+            _event: event,
+            response: responseText,
+            text: cleanText,
+            threadID,
+            senderID,
+            userName,
+            messageID,
         });
 
         if (handled) return;
@@ -145,7 +156,6 @@ module.exports.execute = async function ({ api, event, logger }) {
             memory.trackBetaMessage(sentMessage.messageID);
         }
         memory.updateChat(threadID, AI_IDENTITY.name, responseText.trim());
-
     } catch (error) {
         handleError(api, event, error, logger);
     }
@@ -185,7 +195,7 @@ async function extractImages(event) {
  * Set message reaction safely
  */
 function setReaction(api, messageID, reaction) {
-    api.setMessageReaction(reaction, messageID, () => {}, true);
+    api.setMessageReaction(reaction, messageID, () => { }, true);
 }
 
 /**
@@ -200,15 +210,16 @@ function truncate(str, length) {
  */
 function handleError(api, event, error, logger) {
     const { threadID, messageID } = event;
-    
+
     logger.error("BetaAI", `Error: ${error.message}`);
     logger.debug("BetaAI", error.stack);
     setReaction(api, messageID, REACTIONS.error);
 
     const errorStr = error.message || "";
-    const errorMsg = (errorStr.includes("429") || errorStr.includes("quota"))
-        ? MESSAGES.rateLimited
-        : MESSAGES.error;
+    const errorMsg =
+        errorStr.includes("429") || errorStr.includes("quota")
+            ? MESSAGES.rateLimited
+            : MESSAGES.error;
 
     api.sendMessage(errorMsg, threadID, messageID);
 }

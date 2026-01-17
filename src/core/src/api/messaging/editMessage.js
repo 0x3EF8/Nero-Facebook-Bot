@@ -6,14 +6,16 @@
 //fixed march 30
 const utils = require("../../lib/utils");
 
+/*
 function canBeCalled(func) {
     try {
         Reflect.apply(func, null, []);
         return true;
-    } catch (error) {
+    } catch (_error) {
         return false;
     }
 }
+*/
 
 /**
  * A function for editing bot's messages.
@@ -23,7 +25,7 @@ function canBeCalled(func) {
  */
 
 module.exports = function (defaultFuncs, api, ctx) {
-    return async function editMessage(text, messageID, callback) {
+    return async function editMessage(text, messageID, _callback) {
         if (!ctx.mqttClient) {
             throw new Error("Not connected to MQTT");
         }

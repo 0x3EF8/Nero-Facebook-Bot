@@ -54,115 +54,123 @@ module.exports = {
      * @param {Object} context - Command context
      */
     async execute({ api, event, args, config }) {
-    const threadID = event.threadID;
+        const threadID = event.threadID;
 
-    // Check if in a group
-    if (!event.isGroup) {
-        return api.sendMessage(`❌ This command can only be used in group chats!`, threadID);
-    }
+        // Check if in a group
+        if (!event.isGroup) {
+            return api.sendMessage(`❌ This command can only be used in group chats!`, threadID);
+        }
 
-    // Check if args are provided
-            if (args.length === 0) {
-                const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
-                const commandName = this.config.name;
-                return api.sendMessage(
-                    `📊 **Poll Command**\n\n` +
-                        `Create a poll for group members to vote on!\n\n` +
-                        `📖 Usage:\n` +
-                        `• ${actualPrefix}${commandName} <question> - <option1> - <option2> - [option3]...\n\n` +
-                        `📝 Examples:\n` +
-                        `• ${actualPrefix}${commandName} What's for dinner? - Pizza - Burger - Sushi\n` +
-                        `• ${actualPrefix}${commandName} Meeting time? - 10 AM - 2 PM - 4 PM - 6 PM\n` +
-                        `• ${actualPrefix}${commandName} Best programming language? - JavaScript - Python - Rust\n\n` +
-                        `💡 Tips:\n` +
-                        `• Use - (dash) to separate question and options\n` +
-                        `• Minimum 2 options required\n` +
-                        `• Maximum 10 options recommended`,
-                    threadID
-                );
-            }
-    // Parse the input
-    const input = args.join(" ");
-    const parsed = parsePollInput(input);
-
-    if (!parsed) {
-        const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
-        const commandName = this.config.name;
-        return api.sendMessage(
-            `❌ Invalid poll format!\n\n` +
-                `Please use: ${actualPrefix}${commandName} <question> - <option1> - <option2> - ...\n\n` +
-                `Example: ${actualPrefix}${commandName} What's for lunch? - Pizza - Burger - Salad`,
-            threadID
-        );
-    }
-
-    const { question, options } = parsed;
-
-    // Validate options count
-    if (options.length < 2) {
-        return api.sendMessage(
-            `❌ A poll needs at least 2 options!\n\n` + `You provided: ${options.length} option(s)`,
-            threadID
-        );
-    }
-
-    if (options.length > 10) {
-        return api.sendMessage(
-            `❌ Too many options! Maximum is 10.\n\n` + `You provided: ${options.length} options`,
-            threadID
-        );
-    }
-
-    // Validate question length
-    if (question.length > 500) {
-        return api.sendMessage(
-            `❌ Question is too long! Maximum 500 characters.\n\n` +
-                `Your question: ${question.length} characters`,
-            threadID
-        );
-    }
-
-    // Validate option lengths
-    for (let i = 0; i < options.length; i++) {
-        if (options[i].length > 100) {
+        // Check if args are provided
+        if (args.length === 0) {
+            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : "";
+            const commandName = this.config.name;
             return api.sendMessage(
-                `❌ Option ${i + 1} is too long! Maximum 100 characters.\n\n` +
-                    `"${options[i].substring(0, 50)}..." (${options[i].length} characters)`,
+                `📊 **Poll Command**\n\n` +
+                    `Create a poll for group members to vote on!\n\n` +
+                    `📖 Usage:\n` +
+                    `• ${actualPrefix}${commandName} <question> - <option1> - <option2> - [option3]...\n\n` +
+                    `📝 Examples:\n` +
+                    `• ${actualPrefix}${commandName} What's for dinner? - Pizza - Burger - Sushi\n` +
+                    `• ${actualPrefix}${commandName} Meeting time? - 10 AM - 2 PM - 4 PM - 6 PM\n` +
+                    `• ${actualPrefix}${commandName} Best programming language? - JavaScript - Python - Rust\n\n` +
+                    `💡 Tips:\n` +
+                    `• Use - (dash) to separate question and options\n` +
+                    `• Minimum 2 options required\n` +
+                    `• Maximum 10 options recommended`,
                 threadID
             );
         }
-    }
+        // Parse the input
+        const input = args.join(" ");
+        const parsed = parsePollInput(input);
 
-    // Check if createPoll exists
-    if (!api.createPoll) {
-        return api.sendMessage(`❌ Poll creation is not available in this API version.`, threadID);
-    }
+        if (!parsed) {
+            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : "";
+            const commandName = this.config.name;
+            return api.sendMessage(
+                `❌ Invalid poll format!\n\n` +
+                    `Please use: ${actualPrefix}${commandName} <question> - <option1> - <option2> - ...\n\n` +
+                    `Example: ${actualPrefix}${commandName} What's for lunch? - Pizza - Burger - Salad`,
+                threadID
+            );
+        }
 
-    // Format options for the API
-    const pollOptions = options.map((text) => ({ text }));
+        const { question, options } = parsed;
 
-    try {
-        // Create the poll - the poll itself will appear in chat
-        await api.createPoll(threadID, question, pollOptions);
+        // Validate options count
+        if (options.length < 2) {
+            return api.sendMessage(
+                `❌ A poll needs at least 2 options!\n\n` +
+                    `You provided: ${options.length} option(s)`,
+                threadID
+            );
+        }
 
-        // No confirmation message needed - the poll shows up directly
-    } catch (error) {
-        console.error("[Poll] Error:", error);
+        if (options.length > 10) {
+            return api.sendMessage(
+                `❌ Too many options! Maximum is 10.\n\n` +
+                    `You provided: ${options.length} options`,
+                threadID
+            );
+        }
 
-        let errorMessage = "Unknown error occurred";
+        // Validate question length
+        if (question.length > 500) {
+            return api.sendMessage(
+                `❌ Question is too long! Maximum 500 characters.\n\n` +
+                    `Your question: ${question.length} characters`,
+                threadID
+            );
+        }
 
-        if (error) {
-            if (typeof error === "string") {
-                errorMessage = error;
-            } else if (error.message) {
-                errorMessage = error.message;
-            } else if (error.error) {
-                errorMessage =
-                    typeof error.error === "string" ? error.error : JSON.stringify(error.error);
+        // Validate option lengths
+        for (let i = 0; i < options.length; i++) {
+            if (options[i].length > 100) {
+                return api.sendMessage(
+                    `❌ Option ${i + 1} is too long! Maximum 100 characters.\n\n` +
+                        `"${options[i].substring(0, 50)}..." (${options[i].length} characters)`,
+                    threadID
+                );
             }
         }
 
-        await api.sendMessage(`❌ Failed to create poll!\n\n` + `Error: ${errorMessage}`, threadID);
-    }
+        // Check if createPoll exists
+        if (!api.createPoll) {
+            return api.sendMessage(
+                `❌ Poll creation is not available in this API version.`,
+                threadID
+            );
+        }
+
+        // Format options for the API
+        const pollOptions = options.map((text) => ({ text }));
+
+        try {
+            // Create the poll - the poll itself will appear in chat
+            await api.createPoll(threadID, question, pollOptions);
+
+            // No confirmation message needed - the poll shows up directly
+        } catch (error) {
+            console.error("[Poll] Error:", error);
+
+            let errorMessage = "Unknown error occurred";
+
+            if (error) {
+                if (typeof error === "string") {
+                    errorMessage = error;
+                } else if (error.message) {
+                    errorMessage = error.message;
+                } else if (error.error) {
+                    errorMessage =
+                        typeof error.error === "string" ? error.error : JSON.stringify(error.error);
+                }
+            }
+
+            await api.sendMessage(
+                `❌ Failed to create poll!\n\n` + `Error: ${errorMessage}`,
+                threadID
+            );
+        }
     },
 };

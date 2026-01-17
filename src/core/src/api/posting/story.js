@@ -1,6 +1,6 @@
 "use strict";
 
-const utils = require("../../lib/utils");
+const _utils = require("../../lib/utils");
 const { URL } = require("url");
 
 /**
@@ -24,7 +24,7 @@ module.exports = function (defaultFuncs, api, ctx) {
                 return pathParts[storiesIndex + 2];
             }
             return null;
-        } catch (e) {
+        } catch (_e) {
             return null;
         }
     }
@@ -55,15 +55,15 @@ module.exports = function (defaultFuncs, api, ctx) {
             );
 
             const responseText = res.body.toString();
-            
+
             // Parse response - Facebook returns "for (;;);{json}"
             let jsonStr = responseText;
             if (responseText.startsWith("for (;;);")) {
                 jsonStr = responseText.slice(9);
             }
-            
+
             const data = JSON.parse(jsonStr);
-            
+
             if (data.payload && data.payload.photoID) {
                 return data.payload.photoID;
             }
@@ -95,67 +95,64 @@ module.exports = function (defaultFuncs, api, ctx) {
      * @returns {Promise<object>} The server's response.
      */
     async function sendStoryReply(storyIdOrUrl, message, isReaction) {
-        try {
-            const allowedReactions = ["❤️", "👍", "🤗", "😆", "😡", "😢", "😮"];
+        const allowedReactions = ["❤️", "👍", "🤗", "😆", "😡", "😢", "😮"];
 
-            if (!storyIdOrUrl) throw new Error("Story ID or URL is required.");
-            if (!message) throw new Error("A message or reaction is required.");
+        if (!storyIdOrUrl) throw new Error("Story ID or URL is required.");
+        if (!message) throw new Error("A message or reaction is required.");
 
-            let storyID = getStoryIDFromURL(storyIdOrUrl);
-            if (!storyID) storyID = storyIdOrUrl;
+        let storyID = getStoryIDFromURL(storyIdOrUrl);
+        if (!storyID) storyID = storyIdOrUrl;
 
-            const variables = {
-                input: {
-                    attribution_id_v2:
-                        "StoriesCometSuspenseRoot.react,comet.stories.viewer,via_cold_start",
-                    message: message,
-                    story_id: storyID,
-                    story_reply_type: isReaction ? "LIGHT_WEIGHT" : "TEXT",
-                    actor_id: ctx.userID,
-                    client_mutation_id: Math.floor(Math.random() * 10 + 1).toString(),
-                },
-            };
+        const variables = {
+            input: {
+                attribution_id_v2:
+                    "StoriesCometSuspenseRoot.react,comet.stories.viewer,via_cold_start",
+                message: message,
+                story_id: storyID,
+                story_reply_type: isReaction ? "LIGHT_WEIGHT" : "TEXT",
+                actor_id: ctx.userID,
+                client_mutation_id: Math.floor(Math.random() * 10 + 1).toString(),
+            },
+        };
 
-            if (isReaction) {
-                if (!allowedReactions.includes(message)) {
-                    throw new Error(
-                        `Invalid reaction. Please use one of: ${allowedReactions.join(" ")}`
-                    );
-                }
-                variables.input.lightweight_reaction_actions = {
-                    offsets: [0],
-                    reaction: message,
-                };
+        if (isReaction) {
+            if (!allowedReactions.includes(message)) {
+                throw new Error(
+                    `Invalid reaction. Please use one of: ${allowedReactions.join(" ")}`
+                );
             }
-
-            const form = {
-                av: ctx.userID,
-                __user: ctx.userID,
-                __a: "1",
-                fb_dtsg: ctx.fb_dtsg,
-                jazoest: ctx.jazoest,
-                fb_api_caller_class: "RelayModern",
-                fb_api_req_friendly_name: "useStoriesSendReplyMutation",
-                variables: JSON.stringify(variables),
-                doc_id: "9697491553691692",
+            variables.input.lightweight_reaction_actions = {
+                offsets: [0],
+                reaction: message,
             };
-
-            const res = await defaultFuncs.post(
-                "https://www.facebook.com/api/graphql/",
-                ctx.jar,
-                form,
-                {}
-            );
-            if (res.data.errors) throw new Error(JSON.stringify(res.data.errors));
-
-            const storyReplyData = res.data?.data?.direct_message_reply;
-            if (!storyReplyData)
-                throw new Error("Could not find 'direct_message_reply' in the response data.");
-
-            return { success: true, result: storyReplyData };
-        } catch (err) {
-            throw err;
         }
+
+        const form = {
+            av: ctx.userID,
+            __user: ctx.userID,
+            __a: "1",
+            fb_dtsg: ctx.fb_dtsg,
+            jazoest: ctx.jazoest,
+            fb_api_caller_class: "RelayModern",
+            fb_api_req_friendly_name: "useStoriesSendReplyMutation",
+            variables: JSON.stringify(variables),
+            doc_id: "9697491553691692",
+        };
+
+        const res = await defaultFuncs.post(
+            "https://www.facebook.com/api/graphql/",
+            ctx.jar,
+            form,
+            {}
+        );
+        if (res.data.errors) throw new Error(JSON.stringify(res.data.errors));
+
+        const storyReplyData = res.data?.data?.direct_message_reply;
+        if (!storyReplyData) {
+            throw new Error("Could not find 'direct_message_reply' in the response data.");
+        }
+
+        return { success: true, result: storyReplyData };
     }
 
     /**
@@ -208,25 +205,22 @@ module.exports = function (defaultFuncs, api, ctx) {
             doc_id: "24226878183562473",
         };
 
-        try {
-            const res = await defaultFuncs.post(
-                "https://www.facebook.com/api/graphql/",
-                ctx.jar,
-                form,
-                {}
-            );
-            if (res.data.errors) throw new Error(JSON.stringify(res.data.errors));
+        const res = await defaultFuncs.post(
+            "https://www.facebook.com/api/graphql/",
+            ctx.jar,
+            form,
+            {}
+        );
+        if (res.data.errors) throw new Error(JSON.stringify(res.data.errors));
 
-            const storyNode =
-                res.data?.data?.story_create?.viewer?.actor?.story_bucket?.nodes[0]
-                    ?.first_story_to_show;
-            if (!storyNode || !storyNode.id)
-                throw new Error("Could not find the storyCardID in the response.");
-
-            return { success: true, storyID: storyNode.id };
-        } catch (error) {
-            throw error;
+        const storyNode =
+            res.data?.data?.story_create?.viewer?.actor?.story_bucket?.nodes[0]
+                ?.first_story_to_show;
+        if (!storyNode || !storyNode.id) {
+            throw new Error("Could not find the storyCardID in the response.");
         }
+
+        return { success: true, storyID: storyNode.id };
     }
 
     /**
@@ -236,86 +230,84 @@ module.exports = function (defaultFuncs, api, ctx) {
      * @returns {Promise<{success: boolean, storyID: string}>} A promise that resolves with the new story's ID.
      */
     async function createPhoto(attachment, caption = "") {
-        try {
-            // Handle single or multiple attachments
-            const attachments = Array.isArray(attachment) ? attachment : [attachment];
-            
-            if (attachments.length === 0) {
-                throw new Error("At least one image attachment is required.");
-            }
+        // Handle single or multiple attachments
+        const attachments = Array.isArray(attachment) ? attachment : [attachment];
 
-            // Upload the first image (Facebook stories typically use one image)
-            const photoID = await uploadStoryMedia(attachments[0]);
-            
-            if (!photoID) {
-                throw new Error("Failed to upload image for story.");
-            }
+        if (attachments.length === 0) {
+            throw new Error("At least one image attachment is required.");
+        }
 
-            const variables = {
-                input: {
-                    audiences: [{ stories: { self: { target_id: ctx.userID } } }],
-                    audiences_is_complete: true,
-                    logging: { composer_session_id: "createStoriesPhoto-" + Date.now() },
-                    navigation_data: {
-                        attribution_id_v2: "StoriesCreateRoot.react,comet.stories.create",
-                    },
-                    source: "WWW",
-                    tracking: [null],
-                    actor_id: ctx.userID,
-                    client_mutation_id: Math.floor(Math.random() * 1000000).toString(),
-                    media: [{
+        // Upload the first image (Facebook stories typically use one image)
+        const photoID = await uploadStoryMedia(attachments[0]);
+
+        if (!photoID) {
+            throw new Error("Failed to upload image for story.");
+        }
+
+        const variables = {
+            input: {
+                audiences: [{ stories: { self: { target_id: ctx.userID } } }],
+                audiences_is_complete: true,
+                logging: { composer_session_id: "createStoriesPhoto-" + Date.now() },
+                navigation_data: {
+                    attribution_id_v2: "StoriesCreateRoot.react,comet.stories.create",
+                },
+                source: "WWW",
+                tracking: [null],
+                actor_id: ctx.userID,
+                client_mutation_id: Math.floor(Math.random() * 1000000).toString(),
+                media: [
+                    {
                         photo: {
                             id: photoID,
-                        }
-                    }],
-                },
-            };
+                        },
+                    },
+                ],
+            },
+        };
 
-            // Add caption/text overlay if provided
-            if (caption && caption.trim()) {
-                variables.input.message = { ranges: [], text: caption };
-            }
-
-            const form = {
-                av: ctx.userID,
-                __user: ctx.userID,
-                __a: "1",
-                fb_dtsg: ctx.fb_dtsg,
-                jazoest: ctx.jazoest,
-                fb_api_caller_class: "RelayModern",
-                fb_api_req_friendly_name: "StoriesCreateMutation",
-                variables: JSON.stringify(variables),
-                doc_id: "24226878183562473",
-            };
-
-            const res = await defaultFuncs.post(
-                "https://www.facebook.com/api/graphql/",
-                ctx.jar,
-                form,
-                {}
-            );
-
-            if (res.data?.errors) {
-                throw new Error(JSON.stringify(res.data.errors));
-            }
-
-            const storyNode =
-                res.data?.data?.story_create?.viewer?.actor?.story_bucket?.nodes[0]
-                    ?.first_story_to_show;
-
-            if (!storyNode || !storyNode.id) {
-                // Try alternate response path
-                const altStoryID = res.data?.data?.story_create?.post_id;
-                if (altStoryID) {
-                    return { success: true, storyID: altStoryID };
-                }
-                throw new Error("Could not find the storyID in the response.");
-            }
-
-            return { success: true, storyID: storyNode.id };
-        } catch (error) {
-            throw error;
+        // Add caption/text overlay if provided
+        if (caption && caption.trim()) {
+            variables.input.message = { ranges: [], text: caption };
         }
+
+        const form = {
+            av: ctx.userID,
+            __user: ctx.userID,
+            __a: "1",
+            fb_dtsg: ctx.fb_dtsg,
+            jazoest: ctx.jazoest,
+            fb_api_caller_class: "RelayModern",
+            fb_api_req_friendly_name: "StoriesCreateMutation",
+            variables: JSON.stringify(variables),
+            doc_id: "24226878183562473",
+        };
+
+        const res = await defaultFuncs.post(
+            "https://www.facebook.com/api/graphql/",
+            ctx.jar,
+            form,
+            {}
+        );
+
+        if (res.data?.errors) {
+            throw new Error(JSON.stringify(res.data.errors));
+        }
+
+        const storyNode =
+            res.data?.data?.story_create?.viewer?.actor?.story_bucket?.nodes[0]
+                ?.first_story_to_show;
+
+        if (!storyNode || !storyNode.id) {
+            // Try alternate response path
+            const altStoryID = res.data?.data?.story_create?.post_id;
+            if (altStoryID) {
+                return { success: true, storyID: altStoryID };
+            }
+            throw new Error("Could not find the storyID in the response.");
+        }
+
+        return { success: true, storyID: storyNode.id };
     }
 
     return {

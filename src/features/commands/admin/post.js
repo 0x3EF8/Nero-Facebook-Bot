@@ -123,17 +123,17 @@ module.exports = {
 
         // Show usage if no arguments and no reply
         if (args.length === 0 && !messageReply) {
-            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : "";
             const commandName = this.config.name;
             return api.sendMessage(
                 "📝 **Post Command**\n\n" +
-                "Create a post on the bot's Facebook timeline.\n\n" +
-                "**Usage:**\n" +
-                `• \`${actualPrefix}${commandName} <message>\` - Text post\n` +
-                `• \`${actualPrefix}${commandName} <message>\` (reply to image) - Post with image\n\n` +
-                "**Examples:**\n" +
-                `• \`${actualPrefix}${commandName} Hello world!\`\n` +
-                `• Reply to a photo with \`${actualPrefix}${commandName} My vacation photo\``,
+                    "Create a post on the bot's Facebook timeline.\n\n" +
+                    "**Usage:**\n" +
+                    `• \`${actualPrefix}${commandName} <message>\` - Text post\n` +
+                    `• \`${actualPrefix}${commandName} <message>\` (reply to image) - Post with image\n\n` +
+                    "**Examples:**\n" +
+                    `• \`${actualPrefix}${commandName} Hello world!\`\n` +
+                    `• Reply to a photo with \`${actualPrefix}${commandName} My vacation photo\``,
                 threadID,
                 messageID
             );
@@ -143,7 +143,7 @@ module.exports = {
         if (!api.createPost) {
             return api.sendMessage(
                 "❌ Post API not available.\n\n" +
-                "The bot needs to be restarted to load the new API.",
+                    "The bot needs to be restarted to load the new API.",
                 threadID,
                 messageID
             );
@@ -199,18 +199,13 @@ module.exports = {
         }
 
         // Send "posting" status
-        const postingMsg = await api.sendMessage(
-            `📝 Creating post...`,
-            threadID
-        );
+        const postingMsg = await api.sendMessage(`📝 Creating post...`, threadID);
 
         try {
             // Create the post
             const options = {};
             if (imageStreams.length > 0) {
-                options.attachment = imageStreams.length === 1 
-                    ? imageStreams[0] 
-                    : imageStreams;
+                options.attachment = imageStreams.length === 1 ? imageStreams[0] : imageStreams;
             }
 
             const result = await api.createPost(postMessage || "", options);
@@ -238,7 +233,6 @@ module.exports = {
             }
 
             return api.sendMessage(successMessage, threadID, messageID);
-
         } catch (error) {
             // Unsend "posting" status
             if (postingMsg?.messageID) {
@@ -252,8 +246,7 @@ module.exports = {
             logger?.error?.("Post", `Failed to create post: ${error.message}`);
 
             return api.sendMessage(
-                `❌ Failed to create post!\n\n` +
-                `Error: ${error.message || "Unknown error"}`,
+                `❌ Failed to create post!\n\n` + `Error: ${error.message || "Unknown error"}`,
                 threadID,
                 messageID
             );

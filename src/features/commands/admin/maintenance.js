@@ -51,176 +51,176 @@ module.exports = {
     },
 
     async execute({ api, event, args, config, logger }) {
-    const threadID = event.threadID;
-    const messageID = event.messageID ? String(event.messageID) : null;
+        const threadID = event.threadID;
+        const messageID = event.messageID ? String(event.messageID) : null;
 
-    if (args.length === 0) {
-        const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
-        const commandName = this.config.name;
+        if (args.length === 0) {
+            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : "";
+            const commandName = this.config.name;
 
-        // Show status
-        const status = maintenanceManager.getStatus();
-
-        let response = `🔧 Maintenance Mode\n\n`;
-        response += `Status: ${status.enabled ? "🔴 ENABLED" : "🟢 DISABLED"}\n`;
-
-        if (status.enabled) {
-            response += `Reason: ${status.reason}\n`;
-            if (status.startedAt) {
-                response += `Duration: ${status.duration}\n`;
-            }
-            if (status.estimatedEnd) {
-                const remaining = status.estimatedEnd.getTime() - Date.now();
-                if (remaining > 0) {
-                    response += `ETA: ${maintenanceManager.formatDuration(remaining)}\n`;
-                }
-            }
-            response += `Notified Users: ${status.notifiedCount}`;
-        }
-
-        response += `\n\nUsage:\n`;
-        response += `• ${actualPrefix}${commandName} on [reason] [--time=minutes]\n`;
-        response += `• ${actualPrefix}${commandName} off\n`;
-        response += `• ${actualPrefix}${commandName} status\n`;
-        response += `• ${actualPrefix}${commandName} reason <new reason>\n`;
-        response += `• ${actualPrefix}${commandName} time <minutes>\n`;
-        response += `• ${actualPrefix}${commandName} reset`;
-
-        return api.sendMessage(response, threadID, messageID);
-    }
-
-    const action = args[0].toLowerCase();
-
-    switch (action) {
-        case "on":
-        case "enable":
-        case "start": {
-            const { time, cleanArgs } = parseTimeArg(args.slice(1));
-            const reason = cleanArgs.join(" ") || "The bot is currently under maintenance.";
-
-            const status = maintenanceManager.enable({
-                reason,
-                estimatedMinutes: time,
-            });
-
-            logger.warn("Maintenance", `Maintenance mode ENABLED by ${event.senderID}`);
-
-            let response = `✅ Maintenance mode enabled!\n\n`;
-            response += `📝 Reason: ${status.reason}\n`;
-            if (status.estimatedEnd) {
-                response += `⏱️ ETA: ${maintenanceManager.formatDuration(time * 60 * 1000)}`;
-            }
-
-            return api.sendMessage(response, threadID, messageID);
-        }
-
-        case "off":
-        case "disable":
-        case "stop": {
-            maintenanceManager.disable();
-            logger.success("Maintenance", `Maintenance mode DISABLED by ${event.senderID}`);
-
-            return api.sendMessage(
-                `✅ Maintenance mode disabled!\n\nThe bot is now fully operational.`,
-                threadID,
-                messageID
-            );
-        }
-
-        case "status": {
+            // Show status
             const status = maintenanceManager.getStatus();
 
-            let response = `🔧 Maintenance Status\n\n`;
+            let response = `🔧 Maintenance Mode\n\n`;
             response += `Status: ${status.enabled ? "🔴 ENABLED" : "🟢 DISABLED"}\n`;
 
             if (status.enabled) {
                 response += `Reason: ${status.reason}\n`;
-                response += `Started: ${status.startedAt ? status.startedAt.toLocaleString() : "N/A"}\n`;
-                response += `Duration: ${status.duration || "N/A"}\n`;
-
+                if (status.startedAt) {
+                    response += `Duration: ${status.duration}\n`;
+                }
                 if (status.estimatedEnd) {
                     const remaining = status.estimatedEnd.getTime() - Date.now();
-                    response += `ETA: ${remaining > 0 ? maintenanceManager.formatDuration(remaining) : "Overdue"}\n`;
+                    if (remaining > 0) {
+                        response += `ETA: ${maintenanceManager.formatDuration(remaining)}\n`;
+                    }
                 }
-
-                response += `Users Notified: ${status.notifiedCount}`;
+                response += `Notified Users: ${status.notifiedCount}`;
             }
+
+            response += `\n\nUsage:\n`;
+            response += `• ${actualPrefix}${commandName} on [reason] [--time=minutes]\n`;
+            response += `• ${actualPrefix}${commandName} off\n`;
+            response += `• ${actualPrefix}${commandName} status\n`;
+            response += `• ${actualPrefix}${commandName} reason <new reason>\n`;
+            response += `• ${actualPrefix}${commandName} time <minutes>\n`;
+            response += `• ${actualPrefix}${commandName} reset`;
 
             return api.sendMessage(response, threadID, messageID);
         }
 
-        case "reason": {
-            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
-            const commandName = this.config.name;
-            if (args.length < 2) {
+        const action = args[0].toLowerCase();
+
+        switch (action) {
+            case "on":
+            case "enable":
+            case "start": {
+                const { time, cleanArgs } = parseTimeArg(args.slice(1));
+                const reason = cleanArgs.join(" ") || "The bot is currently under maintenance.";
+
+                const status = maintenanceManager.enable({
+                    reason,
+                    estimatedMinutes: time,
+                });
+
+                logger.warn("Maintenance", `Maintenance mode ENABLED by ${event.senderID}`);
+
+                let response = `✅ Maintenance mode enabled!\n\n`;
+                response += `📝 Reason: ${status.reason}\n`;
+                if (status.estimatedEnd) {
+                    response += `⏱️ ETA: ${maintenanceManager.formatDuration(time * 60 * 1000)}`;
+                }
+
+                return api.sendMessage(response, threadID, messageID);
+            }
+
+            case "off":
+            case "disable":
+            case "stop": {
+                maintenanceManager.disable();
+                logger.success("Maintenance", `Maintenance mode DISABLED by ${event.senderID}`);
+
                 return api.sendMessage(
-                    `❌ Please provide a reason.\n\nUsage: ${actualPrefix}${commandName} reason <new reason>`,
+                    `✅ Maintenance mode disabled!\n\nThe bot is now fully operational.`,
                     threadID,
                     messageID
                 );
             }
 
-            const newReason = args.slice(1).join(" ");
-            maintenanceManager.setReason(newReason);
+            case "status": {
+                const status = maintenanceManager.getStatus();
 
-            return api.sendMessage(
-                `✅ Maintenance reason updated!\n\n📝 ${newReason}`,
-                threadID,
-                messageID
-            );
-        }
+                let response = `🔧 Maintenance Status\n\n`;
+                response += `Status: ${status.enabled ? "🔴 ENABLED" : "🟢 DISABLED"}\n`;
 
-        case "time":
-        case "eta": {
-            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
-            const commandName = this.config.name;
-            if (args.length < 2) {
+                if (status.enabled) {
+                    response += `Reason: ${status.reason}\n`;
+                    response += `Started: ${status.startedAt ? status.startedAt.toLocaleString() : "N/A"}\n`;
+                    response += `Duration: ${status.duration || "N/A"}\n`;
+
+                    if (status.estimatedEnd) {
+                        const remaining = status.estimatedEnd.getTime() - Date.now();
+                        response += `ETA: ${remaining > 0 ? maintenanceManager.formatDuration(remaining) : "Overdue"}\n`;
+                    }
+
+                    response += `Users Notified: ${status.notifiedCount}`;
+                }
+
+                return api.sendMessage(response, threadID, messageID);
+            }
+
+            case "reason": {
+                const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : "";
+                const commandName = this.config.name;
+                if (args.length < 2) {
+                    return api.sendMessage(
+                        `❌ Please provide a reason.\n\nUsage: ${actualPrefix}${commandName} reason <new reason>`,
+                        threadID,
+                        messageID
+                    );
+                }
+
+                const newReason = args.slice(1).join(" ");
+                maintenanceManager.setReason(newReason);
+
                 return api.sendMessage(
-                    `❌ Please provide estimated time in minutes.\n\nUsage: ${actualPrefix}${commandName} time <minutes>`,
+                    `✅ Maintenance reason updated!\n\n📝 ${newReason}`,
                     threadID,
                     messageID
                 );
             }
 
-            const minutes = parseInt(args[1], 10);
+            case "time":
+            case "eta": {
+                const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : "";
+                const commandName = this.config.name;
+                if (args.length < 2) {
+                    return api.sendMessage(
+                        `❌ Please provide estimated time in minutes.\n\nUsage: ${actualPrefix}${commandName} time <minutes>`,
+                        threadID,
+                        messageID
+                    );
+                }
 
-            if (isNaN(minutes) || minutes < 1) {
+                const minutes = parseInt(args[1], 10);
+
+                if (isNaN(minutes) || minutes < 1) {
+                    return api.sendMessage(
+                        `❌ Please provide a valid number of minutes.`,
+                        threadID,
+                        messageID
+                    );
+                }
+
+                maintenanceManager.setEstimatedTime(minutes);
+
                 return api.sendMessage(
-                    `❌ Please provide a valid number of minutes.`,
+                    `✅ Estimated time updated!\n\n⏱️ ETA: ${maintenanceManager.formatDuration(minutes * 60 * 1000)}`,
                     threadID,
                     messageID
                 );
             }
 
-            maintenanceManager.setEstimatedTime(minutes);
+            case "reset": {
+                maintenanceManager.resetAllNotifications();
 
-            return api.sendMessage(
-                `✅ Estimated time updated!\n\n⏱️ ETA: ${maintenanceManager.formatDuration(minutes * 60 * 1000)}`,
-                threadID,
-                messageID
-            );
+                return api.sendMessage(
+                    `✅ Notification tracking reset!\n\nAll users will be notified again on next command attempt.`,
+                    threadID,
+                    messageID
+                );
+            }
+
+            default: {
+                const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : "";
+                const commandName = this.config.name;
+                return api.sendMessage(
+                    `❌ Unknown action: ${action}\n\n` +
+                        `Valid actions: ${actualPrefix}${commandName} on, ${actualPrefix}${commandName} off, ${actualPrefix}${commandName} status, ${actualPrefix}${commandName} reason, ${actualPrefix}${commandName} time, ${actualPrefix}${commandName} reset`,
+                    threadID,
+                    messageID
+                );
+            }
         }
-
-        case "reset": {
-            maintenanceManager.resetAllNotifications();
-
-            return api.sendMessage(
-                `✅ Notification tracking reset!\n\nAll users will be notified again on next command attempt.`,
-                threadID,
-                messageID
-            );
-        }
-
-        default: {
-            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
-            const commandName = this.config.name;
-            return api.sendMessage(
-                `❌ Unknown action: ${action}\n\n` +
-                    `Valid actions: ${actualPrefix}${commandName} on, ${actualPrefix}${commandName} off, ${actualPrefix}${commandName} status, ${actualPrefix}${commandName} reason, ${actualPrefix}${commandName} time, ${actualPrefix}${commandName} reset`,
-                threadID,
-                messageID
-            );
-        }
-    }
     },
 };

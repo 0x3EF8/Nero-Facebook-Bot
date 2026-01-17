@@ -1,6 +1,6 @@
 "use strict";
 
-const { makeParsable, log, warn } = require("./constants");
+const { makeParsable } = require("./constants");
 
 /**
  * Formats a cookie array into a string for use in a cookie jar.
@@ -20,7 +20,10 @@ function formatCookie(arr, url) {
  * @returns {function(data: Object): Promise<Object>} A function that processes the response data.
  */
 function parseAndCheckLogin(ctx, http, retryCount = 0) {
-    const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    const delay = (ms) =>
+        new Promise((resolve) => {
+            setTimeout(resolve, ms);
+        });
 
     return async (data) => {
         if (data.statusCode >= 500 && data.statusCode < 600) {
@@ -186,8 +189,8 @@ function getAccessFromBusiness(jar, Options) {
             );
             const token = /"accessToken":"([^.]+)","clientID":/g.exec(businessRes.body)[1];
             return [html, token];
-        } catch (e) {
-            return [html, null];
+        } catch (_e) {
+            return null;
         }
     };
 }

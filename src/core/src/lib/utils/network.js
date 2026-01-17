@@ -1,4 +1,3 @@
- 
 "use strict";
 
 const axios = require("axios");
@@ -26,7 +25,10 @@ function createClientWithJar(jar) {
  * @param {number} ms - The delay in milliseconds.
  * @returns {Promise<void>}
  */
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const delay = (ms) =>
+    new Promise((resolve) => {
+        setTimeout(resolve, ms);
+    });
 
 /**
  * Adapts the axios response/error to match the structure expected by the rest of the application.
@@ -112,7 +114,7 @@ function setProxy(proxyUrl) {
                             : undefined,
                 },
             };
-        } catch (e) {
+        } catch (_e) {
             debug.error(
                 "PROXY",
                 "Invalid proxy URL. Please use a full URL format (e.g., http://user:pass@host:port)."
@@ -183,7 +185,7 @@ async function post(url, reqJar, form, options, ctx, customHeader) {
         // Handle URL-encoded form data, stringifying nested objects
         const transformedForm = new URLSearchParams();
         for (const key in form) {
-            if (form.hasOwnProperty(key)) {
+            if (Object.prototype.hasOwnProperty.call(form, key)) {
                 let value = form[key];
                 if (getType(value) === "Object") {
                     value = JSON.stringify(value);
@@ -220,7 +222,7 @@ async function postFormData(url, reqJar, form, qs, options, ctx) {
     const client = createClientWithJar(reqJar);
     const formData = new FormData();
     for (const key in form) {
-        if (form.hasOwnProperty(key)) {
+        if (Object.prototype.hasOwnProperty.call(form, key)) {
             const value = form[key];
             // For streams, try to get filename from stream path or use default
             if (value && typeof value === "object" && typeof value.pipe === "function") {

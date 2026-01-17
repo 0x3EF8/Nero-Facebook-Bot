@@ -30,9 +30,12 @@ module.exports = {
         groupOnly: true,
     },
 
-    async execute({ api, event, args, config, logger }) {
+    async execute({ api, event, args, config, logger, _prefix }) {
         const { threadID } = event;
-        const prefix = config.bot.prefix;
+        // The original `prefix` variable is now `_prefix` as per the instruction.
+        // If `_prefix` is passed directly, we use it. Otherwise, fall back to config.
+        // If `_prefix` is passed directly, we use it. Otherwise, fall back to config.
+        // const actualPrefix = _prefix !== undefined ? _prefix : config.bot.prefix;
 
         // Default to toggle if no args provided
         if (args.length === 0) {
@@ -91,21 +94,21 @@ module.exports = {
         else if (action === "-l" || action === "list") {
             // Note: blockThread/unblockThread updates dynamicConfig in memory/file,
             // but we need to access the list. config.bot.blockedThreads is the source.
-            
+
             const blockedThreads = config.bot.blockedThreads || [];
-            
+
             if (blockedThreads.length === 0) {
                 return api.sendMessage("📝 No groups are currently muted.", threadID);
             }
 
             let msg = "🔕 **Muted Groups** 🔕\n\n";
-            
+
             // Limit list to avoid huge messages if many threads blocked
             const limit = 20;
             const displayList = blockedThreads.slice(0, limit);
-            
+
             displayList.forEach((id, index) => {
-                const marker = (id === threadID) ? " (Current)" : "";
+                const marker = id === threadID ? " (Current)" : "";
                 msg += `${index + 1}. ${id}${marker}\n`;
             });
 
@@ -122,17 +125,17 @@ module.exports = {
         // ═══════════════════════════════════════════════════════════════════
         // INVALID USAGE
         else {
-            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : "";
             const commandName = this.config.name;
             return api.sendMessage(
                 `❌ Invalid usage!\n\n` +
-                `Usage:\n` +
-                `• ${actualPrefix}${commandName} -a : Activate mute (Silence bot)\n` +
-                `• ${actualPrefix}${commandName} -d : Deactivate mute (Bot speaks)\n` +
-                `• ${actualPrefix}${commandName} -l : List muted groups\n` +
-                `• ${actualPrefix}${commandName}    : Toggle status`,
+                    `Usage:\n` +
+                    `• ${actualPrefix}${commandName} -a : Activate mute (Silence bot)\n` +
+                    `• ${actualPrefix}${commandName} -d : Deactivate mute (Bot speaks)\n` +
+                    `• ${actualPrefix}${commandName} -l : List muted groups\n` +
+                    `• ${actualPrefix}${commandName}    : Toggle status`,
                 threadID
             );
         }
-    }
+    },
 };

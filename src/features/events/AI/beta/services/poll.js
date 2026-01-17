@@ -28,7 +28,7 @@ async function createPoll(api, threadID, messageID, question, options) {
     api.setMessageReaction("📊", messageID, () => {}, true);
 
     // 1. Deduplicate and clean options
-    const uniqueOptions = [...new Set(options.map(o => o.trim()).filter(Boolean))];
+    const uniqueOptions = [...new Set(options.map((o) => o.trim()).filter(Boolean))];
 
     // 2. Ensure at least 2 options
     if (uniqueOptions.length < 2) {
@@ -36,7 +36,7 @@ async function createPoll(api, threadID, messageID, question, options) {
         if (uniqueOptions.length === 1) {
             uniqueOptions.push("No");
         } else {
-             // Fallback default options
+            // Fallback default options
             uniqueOptions.push("Yes", "No");
         }
     }
@@ -45,7 +45,7 @@ async function createPoll(api, threadID, messageID, question, options) {
         // API expects Array<string> or Array<Object>
         // passing strings directly is supported by nero-core
         await api.createPoll(threadID, question, uniqueOptions);
-        
+
         api.setMessageReaction(REACTIONS.success, messageID, () => {}, true);
         return true;
     } catch (error) {

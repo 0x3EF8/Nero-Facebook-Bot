@@ -11,7 +11,7 @@
 
 "use strict";
 
-const config = require('../../../../../config/config');
+const config = require("../../../../../config/config");
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SCHEDULE DATA
@@ -23,41 +23,202 @@ const config = require('../../../../../config/config');
  */
 const CLASS_SCHEDULE = {
     Monday: [
-        { subject: 'IT - The Commandments', code: 'Theo 3b (3214)', time: '10:30 AM', duration: 60, teacher: 'Father Garnet', room: '411' },
-        { subject: 'IT - IT Elective 1', code: 'IT EL 1 (3220)', time: '11:30 AM', duration: 60, teacher: 'Yvonne Tenio', room: '422' },
-        { subject: 'IT - Analytics Modeling', code: 'IT 312 (3216)', time: '04:00 PM', duration: 60, teacher: 'Evangeline Javier', room: '409' }
+        {
+            subject: "IT - The Commandments",
+            code: "Theo 3b (3214)",
+            time: "10:30 AM",
+            duration: 60,
+            teacher: "Father Garnet",
+            room: "411",
+        },
+        {
+            subject: "IT - IT Elective 1",
+            code: "IT EL 1 (3220)",
+            time: "11:30 AM",
+            duration: 60,
+            teacher: "Yvonne Tenio",
+            room: "422",
+        },
+        {
+            subject: "IT - Analytics Modeling",
+            code: "IT 312 (3216)",
+            time: "04:00 PM",
+            duration: 60,
+            teacher: "Evangeline Javier",
+            room: "409",
+        },
     ],
     Tuesday: [
-        { subject: 'IT - Systems Admin & Maintenance', code: 'IT 314 (3218)', time: '08:30 AM', duration: 60, teacher: 'Marnuld Climaco', room: 'ILLC' },
-        { subject: 'IT - Analytic Tools and Techniques', code: 'IT 311 (3215)', time: '02:00 PM', duration: 60, teacher: 'Evangeline Javier', room: 'ILLC' },
-        { subject: 'IT - Integrative Programming & Tech 1', code: 'IT 315 (3219)', time: '04:00 PM', duration: 60, teacher: 'Liloy Hoyla', room: 'ILLC' },
-        { subject: 'IT - IT Elective 2', code: 'IT EL 2 (3221)', time: '05:00 PM', duration: 60, teacher: 'Liloy Hoyla', room: '407' },
-        { subject: 'IT - Social Issues & Professional Practice', code: 'IT 313 (3217)', time: '06:30 PM', duration: 60, teacher: 'Haidee Galdo', room: '409' }
+        {
+            subject: "IT - Systems Admin & Maintenance",
+            code: "IT 314 (3218)",
+            time: "08:30 AM",
+            duration: 60,
+            teacher: "Marnuld Climaco",
+            room: "ILLC",
+        },
+        {
+            subject: "IT - Analytic Tools and Techniques",
+            code: "IT 311 (3215)",
+            time: "02:00 PM",
+            duration: 60,
+            teacher: "Evangeline Javier",
+            room: "ILLC",
+        },
+        {
+            subject: "IT - Integrative Programming & Tech 1",
+            code: "IT 315 (3219)",
+            time: "04:00 PM",
+            duration: 60,
+            teacher: "Liloy Hoyla",
+            room: "ILLC",
+        },
+        {
+            subject: "IT - IT Elective 2",
+            code: "IT EL 2 (3221)",
+            time: "05:00 PM",
+            duration: 60,
+            teacher: "Liloy Hoyla",
+            room: "407",
+        },
+        {
+            subject: "IT - Social Issues & Professional Practice",
+            code: "IT 313 (3217)",
+            time: "06:30 PM",
+            duration: 60,
+            teacher: "Haidee Galdo",
+            room: "409",
+        },
     ],
     Wednesday: [
-        { subject: 'IT - The Commandments', code: 'Theo 3b (3214)', time: '10:30 AM', duration: 60, teacher: 'Father Garnet', room: '411' },
-        { subject: 'IT - IT Elective 1', code: 'IT EL 1 (3220)', time: '11:30 AM', duration: 60, teacher: 'Yvonne Tenio', room: '422' },
-        { subject: 'IT - Analytics Modeling', code: 'IT 312 (3216)', time: '04:00 PM', duration: 60, teacher: 'Evangeline Javier', room: '409' }
+        {
+            subject: "IT - The Commandments",
+            code: "Theo 3b (3214)",
+            time: "10:30 AM",
+            duration: 60,
+            teacher: "Father Garnet",
+            room: "411",
+        },
+        {
+            subject: "IT - IT Elective 1",
+            code: "IT EL 1 (3220)",
+            time: "11:30 AM",
+            duration: 60,
+            teacher: "Yvonne Tenio",
+            room: "422",
+        },
+        {
+            subject: "IT - Analytics Modeling",
+            code: "IT 312 (3216)",
+            time: "04:00 PM",
+            duration: 60,
+            teacher: "Evangeline Javier",
+            room: "409",
+        },
     ],
     Thursday: [
-        { subject: 'IT - Systems Admin & Maintenance', code: 'IT 314 (3218)', time: '08:30 AM', duration: 60, teacher: 'Marnuld Climaco', room: 'ILLC' },
-        { subject: 'IT - Analytic Tools and Techniques', code: 'IT 311 (3215)', time: '02:00 PM', duration: 60, teacher: 'Evangeline Javier', room: 'ILLC' },
-        { subject: 'IT - Integrative Programming & Tech 1', code: 'IT 315 (3219)', time: '04:00 PM', duration: 60, teacher: 'Liloy Hoyla', room: 'ILLC' },
-        { subject: 'IT - IT Elective 2', code: 'IT EL 2 (3221)', time: '05:00 PM', duration: 60, teacher: 'Liloy Hoyla', room: '407' },
-        { subject: 'IT - Social Issues & Professional Practice', code: 'IT 313 (3217)', time: '06:30 PM', duration: 60, teacher: 'Haidee Galdo', room: '409' }
+        {
+            subject: "IT - Systems Admin & Maintenance",
+            code: "IT 314 (3218)",
+            time: "08:30 AM",
+            duration: 60,
+            teacher: "Marnuld Climaco",
+            room: "ILLC",
+        },
+        {
+            subject: "IT - Analytic Tools and Techniques",
+            code: "IT 311 (3215)",
+            time: "02:00 PM",
+            duration: 60,
+            teacher: "Evangeline Javier",
+            room: "ILLC",
+        },
+        {
+            subject: "IT - Integrative Programming & Tech 1",
+            code: "IT 315 (3219)",
+            time: "04:00 PM",
+            duration: 60,
+            teacher: "Liloy Hoyla",
+            room: "ILLC",
+        },
+        {
+            subject: "IT - IT Elective 2",
+            code: "IT EL 2 (3221)",
+            time: "05:00 PM",
+            duration: 60,
+            teacher: "Liloy Hoyla",
+            room: "407",
+        },
+        {
+            subject: "IT - Social Issues & Professional Practice",
+            code: "IT 313 (3217)",
+            time: "06:30 PM",
+            duration: 60,
+            teacher: "Haidee Galdo",
+            room: "409",
+        },
     ],
     Friday: [
-        { subject: 'IT - IT Elective 1', code: 'IT EL 1 (3220)', time: '11:30 AM', duration: 60, teacher: 'Yvonne Tenio', room: '422' },
-        { subject: 'IT - Analytics Modeling', code: 'IT 312 (3216)', time: '04:00 PM', duration: 60, teacher: 'Evangeline Javier', room: '409' }
+        {
+            subject: "IT - IT Elective 1",
+            code: "IT EL 1 (3220)",
+            time: "11:30 AM",
+            duration: 60,
+            teacher: "Yvonne Tenio",
+            room: "422",
+        },
+        {
+            subject: "IT - Analytics Modeling",
+            code: "IT 312 (3216)",
+            time: "04:00 PM",
+            duration: 60,
+            teacher: "Evangeline Javier",
+            room: "409",
+        },
     ],
     Saturday: [
-        { subject: 'IT - Systems Admin & Maintenance', code: 'IT 314 (3218)', time: '08:30 AM', duration: 60, teacher: 'Marnuld Climaco', room: 'ILLC' },
-        { subject: 'IT - Analytic Tools and Techniques', code: 'IT 311 (3215)', time: '02:00 PM', duration: 60, teacher: 'Evangeline Javier', room: 'ILLC' },
-        { subject: 'IT - Integrative Programming & Tech 1', code: 'IT 315 (3219)', time: '04:00 PM', duration: 60, teacher: 'Liloy Hoyla', room: 'ILLC' },
-        { subject: 'IT - IT Elective 2', code: 'IT EL 2 (3221)', time: '05:00 PM', duration: 60, teacher: 'Liloy Hoyla', room: '407' },
-        { subject: 'IT - Social Issues & Professional Practice', code: 'IT 313 (3217)', time: '06:30 PM', duration: 60, teacher: 'Haidee Galdo', room: '409' }
+        {
+            subject: "IT - Systems Admin & Maintenance",
+            code: "IT 314 (3218)",
+            time: "08:30 AM",
+            duration: 60,
+            teacher: "Marnuld Climaco",
+            room: "ILLC",
+        },
+        {
+            subject: "IT - Analytic Tools and Techniques",
+            code: "IT 311 (3215)",
+            time: "02:00 PM",
+            duration: 60,
+            teacher: "Evangeline Javier",
+            room: "ILLC",
+        },
+        {
+            subject: "IT - Integrative Programming & Tech 1",
+            code: "IT 315 (3219)",
+            time: "04:00 PM",
+            duration: 60,
+            teacher: "Liloy Hoyla",
+            room: "ILLC",
+        },
+        {
+            subject: "IT - IT Elective 2",
+            code: "IT EL 2 (3221)",
+            time: "05:00 PM",
+            duration: 60,
+            teacher: "Liloy Hoyla",
+            room: "407",
+        },
+        {
+            subject: "IT - Social Issues & Professional Practice",
+            code: "IT 313 (3217)",
+            time: "06:30 PM",
+            duration: 60,
+            teacher: "Haidee Galdo",
+            room: "409",
+        },
     ],
-    Sunday: []
+    Sunday: [],
 };
 
 /**
@@ -65,14 +226,62 @@ const CLASS_SCHEDULE = {
  * @type {Object}
  */
 const SUBJECTS = {
-    'Theo 3b': { name: 'IT - The Commandments', teacher: 'Father Garnet', days: 'MW', time: '10:30 AM', room: '411' },
-    'IT 311': { name: 'IT - Analytic Tools and Techniques', teacher: 'Evangeline Javier', days: 'TThS', time: '2:00 PM', room: 'ILLC' },
-    'IT 312': { name: 'IT - Analytics Modeling', teacher: 'Evangeline Javier', days: 'MWF', time: '4:00 PM', room: '409' },
-    'IT 313': { name: 'IT - Social Issues & Professional Practice', teacher: 'Haidee Galdo', days: 'TThS', time: '6:30 PM', room: '409' },
-    'IT 314': { name: 'IT - Systems Admin & Maintenance', teacher: 'Marnuld Climaco', days: 'TThS', time: '8:30 AM', room: 'ILLC' },
-    'IT 315': { name: 'IT - Integrative Programming & Tech 1', teacher: 'Liloy Hoyla', days: 'TThS', time: '4:00 PM', room: 'ILLC' },
-    'IT EL 1': { name: 'IT - IT Elective 1', teacher: 'Yvonne Tenio', days: 'MWF', time: '11:30 AM', room: '422' },
-    'IT EL 2': { name: 'IT - IT Elective 2', teacher: 'Liloy Hoyla', days: 'TThS', time: '5:00 PM', room: '407' }
+    "Theo 3b": {
+        name: "IT - The Commandments",
+        teacher: "Father Garnet",
+        days: "MW",
+        time: "10:30 AM",
+        room: "411",
+    },
+    "IT 311": {
+        name: "IT - Analytic Tools and Techniques",
+        teacher: "Evangeline Javier",
+        days: "TThS",
+        time: "2:00 PM",
+        room: "ILLC",
+    },
+    "IT 312": {
+        name: "IT - Analytics Modeling",
+        teacher: "Evangeline Javier",
+        days: "MWF",
+        time: "4:00 PM",
+        room: "409",
+    },
+    "IT 313": {
+        name: "IT - Social Issues & Professional Practice",
+        teacher: "Haidee Galdo",
+        days: "TThS",
+        time: "6:30 PM",
+        room: "409",
+    },
+    "IT 314": {
+        name: "IT - Systems Admin & Maintenance",
+        teacher: "Marnuld Climaco",
+        days: "TThS",
+        time: "8:30 AM",
+        room: "ILLC",
+    },
+    "IT 315": {
+        name: "IT - Integrative Programming & Tech 1",
+        teacher: "Liloy Hoyla",
+        days: "TThS",
+        time: "4:00 PM",
+        room: "ILLC",
+    },
+    "IT EL 1": {
+        name: "IT - IT Elective 1",
+        teacher: "Yvonne Tenio",
+        days: "MWF",
+        time: "11:30 AM",
+        room: "422",
+    },
+    "IT EL 2": {
+        name: "IT - IT Elective 2",
+        teacher: "Liloy Hoyla",
+        days: "TThS",
+        time: "5:00 PM",
+        room: "407",
+    },
 };
 
 /**
@@ -86,26 +295,26 @@ const TIMEZONE = config.bot.timeZone;
 
 /**
  * Get time parts for a specific timezone
- * @param {string} timeZone 
+ * @param {string} timeZone
  * @returns {Object}
  */
 function getTimeParts(timeZone) {
-    const now = new Date();
-    const formatter = new Intl.DateTimeFormat('en-US', {
+    const _now = new Date();
+    const formatter = new Intl.DateTimeFormat("en-US", {
         timeZone,
-        year: 'numeric',
-        month: 'numeric', // 1-12
-        day: 'numeric',
-        hour: 'numeric',
-        minute: 'numeric',
-        second: 'numeric',
+        year: "numeric",
+        month: "numeric", // 1-12
+        day: "numeric",
+        hour: "numeric",
+        minute: "numeric",
+        second: "numeric",
         hour12: false,
-        weekday: 'long'
+        weekday: "long",
     });
 
-    const parts = formatter.formatToParts(now);
+    const parts = formatter.formatToParts(_now);
     const partMap = {};
-    parts.forEach(({ type, value }) => partMap[type] = value);
+    parts.forEach(({ type, value }) => (partMap[type] = value));
 
     return {
         year: parseInt(partMap.year, 10),
@@ -114,7 +323,7 @@ function getTimeParts(timeZone) {
         hour: parseInt(partMap.hour, 10) % 24,
         minute: parseInt(partMap.minute, 10),
         second: parseInt(partMap.second, 10),
-        weekday: partMap.weekday
+        weekday: partMap.weekday,
     };
 }
 
@@ -138,13 +347,13 @@ function getManilaTime() {
  * @returns {number}
  */
 function timeToMinutes(time12h) {
-    const [time, modifier] = time12h.split(' ');
-    const [h, minutes] = time.split(':').map(Number);
+    const [time, modifier] = time12h.split(" ");
+    const [h, minutes] = time.split(":").map(Number);
     let hours = h;
-    
-    if (modifier === 'PM' && hours !== 12) hours += 12;
-    if (modifier === 'AM' && hours === 12) hours = 0;
-    
+
+    if (modifier === "PM" && hours !== 12) hours += 12;
+    if (modifier === "AM" && hours === 12) hours = 0;
+
     return hours * 60 + minutes;
 }
 
@@ -163,7 +372,7 @@ function getTodayName() {
 function getTomorrowName() {
     const today = getManilaTime();
     today.setDate(today.getDate() + 1);
-    return today.toLocaleDateString('en-US', { weekday: 'long' }); // Already shifted, so default locale ok
+    return today.toLocaleDateString("en-US", { weekday: "long" }); // Already shifted, so default locale ok
 }
 
 /**
@@ -172,7 +381,7 @@ function getTomorrowName() {
  */
 function getNextSchoolDay() {
     const tomorrow = getTomorrowName();
-    return tomorrow === 'Sunday' ? 'Monday' : tomorrow;
+    return tomorrow === "Sunday" ? "Monday" : tomorrow;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -205,7 +414,7 @@ function getNextClass() {
     const now = getManilaTime();
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
     const todayClasses = getTodayClasses();
-    
+
     // Find next class today
     for (const cls of todayClasses) {
         const classMinutes = timeToMinutes(cls.time);
@@ -213,14 +422,14 @@ function getNextClass() {
             return { ...cls, day: getTodayName(), isToday: true };
         }
     }
-    
+
     // No more classes today, get first class of next school day
     const nextDay = getNextSchoolDay();
     const nextDayClasses = CLASS_SCHEDULE[nextDay] || [];
     if (nextDayClasses.length > 0) {
         return { ...nextDayClasses[0], day: nextDay, isToday: false };
     }
-    
+
     return null;
 }
 
@@ -232,16 +441,16 @@ function getCurrentClass() {
     const now = getManilaTime();
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
     const todayClasses = getTodayClasses();
-    
+
     for (const cls of todayClasses) {
         const startMinutes = timeToMinutes(cls.time);
         const endMinutes = startMinutes + cls.duration;
-        
+
         if (currentMinutes >= startMinutes && currentMinutes < endMinutes) {
             return { ...cls, day: getTodayName() };
         }
     }
-    
+
     return null;
 }
 
@@ -253,8 +462,8 @@ function getRemainingClassesToday() {
     const now = getManilaTime();
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
     const todayClasses = getTodayClasses();
-    
-    return todayClasses.filter(cls => {
+
+    return todayClasses.filter((cls) => {
         const classMinutes = timeToMinutes(cls.time);
         return classMinutes > currentMinutes;
     });
@@ -262,7 +471,7 @@ function getRemainingClassesToday() {
 
 /**
  * Get classes for a specific day
- * @param {string} dayName 
+ * @param {string} dayName
  * @returns {Array}
  */
 function getClassesForDay(dayName) {
@@ -272,20 +481,22 @@ function getClassesForDay(dayName) {
 
 /**
  * Search for a specific subject
- * @param {string} query 
+ * @param {string} query
  * @returns {Object|null}
  */
 function findSubject(query) {
     const lowerQuery = query.toLowerCase();
-    
+
     for (const [code, info] of Object.entries(SUBJECTS)) {
-        if (code.toLowerCase().includes(lowerQuery) || 
+        if (
+            code.toLowerCase().includes(lowerQuery) ||
             info.name.toLowerCase().includes(lowerQuery) ||
-            info.teacher.toLowerCase().includes(lowerQuery)) {
+            info.teacher.toLowerCase().includes(lowerQuery)
+        ) {
             return { code, ...info };
         }
     }
-    
+
     return null;
 }
 
@@ -294,25 +505,25 @@ function findSubject(query) {
  * @returns {string}
  */
 function getWeeklyScheduleSummary() {
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    let summary = '';
-    
+    const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    let summary = "";
+
     for (const day of days) {
         const classes = CLASS_SCHEDULE[day];
         if (classes.length > 0) {
             summary += `\n${day}: ${classes.length} class(es)\n`;
-            classes.forEach(cls => {
+            classes.forEach((cls) => {
                 summary += `  • ${cls.time} - ${cls.subject} (${cls.room})\n`;
             });
         }
     }
-    
+
     return summary;
 }
 
 /**
  * Format class info for display
- * @param {Object} cls 
+ * @param {Object} cls
  * @returns {string}
  */
 function formatClassInfo(cls) {
@@ -326,31 +537,31 @@ function formatClassInfo(cls) {
 function getTimeGreeting() {
     const now = getManilaTime();
     const hour = now.getHours();
-    
-    if (hour >= 5 && hour < 12) return 'morning';
-    if (hour >= 12 && hour < 17) return 'afternoon';
-    if (hour >= 17 && hour < 21) return 'evening';
-    return 'night';
+
+    if (hour >= 5 && hour < 12) return "morning";
+    if (hour >= 12 && hour < 17) return "afternoon";
+    if (hour >= 17 && hour < 21) return "evening";
+    return "night";
 }
 
 /**
  * Calculate time until next class
- * @param {Object} nextClass 
+ * @param {Object} nextClass
  * @returns {string|null}
  */
 function getTimeUntilClass(nextClass) {
     if (!nextClass || !nextClass.isToday) return null;
-    
+
     const now = getManilaTime();
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
     const classMinutes = timeToMinutes(nextClass.time);
     const diff = classMinutes - currentMinutes;
-    
+
     if (diff <= 0) return null;
-    
+
     const hours = Math.floor(diff / 60);
     const mins = diff % 60;
-    
+
     if (hours > 0) {
         return `${hours}h ${mins}m`;
     }
@@ -366,31 +577,31 @@ function getTimeUntilClass(nextClass) {
  * @returns {string}
  */
 function buildScheduleContext() {
-    const now = getManilaTime(); // Used for internal calculations like getHours(), getMinutes()
+    const _now = getManilaTime(); // Used for internal calculations like getHours(), getMinutes()
     const today = getTodayName();
 
     // Use a fresh Date object and explicit timeZone for display formatting
-    const actualCurrentDate = new Date().toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        timeZone: TIMEZONE
+    const actualCurrentDate = new Date().toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        timeZone: TIMEZONE,
     });
-    const actualCurrentTime = new Date().toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
+    const actualCurrentTime = new Date().toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
         hour12: true,
-        timeZone: TIMEZONE
+        timeZone: TIMEZONE,
     });
-    
+
     const timeOfDay = getTimeGreeting();
     const currentClass = getCurrentClass();
     const nextClass = getNextClass();
     const remainingToday = getRemainingClassesToday();
     const tomorrowClasses = getTomorrowClasses();
     const timeUntil = nextClass ? getTimeUntilClass(nextClass) : null;
-    
+
     // Build concise data for AI
     let scheduleData = `
 [SYSTEM TIME AWARENESS]
@@ -403,15 +614,15 @@ Day Period: ${timeOfDay}
     if (currentClass) {
         scheduleData += `NOW: ${currentClass.subject} with ${currentClass.teacher} @ Room ${currentClass.room}\n`;
     }
-    
+
     if (nextClass) {
         const when = timeUntil ? `in ${timeUntil}` : nextClass.day;
         scheduleData += `NEXT: ${nextClass.subject} at ${nextClass.time} (${when}) - ${nextClass.teacher} @ ${nextClass.room}\n`;
     }
-    
+
     if (remainingToday.length > 0) {
         scheduleData += `TODAY LEFT: ${remainingToday.length} classes\n`;
-    } else if (today !== 'Sunday') {
+    } else if (today !== "Sunday") {
         scheduleData += `TODAY: Done! No more classes!\n`;
     }
 
@@ -429,8 +640,8 @@ TThS: IT 314 8:30AM (Marnuld Climaco/ILLC), IT 311 2PM (Evangeline Javier/ILLC),
 When user asks about schedule/class/time, respond NATURALLY like this:
 
 Example responses:
-- "Hey! It's ${actualCurrentTime} right now. ${nextClass ? `Your next class is ${nextClass.subject} at ${nextClass.time}${timeUntil ? ` - that's ${timeUntil} from now` : ''}. Good luck! 🍀` : `No more classes today! Rest well! 🎉`}"
-- "Oh! ${timeOfDay === 'morning' ? 'Good morning!' : timeOfDay === 'afternoon' ? 'Good afternoon!' : timeOfDay === 'evening' ? 'Good evening!' : 'Still awake?'} ${remainingToday.length > 0 ? `You still have ${remainingToday.length} class${remainingToday.length > 1 ? 'es' : ''} today.` : `You're done for today! 🎉`}"
+- "Hey! It's ${actualCurrentTime} right now. ${nextClass ? `Your next class is ${nextClass.subject} at ${nextClass.time}${timeUntil ? ` - that's ${timeUntil} from now` : ""}. Good luck! 🍀` : `No more classes today! Rest well! 🎉`}"
+- "Oh! ${timeOfDay === "morning" ? "Good morning!" : timeOfDay === "afternoon" ? "Good afternoon!" : timeOfDay === "evening" ? "Good evening!" : "Still awake?"} ${remainingToday.length > 0 ? `You still have ${remainingToday.length} class${remainingToday.length > 1 ? "es" : ""} today.` : `You're done for today! 🎉`}"
 - "It's ${actualCurrentDate}. ${currentClass ? `You're in ${currentClass.subject} right now - stay focused! 📚` : nextClass ? `Next up: ${nextClass.subject} at ${nextClass.time}. You got this! 💪` : `Free time! Enjoy! 🌟`}"
 
 IMPORTANT RESPONSE STYLE:

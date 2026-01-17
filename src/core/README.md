@@ -64,16 +64,16 @@ nero/
 
 ## ✨ Features
 
-| Category | Features |
-|----------|----------|
-| **Messaging** | Send, edit, unsend, react, typing indicators, stickers |
-| **Groups** | Create, rename, add/remove members, set rules, nicknames |
-| **Threads** | Get info, history, list, mark as read |
-| **Social** | Comment on posts, share, follow/unfollow, stories |
-| **Real-time** | MQTT listener with auto-reconnect |
-| **Anti-Unsend** | Built-in message storage (10K msgs, 24hr retention) |
-| **Debug** | 4-level colored logging system |
-| **Stickers** | Search, list packs, AI stickers |
+| Category        | Features                                                 |
+| --------------- | -------------------------------------------------------- |
+| **Messaging**   | Send, edit, unsend, react, typing indicators, stickers   |
+| **Groups**      | Create, rename, add/remove members, set rules, nicknames |
+| **Threads**     | Get info, history, list, mark as read                    |
+| **Social**      | Comment on posts, share, follow/unfollow, stories        |
+| **Real-time**   | MQTT listener with auto-reconnect                        |
+| **Anti-Unsend** | Built-in message storage (10K msgs, 24hr retention)      |
+| **Debug**       | 4-level colored logging system                           |
+| **Stickers**    | Search, list packs, AI stickers                          |
 
 ## 🚀 Quick Start
 
@@ -82,13 +82,13 @@ const nero = require("nero-core");
 
 nero({ appState: JSON.parse(fs.readFileSync("appstate.json")) }, (err, api) => {
     if (err) return console.error(err);
-    
+
     console.log("Logged in as:", api.getCurrentUserID());
-    
+
     api.listenMqtt((err, event) => {
         if (event.type === "message") {
             console.log(`${event.senderID}: ${event.body}`);
-            
+
             if (event.body === "ping") {
                 api.sendMessage("pong!", event.threadID);
             }
@@ -100,6 +100,7 @@ nero({ appState: JSON.parse(fs.readFileSync("appstate.json")) }, (err, api) => {
 ## 📖 API Reference
 
 ### Core Methods
+
 - `login(credentials, options, callback)` - Authenticate with Facebook
 - `getCurrentUserID()` - Get logged-in user ID
 - `getAppState()` - Get session cookies
@@ -107,6 +108,7 @@ nero({ appState: JSON.parse(fs.readFileSync("appstate.json")) }, (err, api) => {
 - `logout(callback)` - End session
 
 ### Messaging
+
 - `sendMessage(msg, threadID, [replyTo])` - Send a message
 - `editMessage(text, messageID)` - Edit a message
 - `unsendMessage(messageID, threadID)` - Unsend a message
@@ -118,11 +120,13 @@ nero({ appState: JSON.parse(fs.readFileSync("appstate.json")) }, (err, api) => {
 - `createNewGroup(participantIDs, [title])` - Create a new group chat
 
 ### Threads
+
 - `getThreadInfo(threadID)` - Get thread details
 - `getThreadList(limit, timestamp, tags)` - List threads
 - `getThreadHistory(threadID, amount, timestamp)` - Get messages
 
 ### Social (Nero Exclusive)
+
 - `comment(msg, postID)` - Comment on a post
 - `share(postID)` - Share a post
 - `follow(userID, follow)` - Follow/unfollow user
@@ -130,6 +134,7 @@ nero({ appState: JSON.parse(fs.readFileSync("appstate.json")) }, (err, api) => {
 - `story.create(message, options)` - Create a text story
 
 ### Debug
+
 - `getDebugStats()` - Get API statistics
 - `printDebugStats()` - Print stats to console
 - `resetDebugStats()` - Reset counters
@@ -142,17 +147,17 @@ Nero includes a **comprehensive Human Behavior Simulation Engine** to evade Face
 
 ### Features
 
-| Category | Features |
-|----------|----------|
-| **Typing Simulation** | Gaussian-distributed typing speeds, character-level delays, typo simulation |
-| **Circadian Rhythm** | 24-hour activity patterns, day-of-week variations, sleep detection |
-| **Cognitive Modeling** | Focus decay, mental fatigue, emotional states, attention spans |
-| **Device Profiles** | Mobile/Desktop/Tablet specific behaviors |
-| **Personality Profiles** | Casual/Professional/Enthusiastic/Busy response patterns |
-| **Network Simulation** | Latency jitter, connection quality, spike simulation |
-| **Rate Limiting** | Adaptive throttling, burst detection, cooldowns |
-| **Session Management** | Micro/short/long breaks, activity bursts |
-| **Fingerprint Randomization** | Periodic variance reshuffling |
+| Category                      | Features                                                                    |
+| ----------------------------- | --------------------------------------------------------------------------- |
+| **Typing Simulation**         | Gaussian-distributed typing speeds, character-level delays, typo simulation |
+| **Circadian Rhythm**          | 24-hour activity patterns, day-of-week variations, sleep detection          |
+| **Cognitive Modeling**        | Focus decay, mental fatigue, emotional states, attention spans              |
+| **Device Profiles**           | Mobile/Desktop/Tablet specific behaviors                                    |
+| **Personality Profiles**      | Casual/Professional/Enthusiastic/Busy response patterns                     |
+| **Network Simulation**        | Latency jitter, connection quality, spike simulation                        |
+| **Rate Limiting**             | Adaptive throttling, burst detection, cooldowns                             |
+| **Session Management**        | Micro/short/long breaks, activity bursts                                    |
+| **Fingerprint Randomization** | Periodic variance reshuffling                                               |
 
 ### Quick Enable
 
@@ -167,9 +172,9 @@ api.setOptions({ humanBehavior: true });
 // Configure specific device and personality
 api.setOptions({
     humanBehavior: {
-        device: 'mobile',           // 'mobile' | 'desktop' | 'tablet'
-        personality: 'casual',      // 'casual' | 'professional' | 'enthusiastic' | 'busy'
-    }
+        device: "mobile", // 'mobile' | 'desktop' | 'tablet'
+        personality: "casual", // 'casual' | 'professional' | 'enthusiastic' | 'busy'
+    },
 });
 ```
 
@@ -179,9 +184,9 @@ api.setOptions({
 api.setOptions({
     humanBehavior: {
         // Device and personality
-        device: 'desktop',
-        personality: 'professional',
-        
+        device: "desktop",
+        personality: "professional",
+
         // Typing dynamics
         typing: {
             baseWPM: { min: 40, max: 80 },
@@ -192,63 +197,69 @@ api.setOptions({
             },
             typos: {
                 baseRate: 0.025,
-                correctionDelay: { min: 200, max: 600 }
-            }
+                correctionDelay: { min: 200, max: 600 },
+            },
         },
-        
+
         // Circadian rhythm (24-hour patterns)
         circadian: {
             enabled: true,
             hourlyActivity: {
-                0: 0.15, 1: 0.08, 2: 0.05,  // Night (very slow)
-                9: 0.95, 10: 1.0, 11: 1.0,  // Morning (active)
-                14: 0.95, 15: 1.0,          // Afternoon
-                22: 0.70, 23: 0.40          // Evening (slowing)
+                0: 0.15,
+                1: 0.08,
+                2: 0.05, // Night (very slow)
+                9: 0.95,
+                10: 1.0,
+                11: 1.0, // Morning (active)
+                14: 0.95,
+                15: 1.0, // Afternoon
+                22: 0.7,
+                23: 0.4, // Evening (slowing)
             },
             sleepThreshold: 0.1,
-            sleepResponseChance: 0.02
+            sleepResponseChance: 0.02,
         },
-        
+
         // Cognitive load modeling
         cognitive: {
             attention: {
-                maxFocusTime: 25 * 60 * 1000,  // 25 minutes
+                maxFocusTime: 25 * 60 * 1000, // 25 minutes
                 distractionChance: 0.03,
             },
             fatigue: {
                 enabled: true,
-                onsetTime: 45 * 60 * 1000,     // After 45 min
-                effectOnTyping: 1.5,           // 50% slower
+                onsetTime: 45 * 60 * 1000, // After 45 min
+                effectOnTyping: 1.5, // 50% slower
             },
             emotion: {
                 enabled: true,
                 effectMultipliers: {
                     neutral: 1.0,
-                    happy: 0.85,     // Faster when happy
-                    stressed: 1.3,   // Slower when stressed
-                    tired: 1.6,      // Much slower when tired
-                    excited: 0.7     // Very fast when excited
-                }
-            }
+                    happy: 0.85, // Faster when happy
+                    stressed: 1.3, // Slower when stressed
+                    tired: 1.6, // Much slower when tired
+                    excited: 0.7, // Very fast when excited
+                },
+            },
         },
-        
+
         // Network simulation
         network: {
             latency: {
                 base: { min: 50, max: 200 },
-                spikeChance: 0.05
-            }
+                spikeChance: 0.05,
+            },
         },
-        
+
         // Session management
         session: {
             breaks: {
                 microBreak: { chance: 0.1, duration: { min: 5000, max: 15000 } },
                 shortBreak: { chance: 0.05, duration: { min: 30000, max: 120000 } },
-                longBreak: { chance: 0.02, duration: { min: 300000, max: 1800000 } }
-            }
+                longBreak: { chance: 0.02, duration: { min: 300000, max: 1800000 } },
+            },
         },
-        
+
         // Rate limiting
         rateLimit: {
             perMinute: { messages: 15, actions: 45 },
@@ -257,19 +268,19 @@ api.setOptions({
                 enabled: true,
                 warningThreshold: 0.7,
                 criticalThreshold: 0.9,
-                criticalMultiplier: 3.0
-            }
+                criticalMultiplier: 3.0,
+            },
         },
-        
+
         // Fingerprint randomization
         fingerprint: {
             randomization: {
                 enabled: true,
                 variance: 0.15,
-                reshuffleInterval: 3600000  // Every hour
-            }
-        }
-    }
+                reshuffleInterval: 3600000, // Every hour
+            },
+        },
+    },
 });
 ```
 

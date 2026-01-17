@@ -77,18 +77,33 @@ module.exports = {
 
         // Check if code was provided
         if (args.length === 0) {
-            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : "";
             const commandName = this.config.name;
             return api.sendMessage(
                 `❌ Please provide code to execute.\n\n` +
-                    `Usage: ${actualPrefix}${commandName} <code>\n\n` +
-                    `Example: ${actualPrefix}${commandName} return 2 + 2`,
+                `Usage: ${actualPrefix}${commandName} <code>\n\n` +
+                `Example: ${actualPrefix}${commandName} return 2 + 2`,
                 threadID,
                 messageID
             );
         }
 
-        const code = args.join(" ");
+        // Parse code from body to preserve whitespace/newlines
+        let code = "";
+        const fullBody = event.body || "";
+
+        // Remove the command prefix and name
+        const prefix = config.bot.prefixEnabled ? (Array.isArray(config.bot.prefix) ? config.bot.prefix[0] : config.bot.prefix) : "";
+        // Simple heuristic: find where the arguments start after the command name
+        // This is robust enough for "eval <code>"
+        const commandMatch = fullBody.match(new RegExp(`^[${prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}]?\\s*${this.config.name}\\s+`, 'i'));
+
+        if (commandMatch) {
+            code = fullBody.substring(commandMatch[0].length);
+        } else {
+            // Fallback for cases where match fails (shouldn't happen if executed)
+            code = args.join(" ");
+        }
 
         logger.warn("Eval", `Executing code from ${event.senderID}: ${code.substring(0, 100)}...`);
 

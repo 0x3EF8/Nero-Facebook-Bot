@@ -1,17 +1,13 @@
- 
 "use strict";
-const url = require("url");
-
-const querystring = require("querystring");
 
 const stream = require("stream");
 
-const { getType, padZeros, NUM_TO_MONTH, NUM_TO_DAY } = require("./constants");
+const { getType, NUM_TO_MONTH, NUM_TO_DAY } = require("./constants");
 function isReadableStream(obj) {
     return (
         obj instanceof stream.Stream &&
         typeof obj._read === "function" &&
-        getType(obj._readableState) == "Object"
+        getType(obj._readableState) === "Object"
     );
 }
 
@@ -53,9 +49,9 @@ function _formatAttachment(attachment1, attachment2) {
 
     // Check if this is likely a photo based on available fields
     if (
-        type_attachment == null &&
-        attachment1.id != null &&
-        attachment1.extensible_attachment == null
+        type_attachment === null &&
+        attachment1.id !== null &&
+        attachment1.extensible_attachment === null
     ) {
         // Check if we have blob_attachment with image data (MessageImage type)
         const blobAtt = attachment1.mercury?.blob_attachment;
@@ -402,46 +398,43 @@ function _formatAttachment(attachment1, attachment2) {
                 spriteURI: blob.sprite_image,
                 spriteURI2x: blob.sprite_image_2x,
             };
-        case "MessageLocation":
-            var urlAttach = blob.story_attachment.url;
-            var mediaAttach = blob.story_attachment.media;
+        case "MessageLocation": {
+            const urlAttach = blob.story_attachment.url;
+            const mediaAttach = blob.story_attachment.media;
 
-            var u = querystring.parse(url.parse(urlAttach).query).u;
-            var where1 = querystring.parse(url.parse(u).query).where1;
-            var address = where1.split(", ");
+            const u = new URL(urlAttach).searchParams.get("u");
+            const where1 = new URL(u).searchParams.get("where1");
+            const address = where1.split(", ");
 
-            var latitude;
-            var longitude;
+            let latitude;
+            let longitude;
 
             try {
                 latitude = Number.parseFloat(address[0]);
                 longitude = Number.parseFloat(address[1]);
-            } catch (err) {
+            } catch (_err) {
                 /* empty */
             }
-            var imageUrl;
-            var width;
-            var height;
+            let imageUrl;
+            let width;
+            let height;
             if (mediaAttach && mediaAttach.image) {
                 imageUrl = mediaAttach.image.uri;
                 width = mediaAttach.image.width;
                 height = mediaAttach.image.height;
             }
-
             return {
-                type: "location",
-                ID: blob.legacy_attachment_id,
+                type: "message_location",
                 latitude: latitude,
                 longitude: longitude,
+                address: address, // Added address
                 image: imageUrl,
                 width: width,
                 height: height,
-                url: u || urlAttach,
-                address: where1,
-                facebookUrl: blob.story_attachment.url,
-                target: blob.story_attachment.target,
-                styleList: blob.story_attachment.style_list,
+                url: urlAttach, // Added url
             };
+        }
+
         case "ExtensibleAttachment":
             return {
                 type: "share",
@@ -468,7 +461,7 @@ function _formatAttachment(attachment1, attachment2) {
                     blob.story_attachment.media &&
                     blob.story_attachment.media.playable_duration_in_ms,
                 playableUrl:
-                    blob.story_attachment.media == null
+                    blob.story_attachment.media === null
                         ? null
                         : blob.story_attachment.media.playable_url,
                 subattachments: blob.story_attachment.subattachments,
@@ -571,7 +564,7 @@ function formatDeltaMessage(m) {
     };
 }
 function formatID(id) {
-    if (id != undefined && id != null) {
+    if (id !== undefined && id !== null) {
         return id.replace(/(fb)?id[:.]/, "");
     } else {
         return id;
@@ -751,7 +744,9 @@ function formatTyp(event) {
         threadID: formatID((event.to || event.thread_fbid || event.from).toString()),
         // When receiving typ indication from mobile, `from_mobile` isn't set.
         // If it is, we just use that value.
-        fromMobile: event.hasOwnProperty("from_mobile") ? event.from_mobile : true,
+        fromMobile: Object.prototype.hasOwnProperty.call(event, "from_mobile")
+            ? event.from_mobile
+            : true,
         userID: (event.realtime_viewer_fbid || event.from).toString(),
         type: "typ",
     };
@@ -789,247 +784,6 @@ function formatRead(event) {
         ),
         time: event.timestamp,
         type: "read",
-    };
-}
-
-function getFrom(str, startToken, endToken) {
-    const start = str.indexOf(startToken) + startToken.length;
-    if (start < startToken.length) return "";
-
-    const lastHalf = str.substring(start);
-    const end = lastHalf.indexOf(endToken);
-    if (end === -1) {
-        throw Error("Could not find endTime `" + endToken + "` in the given string.");
-    }
-    return lastHalf.substring(0, end);
-}
-
-function makeParsable(html) {
-    const withoutForLoop = html.replace(/for\s*\(\s*;\s*;\s*\)\s*;\s*/, "");
-
-    // (What the fuck FB, why windows style newlines?)
-    // So sometimes FB will send us base multiple objects in the same response.
-    // They're all valid JSON, one after the other, at the top level. We detect
-    // that and make it parse-able by JSON.parse.
-    // Ben - July 15th 2017
-    //
-    // It turns out that Facebook may insert random number of spaces before
-    // next object begins (issue #616)
-    // rav_kr - 2018-03-19
-    const maybeMultipleObjects = withoutForLoop.split(/\}\r\n *\{/);
-    if (maybeMultipleObjects.length === 1) return maybeMultipleObjects;
-
-    return "[" + maybeMultipleObjects.join("},{") + "]";
-}
-
-function arrToForm(form) {
-    return arrayToObject(
-        form,
-        function (v) {
-            return v.name;
-        },
-        function (v) {
-            return v.val;
-        }
-    );
-}
-
-function arrayToObject(arr, getKey, getValue) {
-    return arr.reduce(function (acc, val) {
-        acc[getKey(val)] = getValue(val);
-        return acc;
-    }, {});
-}
-
-function getSignatureID() {
-    return Math.floor(Math.random() * 2147483648).toString(16);
-}
-
-function generateTimestampRelative() {
-    const d = new Date();
-    return d.getHours() + ":" + padZeros(d.getMinutes());
-}
-
-function makeDefaults(html, userID, ctx) {
-    let reqCounter = 1;
-    const revision = getFrom(html, 'revision":', ",");
-    function mergeWithDefaults(obj) {
-        const newObj = {
-            av: userID,
-            __user: userID,
-            __req: (reqCounter++).toString(36),
-            __rev: revision,
-            __a: 1,
-            ...(ctx && {
-                fb_dtsg: ctx.fb_dtsg,
-                jazoest: ctx.jazoest,
-            }),
-        };
-
-        if (!obj) return newObj;
-
-        for (const prop in obj) {
-            if (obj.hasOwnProperty(prop)) {
-                if (!newObj[prop]) {
-                    newObj[prop] = obj[prop];
-                }
-            }
-        }
-
-        return newObj;
-    }
-
-    return {
-        get: (url, jar, qs, ctxx, customHeader = {}) =>
-            get(url, jar, mergeWithDefaults(qs), ctx.globalOptions, ctxx || ctx, customHeader),
-        post: (url, jar, form, ctxx, customHeader = {}) =>
-            post(url, jar, mergeWithDefaults(form), ctx.globalOptions, ctxx || ctx, customHeader),
-        postFormData: (url, jar, form, qs, ctxx) =>
-            postFormData(
-                url,
-                jar,
-                mergeWithDefaults(form),
-                mergeWithDefaults(qs),
-                ctx.globalOptions,
-                ctxx || ctx
-            ),
-    };
-}
-
-function parseAndCheckLogin(ctx, http, retryCount) {
-    const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-    const _try = (tryData) =>
-        new Promise(function (resolve, reject) {
-            try {
-                resolve(tryData());
-            } catch (error) {
-                reject(error);
-            }
-        });
-    if (retryCount == undefined) retryCount = 0;
-
-    return function (data) {
-        function any() {
-            if (data.statusCode >= 500 && data.statusCode < 600) {
-                if (retryCount >= 5) {
-                    const err = new Error(
-                        "Request retry failed. Check the `res` and `statusCode` property on this error."
-                    );
-                    err.statusCode = data.statusCode;
-                    err.res = data.body;
-                    err.error =
-                        "Request retry failed. Check the `res` and `statusCode` property on this error.";
-                    throw err;
-                }
-                retryCount++;
-                const retryTime = Math.floor(Math.random() * 5000);
-                // Retry logged via debug system only
-                const url =
-                    data.request.uri.protocol +
-                    "//" +
-                    data.request.uri.hostname +
-                    data.request.uri.pathname;
-                if (data.request.headers["content-type"].split(";")[0] === "multipart/form-data") {
-                    return delay(retryTime)
-                        .then(function () {
-                            return http.postFormData(url, ctx.jar, data.request.formData);
-                        })
-                        .then(parseAndCheckLogin(ctx, http, retryCount));
-                } else {
-                    return delay(retryTime)
-                        .then(function () {
-                            return http.post(url, ctx.jar, data.request.formData);
-                        })
-                        .then(parseAndCheckLogin(ctx, http, retryCount));
-                }
-            }
-
-            if (data.statusCode === 404) return;
-
-            if (data.statusCode !== 200) {
-                throw new Error(
-                    "parseAndCheckLogin got status code: " +
-                        data.statusCode +
-                        ". Bailing out of trying to parse response."
-                );
-            }
-
-            let res = null;
-            try {
-                res = JSON.parse(makeParsable(data.body));
-            } catch (e) {
-                const err = new Error(
-                    "JSON.parse error. Check the `detail` property on this error."
-                );
-                err.error = "JSON.parse error. Check the `detail` property on this error.";
-                err.detail = e;
-                err.res = data.body;
-                throw err;
-            }
-
-            // In some cases the response contains only a redirect URL which should be followed
-            if (res.redirect && data.request.method === "GET") {
-                return http.get(res.redirect, ctx.jar).then(parseAndCheckLogin(ctx, http));
-            }
-
-            // TODO: handle multiple cookies?
-            if (
-                res.jsmods &&
-                res.jsmods.require &&
-                Array.isArray(res.jsmods.require[0]) &&
-                res.jsmods.require[0][0] === "Cookie"
-            ) {
-                res.jsmods.require[0][3][0] = res.jsmods.require[0][3][0].replace("_js_", "");
-                const requireCookie = res.jsmods.require[0][3];
-                ctx.jar.setCookie(
-                    formatCookie(requireCookie, "facebook"),
-                    "https://www.facebook.com"
-                );
-                ctx.jar.setCookie(
-                    formatCookie(requireCookie, "messenger"),
-                    "https://www.messenger.com"
-                );
-            }
-
-            // On every request we check if we got a DTSG and we mutate the context so that we use the latest
-            // one for the next requests.
-            if (res.jsmods && Array.isArray(res.jsmods.require)) {
-                const arr = res.jsmods.require;
-                for (const i in arr) {
-                    if (arr[i][0] === "DTSG" && arr[i][1] === "setToken") {
-                        ctx.fb_dtsg = arr[i][3][0];
-
-                        // Update ttstamp since that depends on fb_dtsg
-                        ctx.ttstamp = "2";
-                        for (let j = 0; j < ctx.fb_dtsg.length; j++) {
-                            ctx.ttstamp += ctx.fb_dtsg.charCodeAt(j);
-                        }
-                    }
-                }
-            }
-
-            if (res.error === 1357001) {
-                const err = new Error("Facebook blocked the login");
-                err.error = "Not logged in.";
-                throw err;
-            }
-            return res;
-        }
-        return _try(any);
-    };
-}
-
-function saveCookies(jar) {
-    return function (res) {
-        const cookies = res.headers["set-cookie"] || [];
-        cookies.forEach(function (c) {
-            if (c.indexOf(".facebook.com") > -1) {
-                jar.setCookie(c, "https://www.facebook.com");
-            }
-            const c2 = c.replace(/domain=\.facebook\.com/, "domain=.messenger.com");
-            jar.setCookie(c2, "https://www.messenger.com");
-        });
-        return res;
     };
 }
 

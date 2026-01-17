@@ -37,7 +37,7 @@ module.exports = {
 
         try {
             const limit = parseInt(args[0]) || 50;
-            
+
             api.sendMessage("⏳ Fetching group list...", threadID, messageID);
 
             // Fetch threads from inbox
@@ -48,10 +48,14 @@ module.exports = {
             }
 
             // Filter only group chats
-            const groups = threads.filter(t => t.isGroup);
+            const groups = threads.filter((t) => t.isGroup);
 
             if (groups.length === 0) {
-                return api.sendMessage("👥 No group chats found in the last " + limit + " threads.", threadID, messageID);
+                return api.sendMessage(
+                    "👥 No group chats found in the last " + limit + " threads.",
+                    threadID,
+                    messageID
+                );
             }
 
             let msg = `👥 **GROUP CHAT LIST** (${groups.length})\n`;
@@ -60,19 +64,22 @@ module.exports = {
             groups.forEach((g, index) => {
                 const name = g.threadName || g.name || "Unnamed Group";
                 msg += `${index + 1}. **${name}**\n`;
-                msg += `🆔 ID: `${g.threadID}`\n\n`;
+                msg += `🆔 ID: \`${g.threadID}\`\n\n`;
             });
 
             msg += `━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
             msg += `💡 *Tip: Copy the ID for use in /broadcast -c*`;
 
-            // If message is too long, it might fail. Break it down if needed, 
+            // If message is too long, it might fail. Break it down if needed,
             // but for 50 groups it should be fine.
             return api.sendMessage(msg, threadID, messageID);
-
         } catch (error) {
             logger.error("ThreadsCommand", `Error: ${error.message}`);
-            return api.sendMessage(`❌ Failed to fetch threads: ${error.message}`, threadID, messageID);
+            return api.sendMessage(
+                `❌ Failed to fetch threads: ${error.message}`,
+                threadID,
+                messageID
+            );
         }
-    }
+    },
 };

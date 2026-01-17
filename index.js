@@ -208,7 +208,7 @@ async function initialize() {
 
         logger.info("Listener", `Active listeners: ${listenerCount}`);
         logger.success("Main", "Bot is now online and ready!");
-        
+
         // Start background tasks
         const _taskCount = await backgroundHandler.startAll(null, accountManager);
         // Only log background started ONCE (BackgroundHandler already logs)
@@ -388,7 +388,11 @@ async function handleEvent(api, event, account) {
         if (event.senderID && config.isBlocked(event.senderID)) {
             return;
         }
-        if (event.threadID && config.isThreadBlocked(event.threadID) && !config.isAdmin(event.senderID)) {
+        if (
+            event.threadID &&
+            config.isThreadBlocked(event.threadID) &&
+            !config.isAdmin(event.senderID)
+        ) {
             return;
         }
 

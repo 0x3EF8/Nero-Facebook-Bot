@@ -85,25 +85,6 @@ function downloadStream(url, filename, type) {
     });
 }
 
-/**
- * Format timestamp
- */
-function formatTime(timestamp) {
-    if (typeof timestamp === "string") timestamp = parseInt(timestamp, 10);
-    if (!timestamp || isNaN(timestamp)) return "Unknown time";
-
-    const date = new Date(timestamp);
-    if (isNaN(date.getTime())) return "Unknown time";
-
-    return date.toLocaleString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-        month: "short",
-        day: "numeric",
-    });
-}
-
 module.exports = {
     config: {
         name: "antiUnsendV2",
@@ -117,7 +98,7 @@ module.exports = {
      * Event execution
      */
     async execute({ api, event, config, logger }) {
-        const { threadID, messageID, senderID, deletionTimestamp } = event;
+        const { threadID, messageID, senderID } = event;
 
         // Don't reveal bot's own unsent messages
         const botID = api.getCurrentUserID?.();

@@ -143,7 +143,7 @@ class Logger {
 
         const shouldFilter = (args) => {
             const msg = args.map(String).join(" ");
-            return SPAM_FILTERS.some(filter => msg.includes(filter));
+            return SPAM_FILTERS.some((filter) => msg.includes(filter));
         };
 
         console.warn = (...args) => {
@@ -155,7 +155,7 @@ class Logger {
             if (shouldFilter(args)) return;
             originalError.apply(console, args);
         };
-        
+
         // Also filter standard log if needed (some libs use console.log for status)
         console.log = (...args) => {
             if (shouldFilter(args)) return;

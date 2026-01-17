@@ -3,17 +3,17 @@
  * ║                           NERO TYPE DEFINITIONS                               ║
  * ║          JSDoc TypeDefs for better IDE support and type checking              ║
  * ╚═══════════════════════════════════════════════════════════════════════════════╝
- * 
+ *
  * This file contains JSDoc @typedef definitions for the Nero bot framework.
  * These types are used across handlers, commands, events, and background tasks.
- * 
+ *
  * Usage in other files:
  * @example
  * // At the top of your file:
  * // @ts-check
  * // or import types:
  * /** @typedef {import('./types').CommandConfig} CommandConfig *\/
- * 
+ *
  * @module types
  * @author 0x3EF8
  * @version 1.0.0

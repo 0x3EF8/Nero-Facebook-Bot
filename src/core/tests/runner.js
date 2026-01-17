@@ -65,6 +65,12 @@ const CONFIG = {
             files: ["system.test.js"],
             icon: "🚀",
         },
+        handlers: {
+            name: "Handler Tests",
+            path: "../../handlers/tests",
+            files: ["commandHandler.test.js"],
+            icon: "🎮",
+        },
     },
 };
 
@@ -102,19 +108,19 @@ function printHeader() {
     );
     console.log(
         color("cyan", "║") +
-            color(
-                "bright",
-                "                          NERO - Test Suite                                "
-            ) +
-            color("cyan", "║")
+        color(
+            "bright",
+            "                          NERO - Test Suite                                "
+        ) +
+        color("cyan", "║")
     );
     console.log(
         color("cyan", "║") +
-            color(
-                "dim",
-                "                      Comprehensive Testing Module                           "
-            ) +
-            color("cyan", "║")
+        color(
+            "dim",
+            "                      Comprehensive Testing Module                           "
+        ) +
+        color("cyan", "║")
     );
     console.log(
         color(

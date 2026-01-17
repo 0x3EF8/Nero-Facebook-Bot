@@ -44,20 +44,20 @@ module.exports = {
 
         // Show usage if no arguments
         if (args.length === 0) {
-            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : "";
             const commandName = this.config.name;
             return api.sendMessage(
                 "📝 **Bio Command**\n\n" +
-                "Update the bot's Facebook bio/intro.\n\n" +
-                "**Usage:**\n" +
-                `• \`${actualPrefix}${commandName} <text>\` - Set new bio\n` +
-                `• \`${actualPrefix}${commandName} -clear\` - Clear bio\n\n` +
-                "**Notes:**\n" +
-                "• Maximum 101 characters\n" +
-                "• Emojis are supported 🎉\n\n" +
-                "**Examples:**\n" +
-                `• \`${actualPrefix}${commandName} Hello, I'm Nero Bot! 🤖\`\n` +
-                `• \`${actualPrefix}${commandName} Living my best life ✨\``,
+                    "Update the bot's Facebook bio/intro.\n\n" +
+                    "**Usage:**\n" +
+                    `• \`${actualPrefix}${commandName} <text>\` - Set new bio\n` +
+                    `• \`${actualPrefix}${commandName} -clear\` - Clear bio\n\n` +
+                    "**Notes:**\n" +
+                    "• Maximum 101 characters\n" +
+                    "• Emojis are supported 🎉\n\n" +
+                    "**Examples:**\n" +
+                    `• \`${actualPrefix}${commandName} Hello, I'm Nero Bot! 🤖\`\n` +
+                    `• \`${actualPrefix}${commandName} Living my best life ✨\``,
                 threadID,
                 messageID
             );
@@ -67,7 +67,7 @@ module.exports = {
         if (!api.setBio) {
             return api.sendMessage(
                 "❌ Bio API not available.\n\n" +
-                "The bot needs to be restarted to load the new API.",
+                    "The bot needs to be restarted to load the new API.",
                 threadID,
                 messageID
             );
@@ -85,19 +85,16 @@ module.exports = {
         if (bioText.length > 101) {
             return api.sendMessage(
                 `❌ Bio is too long!\n\n` +
-                `📏 Your bio: ${bioText.length} characters\n` +
-                `📏 Maximum: 101 characters\n\n` +
-                `Please shorten your bio by ${bioText.length - 101} characters.`,
+                    `📏 Your bio: ${bioText.length} characters\n` +
+                    `📏 Maximum: 101 characters\n\n` +
+                    `Please shorten your bio by ${bioText.length - 101} characters.`,
                 threadID,
                 messageID
             );
         }
 
         // Send "updating" status
-        const statusMsg = await api.sendMessage(
-            `📝 Updating bio...`,
-            threadID
-        );
+        const statusMsg = await api.sendMessage(`📝 Updating bio...`, threadID);
 
         try {
             // Update bio
@@ -123,7 +120,6 @@ module.exports = {
             }
 
             return api.sendMessage(successMessage, threadID, messageID);
-
         } catch (error) {
             // Unsend status
             if (statusMsg?.messageID) {
@@ -137,8 +133,7 @@ module.exports = {
             logger?.error?.("Bio", `Failed to update bio: ${error.message}`);
 
             return api.sendMessage(
-                `❌ Failed to update bio!\n\n` +
-                `Error: ${error.message || "Unknown error"}`,
+                `❌ Failed to update bio!\n\n` + `Error: ${error.message || "Unknown error"}`,
                 threadID,
                 messageID
             );

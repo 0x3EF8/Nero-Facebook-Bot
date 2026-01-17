@@ -86,7 +86,7 @@ async function loginWithCredentials(credentials, jar) {
             const str = `${cstr}; expires=${expires}; domain=${domain}; path=/;`;
             jar.setCookie(str, `https://${domain}`);
         });
-    } catch (e) {
+    } catch (_e) {
         throw new Error("Wrong password / email");
     }
 }
@@ -143,8 +143,9 @@ function loadApiModules(api, defaultFuncs, ctx) {
                     // Clear require cache for fresh instance per account
                     delete require.cache[require.resolve(fullPath)];
                     api[moduleName] = require(fullPath)(defaultFuncs, api, ctx);
-                } catch (e) {
-                    utils.error(`Failed to load module ${moduleName} from ${folder}:`, e);
+                } catch (_e) {
+                    // ignore
+                    utils.error(`Failed to load module ${moduleName} from ${folder}:`, _e);
                 }
             });
     });

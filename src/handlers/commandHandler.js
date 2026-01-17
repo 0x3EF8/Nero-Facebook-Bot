@@ -32,7 +32,7 @@ let unsendCommand = null;
  */
 function getUnsendCommand() {
     if (unsendCommand) return unsendCommand;
-    
+
     try {
         const unsendPath = path.join(config.paths.commands, "admin", "unsend.js");
         if (fs.existsSync(unsendPath)) {
@@ -53,21 +53,27 @@ function getUnsendCommand() {
  */
 function wrapApiWithTracking(api, threadID, event) {
     const originalSendMessage = api.sendMessage.bind(api);
-    
+
     return {
         ...api,
         sendMessage: async (message, targetThreadID, replyToMessage, isSingleUser) => {
             // Auto-detect if it's a DM when isSingleUser is not explicitly set
             // If sending to the same thread as the event and it's not a group, it's a DM
             if (isSingleUser === undefined) {
-                const isTargetSameThread = targetThreadID === threadID || targetThreadID === event?.threadID;
+                const isTargetSameThread =
+                    targetThreadID === threadID || targetThreadID === event?.threadID;
                 if (isTargetSameThread && event?.isGroup === false) {
                     isSingleUser = true;
                 }
             }
-            
-            const result = await originalSendMessage(message, targetThreadID, replyToMessage, isSingleUser);
-            
+
+            const result = await originalSendMessage(
+                message,
+                targetThreadID,
+                replyToMessage,
+                isSingleUser
+            );
+
             // Track the sent message for potential unsending
             if (result?.messageID) {
                 const unsend = getUnsendCommand();
@@ -75,9 +81,9 @@ function wrapApiWithTracking(api, threadID, event) {
                     unsend.trackMessage(threadID, result.messageID);
                 }
             }
-            
+
             return result;
-        }
+        },
     };
 }
 
@@ -407,24 +413,29 @@ class CommandHandler {
                 // Bot message without prefix -> Ignore
                 return false;
             }
-        } 
+        }
         // Logic for Users
         else {
             const prefixEnabled = config.bot.prefixEnabled !== false;
-            
+
             if (prefixEnabled) {
                 // Prefix IS required for users
                 // Handle case where prefix might be an array or string
-                const mainPrefix = Array.isArray(config.bot.prefix) ? config.bot.prefix : [config.bot.prefix];
-                const userPrefixes = [...mainPrefix, ...(config.bot.alternativePrefixes || [])].filter(Boolean);
-                
+                const mainPrefix = Array.isArray(config.bot.prefix)
+                    ? config.bot.prefix
+                    : [config.bot.prefix];
+                const userPrefixes = [
+                    ...mainPrefix,
+                    ...(config.bot.alternativePrefixes || []),
+                ].filter(Boolean);
+
                 for (const p of userPrefixes) {
                     if (body.toLowerCase().startsWith(p.toLowerCase())) {
                         usedPrefix = p;
                         break;
                     }
                 }
-                
+
                 if (!usedPrefix) return false; // User didn't use required prefix
                 commandText = body.slice(usedPrefix.length).trim();
             }
@@ -432,7 +443,22 @@ class CommandHandler {
         }
 
         // Parse command and arguments
-        const args = commandText.split(/\s+/);
+        // Parse command and arguments with quote support
+        // Match words or quoted strings
+        const args = [];
+        const regex = /"([^"]+)"|'([^']+)'|([^\s]+)/g;
+        let match;
+
+        while ((match = regex.exec(commandText)) !== null) {
+            // match[1] or match[2] is the quoted content (without quotes)
+            // match[3] is the unquoted word
+            args.push(match[1] || match[2] || match[3]);
+        }
+
+        // Handle case where no args found (e.g. empty string), though commandText is trimmed
+        if (args.length === 0 && commandText) {
+            args.push(commandText);
+        }
         const commandName = args.shift();
 
         if (!commandName) return false;
@@ -534,8 +560,11 @@ class CommandHandler {
             if (config.commands.singleReplyInSharedGC && isGroup && event.messageID) {
                 if (this.processedMessages.has(event.messageID)) {
                     // Another bot beat us to it (or we beat ourselves in a race)
-                    logger.debug("CommandHandler", `Skipping duplicate execution for ${event.messageID}`);
-                    return false; 
+                    logger.debug(
+                        "CommandHandler",
+                        `Skipping duplicate execution for ${event.messageID}`
+                    );
+                    return false;
                 }
                 this.processedMessages.add(event.messageID);
             }

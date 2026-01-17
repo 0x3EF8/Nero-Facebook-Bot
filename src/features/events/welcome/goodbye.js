@@ -47,52 +47,52 @@ module.exports = {
      * @param {Object} context - Event context
      */
     async execute({ api, event, _config, logger }) {
-    // Only handle participant removal events
-    if (event.logMessageType !== "log:unsubscribe") {
-        return;
-    }
-
-    const threadID = event.threadID;
-
-    // Get the removed participant
-    const leftParticipantFbId = event.logMessageData?.leftParticipantFbId;
-
-    if (!leftParticipantFbId) {
-        return;
-    }
-
-    // Get bot's user ID
-    const botID = api.getCurrentUserID ? api.getCurrentUserID() : null;
-
-    // Don't send goodbye for the bot itself
-    if (botID && leftParticipantFbId === botID) {
-        return;
-    }
-
-    // Try to get user's name
-    let userName = "Someone";
-
-    try {
-        const userInfo = await api.getUserInfo(leftParticipantFbId);
-        if (userInfo) {
-            userName = userInfo.name || userName;
+        // Only handle participant removal events
+        if (event.logMessageType !== "log:unsubscribe") {
+            return;
         }
-    } catch {
-        // Use default name if getUserInfo fails
-    }
 
-    // Generate and send goodbye message
-    const goodbyeMessage = getRandomGoodbye(userName);
+        const threadID = event.threadID;
 
-    try {
-        await api.sendMessage(goodbyeMessage, threadID);
+        // Get the removed participant
+        const leftParticipantFbId = event.logMessageData?.leftParticipantFbId;
 
-        logger.info(
-            "Goodbye",
-            `Said goodbye to ${userName} (${leftParticipantFbId}) in thread ${threadID}`
-        );
-    } catch (error) {
-        logger.error("Goodbye", `Failed to send goodbye message: ${error.message}`);
-    }
+        if (!leftParticipantFbId) {
+            return;
+        }
+
+        // Get bot's user ID
+        const botID = api.getCurrentUserID ? api.getCurrentUserID() : null;
+
+        // Don't send goodbye for the bot itself
+        if (botID && leftParticipantFbId === botID) {
+            return;
+        }
+
+        // Try to get user's name
+        let userName = "Someone";
+
+        try {
+            const userInfo = await api.getUserInfo(leftParticipantFbId);
+            if (userInfo) {
+                userName = userInfo.name || userName;
+            }
+        } catch {
+            // Use default name if getUserInfo fails
+        }
+
+        // Generate and send goodbye message
+        const goodbyeMessage = getRandomGoodbye(userName);
+
+        try {
+            await api.sendMessage(goodbyeMessage, threadID);
+
+            logger.info(
+                "Goodbye",
+                `Said goodbye to ${userName} (${leftParticipantFbId}) in thread ${threadID}`
+            );
+        } catch (error) {
+            logger.error("Goodbye", `Failed to send goodbye message: ${error.message}`);
+        }
     },
 };

@@ -99,7 +99,7 @@ function formatExtensibleAttachment(attachment) {
                 attachment.story_attachment.description &&
                 attachment.story_attachment.description.text,
             source:
-                attachment.story_attachment.source == null
+                attachment.story_attachment.source === null
                     ? null
                     : attachment.story_attachment.source.text,
             image: attachment.story_attachment.media?.image?.uri,
@@ -133,7 +133,7 @@ function formatMessagesGraphQLResponse(data) {
 
     return messageThread.messages.nodes.map((d) => {
         switch (d.__typename) {
-            case "UserMessage":
+            case "UserMessage": {
                 const mentions = {};
                 if (d.message?.ranges) {
                     d.message.ranges.forEach((e) => {
@@ -180,6 +180,7 @@ function formatMessagesGraphQLResponse(data) {
                             userID: r.user.id,
                         })) || [],
                 };
+            }
             case "ThreadNameMessage":
             case "ThreadImageMessage":
             case "ParticipantLeftMessage":

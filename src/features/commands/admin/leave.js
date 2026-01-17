@@ -29,10 +29,12 @@ module.exports = {
 
         try {
             await api.sendMessage("👋 Goodbye! Leaving the group now...", threadID);
-            
+
             // Wait a moment for the message to be sent
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
+            await new Promise((resolve) => {
+                setTimeout(resolve, 1000);
+            });
+
             const botID = api.getCurrentUserID();
             // Use gcmember to remove the bot (itself) from the group
             if (api.gcmember) {
@@ -45,5 +47,5 @@ module.exports = {
             logger.error("Leave Command", error);
             api.sendMessage(`❌ Failed to leave group: ${error.message}`, threadID);
         }
-    }
+    },
 };

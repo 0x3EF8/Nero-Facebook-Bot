@@ -301,29 +301,33 @@ class Updater {
      */
     async performDirectUpdate() {
         const rootDir = path.join(__dirname, "..", "..");
-        
+
         try {
             // Use tar command which is standard in most containers (uid 999 suggests linux container)
             const tarballUrl = this.latestRelease.tarball;
-            
+
             console.log(chalk.cyan("[Updater]") + " Downloading latest version...");
-            
+
             // Try curl first, then wget
             try {
                 // curl -L -k (allow insecure just in case) | tar -xz --strip-components=1 --overwrite
-                execSync(`curl -L -k "${tarballUrl}" | tar -xz --strip-components=1 --overwrite`, { 
-                    cwd: rootDir, 
+                execSync(`curl -L -k "${tarballUrl}" | tar -xz --strip-components=1 --overwrite`, {
+                    cwd: rootDir,
                     stdio: "pipe",
-                    maxBuffer: 10 * 1024 * 1024
+                    maxBuffer: 10 * 1024 * 1024,
                 });
-            } catch (curlError) {
+            } catch (_curlError) {
+                console.error("[Updater] Failed to open update URL automatically.");
                 console.log(chalk.yellow("[Updater]") + " Curl failed, trying wget...");
                 // wget -O - (output to stdout) | tar ...
-                execSync(`wget -qO- --no-check-certificate "${tarballUrl}" | tar -xz --strip-components=1 --overwrite`, { 
-                    cwd: rootDir, 
-                    stdio: "pipe",
-                    maxBuffer: 10 * 1024 * 1024
-                });
+                execSync(
+                    `wget -qO- --no-check-certificate "${tarballUrl}" | tar -xz --strip-components=1 --overwrite`,
+                    {
+                        cwd: rootDir,
+                        stdio: "pipe",
+                        maxBuffer: 10 * 1024 * 1024,
+                    }
+                );
             }
 
             console.log(chalk.cyan("[Updater]") + " Installing dependencies...");
@@ -337,7 +341,6 @@ class Updater {
             );
             console.log(chalk.green("[Updater]") + " Restarting automatically...");
             return true;
-
         } catch (directError) {
             console.log(chalk.red("[Updater]") + ` Direct update failed: ${directError.message}`);
             console.log(

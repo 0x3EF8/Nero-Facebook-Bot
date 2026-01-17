@@ -65,73 +65,73 @@ module.exports = {
      * @param {Object} context - Event context
      */
     async execute({ api, event, config, logger }) {
-    // Check if rate limiting is enabled
-    if (!config.rateLimit.enabled) {
-        return;
-    }
-
-    const userID = event.senderID;
-    const threadID = event.threadID;
-    const now = Date.now();
-
-    // Skip admins
-    if (config.isAdmin(userID)) {
-        return;
-    }
-
-    // Check if user is in penalty
-    const penaltyExpiry = penalties.get(userID);
-    if (penaltyExpiry && now < penaltyExpiry) {
-        // User is in penalty - silently ignore
-        event.__blocked = true;
-        return;
-    }
-
-    // Clear expired penalty
-    if (penaltyExpiry && now >= penaltyExpiry) {
-        penalties.delete(userID);
-    }
-
-    // Get or create user tracking data
-    const windowMs = config.rateLimit.windowSeconds * 1000;
-    let userData = userMessages.get(userID);
-
-    if (!userData || now - userData.lastReset > windowMs) {
-        userData = {
-            count: 0,
-            lastReset: now,
-            warned: false,
-        };
-        userMessages.set(userID, userData);
-    }
-
-    // Increment message count
-    userData.count++;
-
-    // Check if over limit
-    if (userData.count > config.rateLimit.maxMessages) {
-        // Apply penalty
-        const penaltyMs = config.rateLimit.penaltySeconds * 1000;
-        penalties.set(userID, now + penaltyMs);
-
-        // Send warning (only once per window)
-        if (!userData.warned) {
-            userData.warned = true;
-
-            try {
-                api.sendMessage(
-                    "⚠️ You're sending too many commands. Please wait a moment.",
-                    threadID
-                );
-                logger.warn("AntiSpam", `Rate limited user ${userID} in thread ${threadID}`);
-            } catch (error) {
-                logger.error("AntiSpam", `Failed to send warning: ${error.message}`);
-            }
+        // Check if rate limiting is enabled
+        if (!config.rateLimit.enabled) {
+            return;
         }
 
-        // Block the event from further processing
-        event.__blocked = true;
-    }
+        const userID = event.senderID;
+        const threadID = event.threadID;
+        const now = Date.now();
+
+        // Skip admins
+        if (config.isAdmin(userID)) {
+            return;
+        }
+
+        // Check if user is in penalty
+        const penaltyExpiry = penalties.get(userID);
+        if (penaltyExpiry && now < penaltyExpiry) {
+            // User is in penalty - silently ignore
+            event.__blocked = true;
+            return;
+        }
+
+        // Clear expired penalty
+        if (penaltyExpiry && now >= penaltyExpiry) {
+            penalties.delete(userID);
+        }
+
+        // Get or create user tracking data
+        const windowMs = config.rateLimit.windowSeconds * 1000;
+        let userData = userMessages.get(userID);
+
+        if (!userData || now - userData.lastReset > windowMs) {
+            userData = {
+                count: 0,
+                lastReset: now,
+                warned: false,
+            };
+            userMessages.set(userID, userData);
+        }
+
+        // Increment message count
+        userData.count++;
+
+        // Check if over limit
+        if (userData.count > config.rateLimit.maxMessages) {
+            // Apply penalty
+            const penaltyMs = config.rateLimit.penaltySeconds * 1000;
+            penalties.set(userID, now + penaltyMs);
+
+            // Send warning (only once per window)
+            if (!userData.warned) {
+                userData.warned = true;
+
+                try {
+                    api.sendMessage(
+                        "⚠️ You're sending too many commands. Please wait a moment.",
+                        threadID
+                    );
+                    logger.warn("AntiSpam", `Rate limited user ${userID} in thread ${threadID}`);
+                } catch (error) {
+                    logger.error("AntiSpam", `Failed to send warning: ${error.message}`);
+                }
+            }
+
+            // Block the event from further processing
+            event.__blocked = true;
+        }
     },
 
     /**

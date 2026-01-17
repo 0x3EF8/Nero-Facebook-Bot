@@ -122,23 +122,23 @@ module.exports = {
 
         // Show usage if no arguments and no reply
         if (args.length === 0 && !messageReply) {
-            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : '';
+            const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : "";
             const commandName = this.config.name;
             return api.sendMessage(
                 "📖 **Story Command**\n\n" +
-                "Create a story on the bot's Facebook profile.\n\n" +
-                "**Usage:**\n" +
-                `• \`${actualPrefix}${commandName} <text>\` - Text story\n` +
-                `• \`${actualPrefix}${commandName} <text> -font <name>\` - Text story with font\n` +
-                `• \`${actualPrefix}${commandName} <text> -bg <color>\` - Text story with background\n` +
-                `• Reply to image with \`${actualPrefix}${commandName}\` - Photo story\n` +
-                `• Reply to image with \`${actualPrefix}${commandName} <caption>\` - Photo story with caption\n\n` +
-                "**Fonts:** headline, classic, casual, fancy\n" +
-                "**Backgrounds:** orange, blue, green, modern\n\n" +
-                "**Examples:**\n" +
-                `• \`${actualPrefix}${commandName} Hello world!\`\n` +
-                `• \`${actualPrefix}${commandName} Good morning! -font headline -bg orange\`\n` +
-                `• Reply to a photo with \`${actualPrefix}${commandName} My vacation 🌴\``,
+                    "Create a story on the bot's Facebook profile.\n\n" +
+                    "**Usage:**\n" +
+                    `• \`${actualPrefix}${commandName} <text>\` - Text story\n` +
+                    `• \`${actualPrefix}${commandName} <text> -font <name>\` - Text story with font\n` +
+                    `• \`${actualPrefix}${commandName} <text> -bg <color>\` - Text story with background\n` +
+                    `• Reply to image with \`${actualPrefix}${commandName}\` - Photo story\n` +
+                    `• Reply to image with \`${actualPrefix}${commandName} <caption>\` - Photo story with caption\n\n` +
+                    "**Fonts:** headline, classic, casual, fancy\n" +
+                    "**Backgrounds:** orange, blue, green, modern\n\n" +
+                    "**Examples:**\n" +
+                    `• \`${actualPrefix}${commandName} Hello world!\`\n` +
+                    `• \`${actualPrefix}${commandName} Good morning! -font headline -bg orange\`\n` +
+                    `• Reply to a photo with \`${actualPrefix}${commandName} My vacation 🌴\``,
                 threadID,
                 messageID
             );
@@ -148,7 +148,7 @@ module.exports = {
         if (!api.story) {
             return api.sendMessage(
                 "❌ Story API not available.\n\n" +
-                "The bot needs to be restarted to load the new API.",
+                    "The bot needs to be restarted to load the new API.",
                 threadID,
                 messageID
             );
@@ -210,10 +210,7 @@ module.exports = {
                 }
 
                 // Send "creating story" status
-                const creatingMsg = await api.sendMessage(
-                    `📷 Creating photo story...`,
-                    threadID
-                );
+                const creatingMsg = await api.sendMessage(`📷 Creating photo story...`, threadID);
 
                 try {
                     // Create photo story
@@ -228,7 +225,10 @@ module.exports = {
                         }
                     }
 
-                    logger?.success?.("Story", `Created photo story: ${result.storyID || "success"}`);
+                    logger?.success?.(
+                        "Story",
+                        `Created photo story: ${result.storyID || "success"}`
+                    );
 
                     let successMessage = `✅ **Photo Story Created!**\n\n`;
                     successMessage += `📷 Image story uploaded successfully\n`;
@@ -240,7 +240,6 @@ module.exports = {
                     }
 
                     return api.sendMessage(successMessage, threadID, messageID);
-
                 } catch (error) {
                     // Unsend "creating" status
                     if (creatingMsg?.messageID) {
@@ -255,7 +254,7 @@ module.exports = {
 
                     return api.sendMessage(
                         `❌ Failed to create photo story!\n\n` +
-                        `Error: ${error.message || "Unknown error"}`,
+                            `Error: ${error.message || "Unknown error"}`,
                         threadID,
                         messageID
                     );
@@ -273,10 +272,7 @@ module.exports = {
         }
 
         // Send "creating story" status
-        const creatingMsg = await api.sendMessage(
-            `📝 Creating text story...`,
-            threadID
-        );
+        const creatingMsg = await api.sendMessage(`📝 Creating text story...`, threadID);
 
         try {
             // Create text story
@@ -302,7 +298,6 @@ module.exports = {
             }
 
             return api.sendMessage(successMessage, threadID, messageID);
-
         } catch (error) {
             // Unsend "creating" status
             if (creatingMsg?.messageID) {
@@ -317,7 +312,7 @@ module.exports = {
 
             return api.sendMessage(
                 `❌ Failed to create text story!\n\n` +
-                `Error: ${error.message || "Unknown error"}`,
+                    `Error: ${error.message || "Unknown error"}`,
                 threadID,
                 messageID
             );

@@ -1014,7 +1014,7 @@ describe("Deep Tests: New Messaging APIs", () => {
             const result = await handleMessageRequest("123456", true);
             assert.ok(result.success);
             assert.equal(result.action, "accepted");
-            assert.ok(formData.hasOwnProperty("inbox[0]"));
+            assert.ok(Object.prototype.hasOwnProperty.call(formData, "inbox[0]"));
         });
 
         it("should handle array of threadIDs", async () => {
@@ -1026,8 +1026,8 @@ describe("Deep Tests: New Messaging APIs", () => {
 
             const result = await handleMessageRequest(["123", "456"], true);
             assert.equal(result.threadIDs.length, 2);
-            assert.ok(formData.hasOwnProperty("inbox[0]"));
-            assert.ok(formData.hasOwnProperty("inbox[1]"));
+            assert.ok(Object.prototype.hasOwnProperty.call(formData, "inbox[0]"));
+            assert.ok(Object.prototype.hasOwnProperty.call(formData, "inbox[1]"));
         });
 
         it("should use 'other' box when declining", async () => {
@@ -1039,7 +1039,7 @@ describe("Deep Tests: New Messaging APIs", () => {
 
             const result = await handleMessageRequest("123", false);
             assert.equal(result.action, "declined");
-            assert.ok(formData.hasOwnProperty("other[0]"));
+            assert.ok(Object.prototype.hasOwnProperty.call(formData, "other[0]"));
         });
     });
 

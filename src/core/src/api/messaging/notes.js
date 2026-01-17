@@ -120,8 +120,9 @@ module.exports = function (defaultFuncs, api, ctx) {
             .then((resData) => {
                 if (resData && resData.errors) throw resData.errors[0];
                 const deletedStatus = resData?.data?.xfb_rich_status_delete;
-                if (!deletedStatus)
+                if (!deletedStatus) {
                     throw new Error("Could not find deletion status in the server response.");
+                }
                 callback(null, deletedStatus);
             })
             .catch((err) => {
