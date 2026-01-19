@@ -74,7 +74,7 @@ nero/
 │   ├── popup.html
 │   └── popup.js
 ├── handlers/                # Command and event handlers
-├── nero-core/               # Core Facebook API library
+├── src/fca-redux/           # Core Facebook API library
 ├── utils/                   # Utility modules
 │   ├── accountManager.js    # Multi-account management
 │   ├── cookieValidator.js   # Appstate validation

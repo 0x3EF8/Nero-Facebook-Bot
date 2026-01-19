@@ -4,7 +4,7 @@
  */
 
 const path = require("path");
-const nero = require("../src/core");
+const nero = require("../src/fca-redux");
 const AccountManager = require("../src/utils/accountManager");
 const logger = require("../src/utils/logger");
 

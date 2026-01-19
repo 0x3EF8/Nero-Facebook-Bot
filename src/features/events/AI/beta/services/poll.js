@@ -25,7 +25,7 @@ const { REACTIONS } = require("../core/constants");
  */
 async function createPoll(api, threadID, messageID, question, options) {
     console.log(chalk.cyan(`📊 Creating poll: "${question}"`));
-    api.setMessageReaction("📊", messageID, () => {}, true);
+    api.setMessageReaction("📊", messageID, () => { }, true);
 
     // 1. Deduplicate and clean options
     const uniqueOptions = [...new Set(options.map((o) => o.trim()).filter(Boolean))];
@@ -43,14 +43,14 @@ async function createPoll(api, threadID, messageID, question, options) {
 
     try {
         // API expects Array<string> or Array<Object>
-        // passing strings directly is supported by nero-core
+        // passing strings directly is supported by fca-redux
         await api.createPoll(threadID, question, uniqueOptions);
 
-        api.setMessageReaction(REACTIONS.success, messageID, () => {}, true);
+        api.setMessageReaction(REACTIONS.success, messageID, () => { }, true);
         return true;
     } catch (error) {
         console.error(chalk.red(`✗ Poll error: ${error.message}`));
-        api.setMessageReaction(REACTIONS.error, messageID, () => {}, true);
+        api.setMessageReaction(REACTIONS.error, messageID, () => { }, true);
         await api.sendMessage(`❌ Failed to create poll: ${error.message}`, threadID, messageID);
         return false;
     }

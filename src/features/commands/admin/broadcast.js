@@ -327,8 +327,12 @@ module.exports = {
                 if (threads.length === 0) {
                     return api.sendMessage(`📭 No ${filterText} found.`, threadID);
                 }
-                // Filter out current thread to avoid echo
-                targetThreads = threads.filter((t) => t.threadID !== threadID);
+                // Filter out current thread to avoid echo, unless it's a specific school broadcast
+                if (filter === "school") {
+                    targetThreads = threads;
+                } else {
+                    targetThreads = threads.filter((t) => t.threadID !== threadID);
+                }
             }
 
             if (targetThreads.length === 0) {

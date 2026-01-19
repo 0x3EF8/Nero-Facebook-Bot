@@ -90,7 +90,7 @@ module.exports = [
 
     // Nero framework library (more lenient - legacy code)
     {
-        files: ["nero-core/**/*.js"],
+        files: ["src/fca-redux/**/*.js"],
         rules: {
             // Relax rules for framework code (has legacy patterns)
             "no-var": "off",

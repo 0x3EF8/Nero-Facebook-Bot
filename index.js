@@ -58,7 +58,7 @@ const AccountManager = require("./src/utils/accountManager");
 const statsTracker = require("./src/utils/statsTracker");
 
 // Nero framework
-const nero = require("./src/core");
+const nero = require("./src/fca-redux");
 
 // API Server
 const { startServer } = require("./server");

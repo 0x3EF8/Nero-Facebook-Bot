@@ -16,7 +16,7 @@
 const settings = {
     // ═══════════════════════════════════════════════════════════════════════════
     // NERO FRAMEWORK OPTIONS - Passed directly to the Nero login function
-    // All available options from nero/src/core/auth/setOptions.js
+    // All available options from nero/src/fca-redux/auth/setOptions.js
     // ═══════════════════════════════════════════════════════════════════════════
     neroOptions: {
         // ─────────────────────────────────────────────────────────────────────────

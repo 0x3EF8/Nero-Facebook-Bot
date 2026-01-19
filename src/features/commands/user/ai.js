@@ -34,7 +34,7 @@ module.exports = {
      * Command execution function
      * @param {Object} context - Command context
      */
-    async execute({ api, event, args, _prefix, config }) {
+    async execute({ api, event, args, config }) {
         const { threadID, messageID } = event;
 
         if (args.length === 0) {

@@ -10,7 +10,7 @@
 
 "use strict";
 
-const { describe, it, assert, run } = require("../../core/tests/lib/test-framework");
+const { describe, it, assert, run } = require("../../fca-redux/tests/lib/test-framework");
 const CommandHandler = require("../commandHandler");
 
 // Mock dependencies if needed (CommandHandler uses require internally, so we might need to mock specifics later)

@@ -50,7 +50,7 @@
 // ============================================================================
 
 /**
- * Nero API instance returned from nero-core login
+ * Nero API instance returned from fca-redux login
  * @typedef {Object} NeroAPI
  * @property {function(string|Object, ThreadID): Promise<MessageInfo>} sendMessage - Send a message
  * @property {function(MessageID): Promise<void>} unsendMessage - Unsend a message
@@ -327,13 +327,13 @@
 /**
  * Runtime settings object
  * @typedef {Object} Settings
- * @property {NeroOptions} neroOptions - Nero-core options
+ * @property {NeroOptions} neroOptions - fca-redux options
  * @property {LoggingOptions} logging - Logging configuration
  * @property {RateLimitOptions} rateLimit - Rate limiting config
  */
 
 /**
- * Nero-core options
+ * fca-redux options
  * @typedef {Object} NeroOptions
  * @property {boolean} selfListen - Listen to own messages
  * @property {boolean} listenEvents - Listen to events
