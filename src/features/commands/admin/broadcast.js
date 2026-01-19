@@ -210,6 +210,9 @@ module.exports = {
         } else if (["-d", "-dms", "dms"].includes(firstArg)) {
             filter = "dms";
             messageStart = 1;
+        } else if (["-s", "-school", "school"].includes(firstArg)) {
+            filter = "school";
+            messageStart = 1;
         } else if (["-t", "-target", "target"].includes(firstArg)) {
             // Logic for -t <id1>, <id2> ... <message>
             filter = "custom";
@@ -443,7 +446,7 @@ module.exports = {
         try {
             const threads = await fetchThreads(
                 api,
-                filter === "groups" ? "groups" : filter === "dms" ? "dms" : "all"
+                filter === "groups" ? "groups" : filter === "dms" ? "dms" : filter === "school" ? "school" : "all"
             );
 
             if (threads.length === 0) {
