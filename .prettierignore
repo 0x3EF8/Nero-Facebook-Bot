@@ -1,0 +1,8 @@
+node_modules/
+logs/
+*.log
+*.json
+!package.json
+!.prettierrc
+accounts/
+.git/
