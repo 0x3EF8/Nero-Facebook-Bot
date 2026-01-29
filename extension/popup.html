@@ -1,0 +1,1907 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                width: 420px;
+                height: fit-content;
+                max-height: 650px;
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+                    Cantarell, sans-serif;
+                background: #0f0f0f;
+                color: #ffffff;
+                overflow: hidden;
+            }
+
+            .container {
+                background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
+                display: flex;
+                flex-direction: column;
+                max-width: 420px;
+                overflow: hidden;
+            }
+
+            .header {
+                background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+                padding: 12px 16px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+                position: relative;
+            }
+
+            .logo-icon {
+                width: 32px;
+                height: 32px;
+                border-radius: 8px;
+                background: rgba(255, 255, 255, 0.15);
+                padding: 4px;
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+
+            .settings-btn,
+            .sync-btn {
+                width: auto;
+                height: auto;
+                padding: 4px;
+                background: transparent;
+                border: none;
+                border-radius: 6px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition: opacity 0.2s ease;
+                box-shadow: none;
+                opacity: 0.8;
+                margin: 0;
+            }
+
+            .settings-btn {
+                margin-left: auto !important;
+            }
+
+            .sync-btn,
+            #settingsBtn {
+                margin-left: -2px !important;
+                margin-right: 0 !important;
+            }
+
+            .settings-btn:hover,
+            .sync-btn:hover {
+                opacity: 1;
+            }
+
+            .settings-btn.active,
+            .sync-btn.active {
+                opacity: 1;
+            }
+
+            .settings-btn svg,
+            .sync-btn svg {
+                transition: none;
+            }
+
+            .sync-btn.syncing svg {
+                animation: spin 1s linear infinite;
+            }
+
+            @keyframes spin {
+                from {
+                    transform: rotate(0deg);
+                }
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+
+            .header-text {
+                flex: 1;
+            }
+
+            h1 {
+                font-size: 14px;
+                font-weight: 600;
+                margin-bottom: 1px;
+                color: white;
+            }
+
+            .subtitle {
+                font-size: 10px;
+                opacity: 0.85;
+                font-weight: 400;
+                color: rgba(255, 255, 255, 0.9);
+            }
+
+            /* Sync Notification Styles */
+            .sync-notification {
+                position: fixed;
+                top: 60px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(30, 30, 46, 0.98);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                padding: 12px 20px;
+                border-radius: 8px;
+                border: 1px solid rgba(99, 102, 241, 0.3);
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+                z-index: 1000;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                font-size: 12px;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.3s ease;
+            }
+
+            .sync-notification.show {
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            .sync-notification.success {
+                border-color: rgba(34, 197, 94, 0.5);
+                background: rgba(34, 197, 94, 0.1);
+            }
+
+            .sync-notification.error {
+                border-color: rgba(239, 68, 68, 0.5);
+                background: rgba(239, 68, 68, 0.1);
+            }
+
+            .sync-notification.info {
+                border-color: rgba(59, 130, 246, 0.5);
+                background: rgba(59, 130, 246, 0.1);
+            }
+
+            /* Dashboard Styles */
+            .dashboard {
+                padding: 8px;
+                background: rgba(255, 255, 255, 0.03);
+                margin-bottom: 0;
+            }
+
+            .dashboard.hidden {
+                display: none;
+            }
+
+            .dashboard-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 8px;
+            }
+
+            .dashboard-title {
+                font-size: 13px;
+                font-weight: 600;
+                color: #a78bfa;
+            }
+
+            .refresh-btn {
+                padding: 4px 8px;
+                background: rgba(139, 92, 246, 0.2);
+                border: 1px solid rgba(139, 92, 246, 0.3);
+                border-radius: 6px;
+                color: #a78bfa;
+                font-size: 11px;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+
+            .refresh-btn:hover {
+                background: rgba(139, 92, 246, 0.3);
+            }
+
+            .dashboard-grid {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 6px;
+                margin-bottom: 8px;
+            }
+
+            .dashboard-card {
+                background: rgba(255, 255, 255, 0.05);
+                border: none;
+                border-radius: 8px;
+                padding: 4px 6px;
+            }
+
+            .dashboard-card-label {
+                font-size: 9px;
+                color: rgba(255, 255, 255, 0.6);
+                margin-bottom: 1px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .dashboard-card-value {
+                font-size: 14px;
+                font-weight: 600;
+                color: #ffffff;
+            }
+
+            .dashboard-card-value.success {
+                color: #10b981;
+            }
+
+            .dashboard-card-value.error {
+                color: #ef4444;
+            }
+
+            .dashboard-card-value.warning {
+                color: #f59e0b;
+            }
+
+            .dashboard-card-value.info {
+                color: #3b82f6;
+            }
+
+            .cookie-health {
+                background: rgba(255, 255, 255, 0.05);
+                border: none;
+                border-radius: 8px;
+                padding: 8px;
+                margin-bottom: 0;
+            }
+
+            .cookie-health-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 6px;
+            }
+
+            .cookie-health-title {
+                font-size: 11px;
+                font-weight: 600;
+                color: rgba(255, 255, 255, 0.8);
+            }
+
+            .cookie-health-status {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-size: 10px;
+                font-weight: 500;
+            }
+
+            .cookie-health-status.healthy {
+                background: rgba(16, 185, 129, 0.2);
+                color: #10b981;
+            }
+
+            .cookie-health-status.dead {
+                background: rgba(239, 68, 68, 0.2);
+                color: #ef4444;
+            }
+
+            .cookie-health-status.unknown {
+                background: rgba(107, 114, 128, 0.2);
+                color: #9ca3af;
+            }
+
+            .cookie-health-status.checking {
+                background: rgba(59, 130, 246, 0.2);
+                color: #3b82f6;
+            }
+
+            .cookie-status-dot {
+                width: 6px;
+                height: 6px;
+                border-radius: 50%;
+                animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+            }
+
+            .cookie-health-status.healthy .cookie-status-dot {
+                background: #10b981;
+            }
+
+            .cookie-health-status.dead .cookie-status-dot {
+                background: #ef4444;
+            }
+
+            .cookie-health-status.unknown .cookie-status-dot {
+                background: #9ca3af;
+            }
+
+            .cookie-health-status.checking .cookie-status-dot {
+                background: #3b82f6;
+            }
+
+            .cookie-details {
+                margin-top: 4px;
+                display: flex;
+                flex-direction: column;
+                gap: 3px;
+                margin-bottom: 0;
+            }
+
+            .cookie-detail-row {
+                display: flex;
+                justify-content: space-between;
+                font-size: 10px;
+                margin-bottom: 0;
+            }
+
+            .cookie-detail-label {
+                color: rgba(255, 255, 255, 0.6);
+                margin-bottom: 0;
+            }
+
+            .cookie-detail-value {
+                color: rgba(255, 255, 255, 0.9);
+                font-weight: 500;
+            }
+
+            .validation-message {
+                margin-top: 4px;
+                padding: 4px 6px;
+                border-radius: 6px;
+                font-size: 10px;
+                line-height: 1.4;
+            }
+
+            .validation-message.error {
+                background: rgba(239, 68, 68, 0.1);
+                border: none;
+                color: #fca5a5;
+            }
+
+            .validation-message.success {
+                background: rgba(16, 185, 129, 0.1);
+                border: none;
+                color: #6ee7b7;
+            }
+
+            .container {
+                max-width: 420px;
+                overflow: hidden;
+            }
+
+            .status-bar {
+                padding: 10px 16px;
+                background: rgba(255, 255, 255, 0.05);
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+            }
+
+            .settings-section {
+                padding: 12px 16px;
+                background: rgba(255, 255, 255, 0.03);
+                max-height: 200px;
+                overflow: hidden;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                opacity: 1;
+            }
+
+            .settings-section.collapsed {
+                max-height: 0;
+                padding: 0 16px;
+                opacity: 0;
+                border-bottom: none;
+            }
+
+            .settings-header {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 11px;
+                font-weight: 600;
+                color: rgba(255, 255, 255, 0.6);
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                margin-bottom: 10px;
+            }
+
+            .input-group {
+                display: flex;
+                gap: 8px;
+                align-items: center;
+            }
+
+            input[type="text"] {
+                flex: 1;
+                background: rgba(0, 0, 0, 0.3);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                color: #ffffff;
+                padding: 8px 12px;
+                border-radius: 8px;
+                font-size: 12px;
+                font-family: "Monaco", "Menlo", "Consolas", "Courier New", monospace;
+                transition: all 0.2s ease;
+            }
+
+            input[type="text"]:focus {
+                outline: none;
+                border-color: #6366f1;
+                background: rgba(0, 0, 0, 0.4);
+                box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+            }
+
+            input[type="text"]::placeholder {
+                color: rgba(255, 255, 255, 0.3);
+            }
+
+            .test-btn {
+                background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+                box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+                padding: 8px 14px;
+                min-width: 80px;
+            }
+
+            .test-btn:hover {
+                box-shadow: 0 4px 14px rgba(245, 158, 11, 0.5);
+            }
+
+            .test-btn.testing {
+                background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+                opacity: 0.7;
+                cursor: wait;
+            }
+
+            .test-btn.success {
+                background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            }
+
+            .api-status {
+                margin-top: 8px;
+                padding: 8px 10px;
+                border-radius: 6px;
+                font-size: 11px;
+                font-weight: 500;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                animation: slideIn 0.3s ease;
+            }
+
+            .api-status.success {
+                background: rgba(16, 185, 129, 0.15);
+                color: #6ee7b7;
+                border: 1px solid rgba(16, 185, 129, 0.3);
+            }
+
+            .api-status.error {
+                background: rgba(239, 68, 68, 0.15);
+                color: #fca5a5;
+                border: 1px solid rgba(239, 68, 68, 0.3);
+            }
+
+            .status-indicator {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 12px;
+                color: rgba(255, 255, 255, 0.8);
+            }
+
+            .status-dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: #10b981;
+                animation: pulse 2s infinite;
+            }
+
+            @keyframes pulse {
+                0%,
+                100% {
+                    opacity: 1;
+                }
+                50% {
+                    opacity: 0.5;
+                }
+            }
+
+            .status-dot.loading {
+                background: #f59e0b;
+            }
+
+            .status-dot.error {
+                background: #ef4444;
+                animation: none;
+            }
+
+            .status-dot.warning {
+                background: #f59e0b;
+                animation: pulse 2s ease-in-out infinite;
+            }
+
+            .cookie-count {
+                background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+                color: white;
+                padding: 4px 12px;
+                border-radius: 12px;
+                font-size: 11px;
+                font-weight: 600;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+
+            .content {
+                padding: 12px 16px;
+                overflow-y: auto;
+                max-height: 280px;
+            }
+
+            .content.dashboard-active,
+            .content.sync-active {
+                display: none;
+            }
+
+            .action-bar {
+                padding: 10px 16px;
+                background: rgba(0, 0, 0, 0.2);
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+                display: flex;
+                gap: 8px;
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+            }
+
+            .action-bar.dashboard-active,
+            .action-bar.sync-active {
+                display: none;
+            }
+
+            button {
+                background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+                color: white;
+                border: none;
+                padding: 9px 14px;
+                font-size: 12px;
+                font-weight: 600;
+                border-radius: 8px;
+                cursor: pointer;
+                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+                position: relative;
+                overflow: hidden;
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                white-space: nowrap;
+            }
+
+            button::before {
+                content: "";
+                position: absolute;
+                top: 0;
+                left: -100%;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(
+                    90deg,
+                    transparent,
+                    rgba(255, 255, 255, 0.2),
+                    transparent
+                );
+                transition: left 0.5s;
+            }
+
+            button:hover::before {
+                left: 100%;
+            }
+
+            button:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 14px rgba(99, 102, 241, 0.5);
+                border-color: rgba(255, 255, 255, 0.25);
+            }
+
+            button:active {
+                transform: translateY(0);
+                box-shadow: 0 2px 6px rgba(99, 102, 241, 0.3);
+            }
+
+            button:disabled {
+                background: rgba(255, 255, 255, 0.08);
+                cursor: not-allowed;
+                box-shadow: none;
+                transform: none;
+                opacity: 0.5;
+                border-color: rgba(255, 255, 255, 0.05);
+            }
+
+            #copyBtn {
+                flex: 1;
+                background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+            }
+
+            #copyBtn:hover {
+                box-shadow: 0 4px 14px rgba(16, 185, 129, 0.5);
+            }
+
+            #copyBtn.copied {
+                background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            }
+
+            #sendBtn {
+                flex: 1;
+                background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+                box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+            }
+
+            #sendBtn:hover {
+                box-shadow: 0 4px 14px rgba(99, 102, 241, 0.5);
+            }
+
+            #sendBtn.sending {
+                background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+                opacity: 0.7;
+                cursor: wait;
+            }
+
+            #sendBtn.success {
+                background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                box-shadow: 0 4px 14px rgba(16, 185, 129, 0.5);
+            }
+
+            #sendBtn.sending {
+                background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            }
+
+            #refreshBtn {
+                width: 38px;
+                padding: 10px;
+                background: rgba(255, 255, 255, 0.08);
+                box-shadow: none;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 14px;
+            }
+
+            #refreshBtn:hover {
+                background: rgba(255, 255, 255, 0.12);
+                box-shadow: 0 2px 8px rgba(255, 255, 255, 0.1);
+            }
+
+            #refreshBtn:active {
+                transform: rotate(180deg);
+            }
+
+            button svg {
+                vertical-align: middle;
+            }
+
+            #copyBtn svg {
+                margin-right: 6px;
+            }
+
+            .result-label svg {
+                margin-right: 6px;
+                vertical-align: middle;
+            }
+
+            .result-container {
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: 12px;
+                padding: 14px;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+            }
+
+            .result-label {
+                font-size: 11px;
+                font-weight: 600;
+                color: rgba(255, 255, 255, 0.6);
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                margin-bottom: 10px;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+
+            pre,
+            #output {
+                background: rgba(0, 0, 0, 0.3);
+                padding: 12px;
+                border-radius: 8px;
+                font-size: 10px;
+                font-family: "Monaco", "Menlo", "Consolas", "Courier New", monospace;
+                max-height: 320px;
+                overflow-y: auto;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                white-space: pre-wrap;
+                word-break: break-all;
+                color: #a5f3fc;
+                line-height: 1.5;
+                box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+            }
+
+            pre::-webkit-scrollbar,
+            #output::-webkit-scrollbar {
+                display: none;
+            }
+
+            #output {
+                width: 100%;
+                min-height: 200px;
+                resize: vertical;
+                outline: none;
+                transition: border-color 0.2s;
+            }
+
+            #output:focus {
+                border-color: #8b5cf6;
+            }
+
+            #output.error {
+                border-color: rgba(239, 68, 68, 0.5);
+            }
+
+            #output.valid {
+                border-color: rgba(16, 185, 129, 0.5);
+            }
+
+            .output-validation-error {
+                font-size: 11px;
+                color: #ef4444;
+                margin-top: 8px;
+                padding: 8px 10px;
+                background: rgba(239, 68, 68, 0.1);
+                border: 1px solid rgba(239, 68, 68, 0.3);
+                border-radius: 6px;
+                display: flex;
+                align-items: flex-start;
+                gap: 6px;
+            }
+
+            .output-validation-error.hidden {
+                display: none;
+            }
+
+            .output-validation-error.success {
+                color: #10b981;
+                background: rgba(16, 185, 129, 0.1);
+                border-color: rgba(16, 185, 129, 0.3);
+            }
+
+            #output::placeholder {
+                color: rgba(255, 255, 255, 0.3);
+                white-space: pre-line;
+            }
+
+            /* Scrollbar Styling */
+            ::-webkit-scrollbar {
+                width: 6px;
+                height: 6px;
+            }
+
+            ::-webkit-scrollbar-track {
+                background: rgba(0, 0, 0, 0.3);
+                border-radius: 3px;
+            }
+
+            ::-webkit-scrollbar-thumb {
+                background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+                border-radius: 3px;
+                transition: background 0.2s ease;
+            }
+
+            ::-webkit-scrollbar-thumb:hover {
+                background: linear-gradient(135deg, #818cf8 0%, #a78bfa 100%);
+            }
+
+            pre::-webkit-scrollbar {
+                width: 6px;
+            }
+
+            pre::-webkit-scrollbar-track {
+                background: rgba(0, 0, 0, 0.4);
+                border-radius: 3px;
+            }
+
+            pre::-webkit-scrollbar-thumb {
+                background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                border-radius: 3px;
+            }
+
+            pre::-webkit-scrollbar-thumb:hover {
+                background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+            }
+
+            #customAppstateInput::-webkit-scrollbar {
+                width: 6px;
+            }
+
+            #customAppstateInput::-webkit-scrollbar-track {
+                background: rgba(0, 0, 0, 0.3);
+                border-radius: 3px;
+            }
+
+            #customAppstateInput::-webkit-scrollbar-thumb {
+                background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+                border-radius: 3px;
+            }
+
+            #customAppstateInput::-webkit-scrollbar-thumb:hover {
+                background: linear-gradient(135deg, #818cf8 0%, #a78bfa 100%);
+            }
+
+            .hidden {
+                display: none !important;
+            }
+
+            .message {
+                margin-top: 12px;
+                padding: 10px 12px;
+                border-radius: 8px;
+                font-size: 12px;
+                font-weight: 500;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                animation: slideIn 0.3s ease;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+            }
+
+            @keyframes slideIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(-10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            .message.error {
+                background: rgba(239, 68, 68, 0.15);
+                color: #fca5a5;
+                border-color: rgba(239, 68, 68, 0.3);
+            }
+
+            .message.success {
+                background: rgba(16, 185, 129, 0.15);
+                color: #6ee7b7;
+                border-color: rgba(16, 185, 129, 0.3);
+            }
+
+            .message.info {
+                background: rgba(99, 102, 241, 0.15);
+                color: #c7d2fe;
+                border-color: rgba(99, 102, 241, 0.3);
+            }
+
+            .icon {
+                font-size: 14px;
+            }
+
+            .loading-spinner {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 40px 20px;
+                gap: 16px;
+            }
+
+            .spinner {
+                width: 40px;
+                height: 40px;
+                border: 3px solid rgba(255, 255, 255, 0.1);
+                border-radius: 50%;
+                border-top-color: #6366f1;
+                border-right-color: #8b5cf6;
+                animation: spin 0.8s linear infinite;
+            }
+
+            @keyframes spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+
+            .loading-text {
+                font-size: 13px;
+                color: rgba(255, 255, 255, 0.7);
+                font-weight: 500;
+            }
+
+            .empty-state {
+                text-align: center;
+                padding: 40px 20px;
+                color: rgba(255, 255, 255, 0.6);
+            }
+
+            .empty-state-icon {
+                font-size: 48px;
+                margin-bottom: 12px;
+                opacity: 0.5;
+            }
+
+            .empty-state-text {
+                font-size: 13px;
+                line-height: 1.6;
+            }
+
+            /* Sync Notification Styles */
+            .sync-notification {
+                position: fixed;
+                top: 60px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(30, 30, 46, 0.98);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                padding: 12px 20px;
+                border-radius: 8px;
+                border: 1px solid rgba(99, 102, 241, 0.3);
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+                z-index: 1000;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                font-size: 12px;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.3s ease;
+            }
+
+            .sync-notification.show {
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            .sync-notification.success {
+                border-color: rgba(34, 197, 94, 0.5);
+                background: rgba(34, 197, 94, 0.1);
+            }
+
+            .sync-notification.error {
+                border-color: rgba(239, 68, 68, 0.5);
+                background: rgba(239, 68, 68, 0.1);
+            }
+
+            .sync-notification.info {
+                border-color: rgba(59, 130, 246, 0.5);
+                background: rgba(59, 130, 246, 0.1);
+            }
+
+            .sync-btn {
+                margin-left: 8px;
+            }
+
+            .sync-btn.syncing svg {
+                animation: spin 1s linear infinite;
+            }
+
+            @keyframes spin {
+                from {
+                    transform: rotate(0deg);
+                }
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+
+            /* Sync Panel Styles */
+            .sync-panel {
+                background: rgba(0, 0, 0, 0.2);
+                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                max-height: 0;
+                overflow: hidden;
+                transition:
+                    max-height 0.3s ease,
+                    padding 0.3s ease;
+            }
+
+            .sync-panel.expanded {
+                max-height: 500px;
+                padding: 16px;
+                padding-bottom: 0;
+                overflow: visible;
+            }
+
+            .sync-panel-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 12px;
+            }
+
+            .sync-panel-title {
+                font-size: 12px;
+                font-weight: 600;
+                color: rgba(255, 255, 255, 0.8);
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .sync-panel-actions {
+                display: flex;
+                gap: 6px;
+            }
+
+            .sync-panel-content {
+                max-height: 250px;
+                overflow-y: auto;
+            }
+
+            .sync-panel-content.custom-mode {
+                overflow-y: visible;
+                max-height: none;
+            }
+
+            .sync-panel-subtitle {
+                font-size: 11px;
+                color: rgba(255, 255, 255, 0.5);
+                margin-bottom: 10px;
+            }
+
+            .accounts-list {
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+            }
+
+            .account-item {
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 6px;
+                padding: 8px 10px;
+                cursor: pointer;
+                transition: all 0.2s;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .account-item:hover {
+                background: rgba(139, 92, 246, 0.15);
+                border-color: rgba(139, 92, 246, 0.4);
+            }
+
+            .account-item.selected {
+                background: rgba(139, 92, 246, 0.2);
+                border-color: rgba(139, 92, 246, 0.5);
+            }
+
+            .account-avatar {
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #6366f1, #8b5cf6);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 11px;
+                font-weight: 600;
+                color: white;
+                flex-shrink: 0;
+            }
+
+            .account-info {
+                flex: 1;
+                min-width: 0;
+            }
+
+            .account-uid {
+                font-size: 11px;
+                font-weight: 600;
+                color: white;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .account-meta {
+                font-size: 9px;
+                color: rgba(255, 255, 255, 0.5);
+                margin-top: 1px;
+            }
+
+            .account-check {
+                width: 16px;
+                height: 16px;
+                border-radius: 50%;
+                border: 2px solid rgba(255, 255, 255, 0.3);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+                transition: all 0.2s;
+            }
+
+            .account-item.selected .account-check {
+                background: #10b981;
+                border-color: #10b981;
+            }
+
+            .account-item.selected .account-check svg {
+                stroke: white;
+            }
+
+            .sync-panel-footer {
+                padding: 10px 16px;
+                background: rgba(0, 0, 0, 0.2);
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+                display: flex;
+                gap: 8px;
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                margin: 12px -16px 0 -16px;
+            }
+
+            .sync-panel-btn {
+                flex: 1;
+                padding: 9px 14px;
+                border-radius: 8px;
+                font-size: 12px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                position: relative;
+                overflow: hidden;
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                white-space: nowrap;
+            }
+
+            .sync-panel-btn::before {
+                content: "";
+                position: absolute;
+                top: 0;
+                left: -100%;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(
+                    90deg,
+                    transparent,
+                    rgba(255, 255, 255, 0.2),
+                    transparent
+                );
+                transition: left 0.5s;
+            }
+
+            .sync-panel-btn:hover::before {
+                left: 100%;
+            }
+
+            .sync-panel-btn.custom {
+                background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+                box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+                color: white;
+            }
+
+            .sync-panel-btn.custom:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 14px rgba(99, 102, 241, 0.5);
+                border-color: rgba(255, 255, 255, 0.25);
+            }
+
+            .sync-panel-btn.custom:active {
+                transform: translateY(0);
+                box-shadow: 0 2px 6px rgba(99, 102, 241, 0.3);
+            }
+
+            .sync-panel-btn.custom.active {
+                background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            }
+
+            .sync-panel-btn.login {
+                background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+                color: white;
+            }
+
+            .sync-panel-btn.login:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 14px rgba(16, 185, 129, 0.5);
+                border-color: rgba(255, 255, 255, 0.25);
+            }
+
+            .sync-panel-btn.login:active {
+                transform: translateY(0);
+                box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+            }
+
+            .sync-panel-btn.login:disabled {
+                background: rgba(255, 255, 255, 0.08);
+                box-shadow: none;
+                cursor: not-allowed;
+                transform: none;
+                opacity: 0.5;
+                border-color: rgba(255, 255, 255, 0.05);
+            }
+
+            .sync-panel-btn.login:disabled::before {
+                display: none;
+            }
+
+            .custom-appstate-textarea {
+                background: rgba(0, 0, 0, 0.3);
+                padding: 12px;
+                border-radius: 8px;
+                font-size: 10px;
+                font-family: "Monaco", "Menlo", "Consolas", "Courier New", monospace;
+                max-height: 320px;
+                overflow-y: auto;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                white-space: pre-wrap;
+                word-break: break-all;
+                color: #a5f3fc;
+                line-height: 1.5;
+                box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+                width: 100%;
+                min-height: 200px;
+                resize: vertical;
+                outline: none;
+                transition: border-color 0.2s;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+            }
+
+            .custom-appstate-textarea::-webkit-scrollbar {
+                display: none;
+            }
+
+            .custom-appstate-textarea:focus {
+                border-color: #8b5cf6;
+            }
+
+            .custom-appstate-textarea::placeholder {
+                color: rgba(255, 255, 255, 0.3);
+            }
+
+            .custom-appstate-textarea.error {
+                border-color: rgba(239, 68, 68, 0.5);
+            }
+
+            .custom-appstate-textarea.valid {
+                border-color: rgba(16, 185, 129, 0.5);
+            }
+
+            .custom-appstate-input.error {
+                border-color: rgba(239, 68, 68, 0.5);
+            }
+
+            .custom-appstate-input.valid {
+                border-color: rgba(16, 185, 129, 0.5);
+            }
+
+            .sync-loading {
+                text-align: center;
+                padding: 20px 10px;
+                color: rgba(255, 255, 255, 0.6);
+                font-size: 11px;
+            }
+
+            .sync-loading .spinner {
+                width: 24px;
+                height: 24px;
+                margin: 0 auto 8px;
+            }
+
+            .sync-empty {
+                text-align: center;
+                padding: 20px 10px;
+                color: rgba(255, 255, 255, 0.5);
+                font-size: 11px;
+            }
+
+            .sync-empty-icon {
+                font-size: 24px;
+                margin-bottom: 6px;
+                opacity: 0.5;
+            }
+
+            .spin-icon {
+                animation: spin 1s linear infinite;
+            }
+        </style>
+    </head>
+    <body>
+        <!-- Sync Notification -->
+        <div class="sync-notification" id="syncNotification">
+            <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                id="syncNotifIcon"
+            >
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span id="syncNotifText">Syncing...</span>
+        </div>
+
+        <div class="container">
+            <!-- Header -->
+            <div class="header">
+                <img src="cookie.png" alt="NC" class="logo-icon" />
+                <div class="header-text">
+                    <h1>Nero Cookie Extractor</h1>
+                    <div class="subtitle">Facebook Authentication</div>
+                </div>
+                <button
+                    id="dashboardBtn"
+                    class="settings-btn"
+                    title="Bot Dashboard"
+                    style="margin-left: auto"
+                >
+                    <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                </button>
+                <button
+                    class="sync-btn settings-btn"
+                    id="syncBrowserBtn"
+                    title="Sync Bot Cookies to Browser"
+                >
+                    <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <path
+                            d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"
+                        />
+                    </svg>
+                </button>
+                <button id="settingsBtn" class="settings-btn" title="API Settings">
+                    <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path
+                            d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
+                        ></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Status Bar -->
+            <div class="status-bar">
+                <div class="status-indicator">
+                    <div class="status-dot" id="statusDot"></div>
+                    <span id="statusText">Loading...</span>
+                </div>
+                <div class="cookie-count" id="cookieCount">0</div>
+            </div>
+
+            <!-- Settings Section -->
+            <div class="settings-section collapsed" id="settingsSection">
+                <div class="settings-header">
+                    <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path
+                            d="M12 1v6m0 6v6m5.2-13.2l-4.2 4.2m0 6l-4.2 4.2M23 12h-6m-6 0H1m18.2-5.2l-4.2 4.2m0 6l-4.2 4.2"
+                        ></path>
+                    </svg>
+                    <span>API Configuration</span>
+                </div>
+                <div class="input-group">
+                    <input
+                        type="text"
+                        id="apiUrl"
+                        placeholder="http://localhost:3000"
+                        value="http://localhost:3000"
+                    />
+                    <button id="testApiBtn" class="test-btn">
+                        <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        <span class="button-text">Test</span>
+                    </button>
+                </div>
+                <div id="apiStatus" class="api-status hidden"></div>
+            </div>
+
+            <!-- Dashboard Section -->
+            <div class="dashboard hidden" id="dashboard">
+                <div class="dashboard-header">
+                    <div class="dashboard-title">⚡ Bot Status</div>
+                    <button id="refreshDashboard" class="refresh-btn">
+                        <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <polyline points="23 4 23 10 17 10"></polyline>
+                            <polyline points="1 20 1 14 7 14"></polyline>
+                            <path
+                                d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
+                            ></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="dashboard-card">
+                        <div class="dashboard-card-label">
+                            <span style="color: #10b981">●</span> Status
+                        </div>
+                        <div class="dashboard-card-value" id="dashBotStatus">●●●</div>
+                    </div>
+                    <div class="dashboard-card">
+                        <div class="dashboard-card-label">
+                            <svg
+                                width="12"
+                                height="12"
+                                style="vertical-align: middle; margin-right: 2px"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <path
+                                    d="M12 20v-6m0-6V4m5.2 13.2l-4.2-4.2m0-6l-4.2-4.2M23 12h-6m-6 0H1m18.2 5.2l-4.2-4.2m0-6l-4.2-4.2"
+                                ></path>
+                            </svg>
+                            Uptime
+                        </div>
+                        <div class="dashboard-card-value info" id="dashUptime">0s</div>
+                    </div>
+                </div>
+
+                <!-- Bot Statistics Section -->
+                <div class="cookie-health" id="botStatsSection">
+                    <div class="cookie-health-header">
+                        <div class="cookie-health-title">📊 Bot Statistics</div>
+                        <div class="cookie-health-status" id="botOnlineStatus">
+                            <div class="cookie-status-dot"></div>
+                            <span id="botOnlineText">Loading...</span>
+                        </div>
+                    </div>
+                    <hr style="border: 0; border-top: 1px solid #222; margin: 8px 0" />
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
+                        <div>
+                            <div
+                                style="
+                                    font-size: 11px;
+                                    color: #a78bfa;
+                                    font-weight: 600;
+                                    margin-bottom: 4px;
+                                "
+                            >
+                                Messages
+                            </div>
+                            <div class="cookie-details" style="margin: 0">
+                                <div class="cookie-detail-row">
+                                    <span class="cookie-detail-label">Total:</span
+                                    ><span class="cookie-detail-value" id="statMsgTotal">0</span>
+                                </div>
+                                <div class="cookie-detail-row">
+                                    <span class="cookie-detail-label">Text:</span
+                                    ><span class="cookie-detail-value" id="statMsgText">0</span>
+                                </div>
+                                <div class="cookie-detail-row">
+                                    <span class="cookie-detail-label">Attachments:</span
+                                    ><span class="cookie-detail-value" id="statMsgAttach">0</span>
+                                </div>
+                                <div class="cookie-detail-row">
+                                    <span class="cookie-detail-label">Reactions:</span
+                                    ><span class="cookie-detail-value" id="statMsgReact">0</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <div
+                                style="
+                                    font-size: 11px;
+                                    color: #a78bfa;
+                                    font-weight: 600;
+                                    margin-bottom: 4px;
+                                "
+                            >
+                                Commands
+                            </div>
+                            <div class="cookie-details" style="margin: 0">
+                                <div class="cookie-detail-row">
+                                    <span class="cookie-detail-label">Total:</span
+                                    ><span class="cookie-detail-value" id="statCmdTotal">0</span>
+                                </div>
+                                <div class="cookie-detail-row">
+                                    <span class="cookie-detail-label">Successful:</span
+                                    ><span
+                                        class="cookie-detail-value"
+                                        id="statCmdSuccess"
+                                        style="color: #10b981"
+                                        >0</span
+                                    >
+                                </div>
+                                <div class="cookie-detail-row">
+                                    <span class="cookie-detail-label">Failed:</span
+                                    ><span
+                                        class="cookie-detail-value"
+                                        id="statCmdFailed"
+                                        style="color: #ef4444"
+                                        >0</span
+                                    >
+                                </div>
+                                <div class="cookie-detail-row">
+                                    <span class="cookie-detail-label">Blocked:</span
+                                    ><span
+                                        class="cookie-detail-value"
+                                        id="statCmdBlocked"
+                                        style="color: #f59e0b"
+                                        >0</span
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <hr style="border: 0; border-top: 1px solid #222; margin: 8px 0" />
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
+                        <div>
+                            <div
+                                style="
+                                    font-size: 11px;
+                                    color: #a78bfa;
+                                    font-weight: 600;
+                                    margin-bottom: 4px;
+                                "
+                            >
+                                Activity
+                            </div>
+                            <div class="cookie-details" style="margin: 0">
+                                <div class="cookie-detail-row">
+                                    <span class="cookie-detail-label">Total Accounts:</span
+                                    ><span
+                                        class="cookie-detail-value"
+                                        id="statTotalAccounts"
+                                        style="color: #8b5cf6"
+                                        >0</span
+                                    >
+                                </div>
+                                <div class="cookie-detail-row">
+                                    <span class="cookie-detail-label">Active Users:</span
+                                    ><span class="cookie-detail-value" id="statActiveUsers">0</span>
+                                </div>
+                                <div class="cookie-detail-row">
+                                    <span class="cookie-detail-label">Active Threads:</span
+                                    ><span class="cookie-detail-value" id="statActiveThreads"
+                                        >0</span
+                                    >
+                                </div>
+                                <div class="cookie-detail-row">
+                                    <span class="cookie-detail-label">Events Triggered:</span
+                                    ><span class="cookie-detail-value" id="statEventsTriggered"
+                                        >0</span
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <div
+                                style="
+                                    font-size: 11px;
+                                    color: #a78bfa;
+                                    font-weight: 600;
+                                    margin-bottom: 4px;
+                                "
+                            >
+                                System
+                            </div>
+                            <div class="cookie-details" style="margin: 0">
+                                <div class="cookie-detail-row">
+                                    <span class="cookie-detail-label">Heap Used:</span
+                                    ><span class="cookie-detail-value" id="statHeapUsed">0 MB</span>
+                                </div>
+                                <div class="cookie-detail-row">
+                                    <span class="cookie-detail-label">Heap Total:</span
+                                    ><span class="cookie-detail-value" id="statHeapTotal"
+                                        >0 MB</span
+                                    >
+                                </div>
+                                <div class="cookie-detail-row">
+                                    <span class="cookie-detail-label">RSS Memory:</span
+                                    ><span class="cookie-detail-value" id="statRss">0 MB</span>
+                                </div>
+                                <div class="cookie-detail-row">
+                                    <span class="cookie-detail-label">Node Version:</span
+                                    ><span class="cookie-detail-value" id="statNodeVersion">-</span>
+                                </div>
+                                <div class="cookie-detail-row">
+                                    <span class="cookie-detail-label">Platform:</span
+                                    ><span class="cookie-detail-value" id="statPlatform">-</span>
+                                </div>
+                                <div class="cookie-detail-row">
+                                    <span class="cookie-detail-label">Start Time:</span
+                                    ><span class="cookie-detail-value" id="statStartTime">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <hr style="border: 0; border-top: 1px solid #222; margin: 8px 0" />
+                    <!-- Top Commands -->
+                    <div id="topCommandsSection" style="display: none">
+                        <div
+                            style="
+                                font-size: 11px;
+                                color: #a78bfa;
+                                font-weight: 600;
+                                margin-bottom: 4px;
+                            "
+                        >
+                            Top Commands
+                        </div>
+                        <div class="cookie-details" style="margin: 0" id="topCommandsList"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sync to Browser Panel -->
+            <div class="sync-panel" id="syncPanel">
+                <div class="sync-panel-header" id="syncPanelHeader">
+                    <div class="sync-panel-title">
+                        <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <path
+                                d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"
+                            />
+                        </svg>
+                        Sync to Browser
+                    </div>
+                    <button id="refreshSyncPanel" class="refresh-btn" title="Refresh accounts">
+                        <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <polyline points="23 4 23 10 17 10"></polyline>
+                            <polyline points="1 20 1 14 7 14"></polyline>
+                            <path
+                                d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
+                            ></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="sync-panel-content" id="syncPanelContent">
+                    <div class="sync-loading" id="syncPanelLoading">
+                        <div class="spinner"></div>
+                        <div>Loading accounts...</div>
+                    </div>
+                    <div class="sync-empty hidden" id="syncPanelEmpty">
+                        <div class="sync-empty-icon">📭</div>
+                        <div>No accounts found</div>
+                        <div style="font-size: 10px; margin-top: 3px">
+                            Extract cookies and send to Nero first
+                        </div>
+                    </div>
+                    <div class="accounts-list hidden" id="accountsList"></div>
+                    <!-- Custom Appstate Input Section -->
+                    <div class="custom-appstate-section hidden" id="customAppstateSection">
+                        <div class="result-container">
+                            <div class="result-label">
+                                <svg
+                                    width="12"
+                                    height="12"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                </svg>
+                                <span>Custom Appstate</span>
+                            </div>
+                            <textarea
+                                id="customAppstateInput"
+                                class="custom-appstate-textarea"
+                                placeholder='Paste your appstate JSON here...
+
+[{"key": "c_user", "value": "...", "domain": ".facebook.com"}, ...]'
+                            ></textarea>
+                            <div
+                                class="output-validation-error hidden"
+                                id="customAppstateError"
+                            ></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="sync-panel-footer">
+                    <button class="sync-panel-btn custom" id="syncPanelCustom">
+                        <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <path
+                                d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                            ></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                        Custom
+                    </button>
+                    <button class="sync-panel-btn login" id="syncPanelLogin" disabled>
+                        <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                            <polyline points="10 17 15 12 10 7"></polyline>
+                            <line x1="15" y1="12" x2="3" y2="12"></line>
+                        </svg>
+                        Login to Facebook
+                    </button>
+                </div>
+            </div>
+
+            <!-- Content Area -->
+            <div class="content">
+                <!-- Loading State -->
+                <div id="loadingState" class="loading-spinner">
+                    <div class="spinner"></div>
+                    <div class="loading-text">Extracting cookies...</div>
+                </div>
+
+                <!-- Result Display -->
+                <div id="result" class="hidden">
+                    <div class="result-container">
+                        <div class="result-label">
+                            <svg
+                                width="12"
+                                height="12"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                            <span>Authentication Cookies</span>
+                        </div>
+                        <textarea
+                            id="output"
+                            placeholder="Extracted cookies will appear here, or paste your own..."
+                        ></textarea>
+                        <div
+                            class="output-validation-error hidden"
+                            id="outputValidationError"
+                        ></div>
+                    </div>
+                </div>
+
+                <!-- Message Area -->
+                <div id="message"></div>
+            </div>
+
+            <!-- Action Bar -->
+            <div class="action-bar">
+                <button id="sendBtn" class="hidden">
+                    <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <path d="M22 2L11 13"></path>
+                        <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
+                    </svg>
+                    <span class="button-text">Send to Nero</span>
+                </button>
+                <button id="copyBtn" class="hidden">
+                    <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                    <span id="copyText">Copy</span>
+                </button>
+                <button id="refreshBtn" title="Refresh">
+                    <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <path
+                            d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"
+                        />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <script src="popup.js"></script>
+    </body>
+</html>
