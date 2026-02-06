@@ -621,7 +621,7 @@ Current Setting: ${fontStatus ? "✅ Fancy Font (𝙼𝚘𝚗𝚘𝚜𝚙𝚊�
             
             if (retries > 0) {
                 logger.debug("BetaAI", `Retrying AI generation (${retries} left)...`);
-                await new Promise(r => setTimeout(r, 1000));
+                await new Promise(resolve => { setTimeout(resolve, 1000); });
             }
         }
 

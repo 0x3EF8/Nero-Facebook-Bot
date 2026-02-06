@@ -89,7 +89,7 @@ const SMART_VOICES = {
 /**
  * Language detection patterns - common words/characters for each language
  */
-const LANGUAGE_PATTERNS = {
+const _LANGUAGE_PATTERNS = {
   filipino: {
     // Common Filipino/Tagalog words and patterns
     words: /\b(ang|ng|mga|sa|na|ay|ko|mo|ka|siya|kami|tayo|sila|ano|sino|paano|bakit|kailan|saan|ito|iyon|yun|dito|doon|po|opo|hindi|oo|wala|meron|may|gusto|kailangan|pwede|puwede|dapat|lang|lamang|din|rin|pa|na|ba|kasi|dahil|para|kung|kapag|pag|naman|talaga|sobra|grabe|naku|hala|ewan|baka|siguro|sige|salamat|maraming|salamat|kamusta|kumusta|maganda|ganda|gwapo|pangit|masaya|malungkot|mahal|kita|ikaw|ako|tayo|atin|natin|kanila|nila|niya|nyo|niyo|mo|ko|kayo|siya|sila|kami|ewan|alam|kilala|tanong|sagot|tulong|tulungan|paki|pakiusap|ingat|alagaan|mahal|miss|buhay|puso|pamilya|kaibigan|trabaho|gawa|kain|tulog|laro|lakad|takbo|upo|tayo|bilis|dali|hintay|sandali|mamaya|bukas|kahapon|ngayon|araw|gabi|umaga|hapon)\b/gi,
