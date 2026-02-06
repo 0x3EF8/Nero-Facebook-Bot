@@ -112,7 +112,7 @@ module.exports = {
             });
 
             if (!userInfo) {
-                return api.sendMessage("Could not fetch user information.", threadID, messageID);
+                return api.sendMessage("Could not fetch user information.", threadID, null, messageID);
             }
 
             const formatGender = (gender) => {
@@ -163,7 +163,6 @@ module.exports = {
             lines.push(``);
             lines.push(`Verified: ${userInfo.isVerified ? "Yes" : "No"}`);
             lines.push(`Birthday Today: ${userInfo.isBirthday ? "Yes" : "No"}`);
-            lines.push(`Friend: ${userInfo.isFriend ? "Yes" : "No"}`);
 
             if (userInfo.followers) {
                 lines.push(`Followers: ${userInfo.followers}`);

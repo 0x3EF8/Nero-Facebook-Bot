@@ -150,7 +150,7 @@ module.exports = {
             response += `\n📭 No output`;
         }
 
-        await api.sendMessage(response, threadID, messageID);
+        await api.sendMessage(response, threadID, null, messageID);
 
         // Log result
         if (result.exitCode === 0) {

@@ -118,11 +118,11 @@ module.exports = {
             message += `Total results retrieved: ${results.length}`;
 
             api.setMessageReaction("✅", messageID, () => {}, true);
-            return api.sendMessage(message, threadID, messageID);
+            return api.sendMessage(message, threadID, null, messageID);
         } catch (error) {
             console.error("[Search] Error:", error.message);
             api.setMessageReaction("❌", messageID, () => {}, true);
-            return api.sendMessage(`❌ Failed to search: ${error.message}`, threadID, messageID);
+            return api.sendMessage(`❌ Failed to search: ${error.message}`, threadID, null, messageID);
         }
     },
 };

@@ -6,7 +6,7 @@
  *
  * @module services/lyrics
  * @author 0x3EF8
- * @version 1.0.0
+ * @version 2.0.0
  */
 
 "use strict";
@@ -14,9 +14,40 @@
 const axios = require("axios");
 const cheerio = require("cheerio");
 const config = require("../../../../../config/config");
+const { DEBUG } = require("../core/constants");
 
-// Genius access token cache
+// ═══════════════════════════════════════════════════════════════════════════════
+// INTERNAL LOGGER
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const PREFIX = "[Lyrics]";
+
+/**
+ * Internal logger for lyrics service
+ * @param {string} level - Log level
+ * @param {string} message - Log message
+ */
+function log(level, message) {
+    if (!DEBUG && level === "debug") return;
+    const timestamp = new Date().toISOString();
+    console[level === "error" ? "error" : "log"](`${timestamp} ${PREFIX} ${message}`);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const API_TIMEOUT = 10000;
+
+/**
+ * Genius access token cache
+ * @type {string|null}
+ */
 let GENIUS_ACCESS_TOKEN = null;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TOKEN MANAGEMENT
+// ═══════════════════════════════════════════════════════════════════════════════
 
 /**
  * Get Genius API access token
@@ -36,13 +67,18 @@ async function getGeniusAccessToken() {
         });
 
         GENIUS_ACCESS_TOKEN = response.data.access_token;
+        log("debug", "Genius access token obtained");
         return GENIUS_ACCESS_TOKEN;
     } catch (error) {
-        console.error("Error getting Genius access token:", error.message);
+        log("error", `Failed to get Genius access token: ${error.message}`);
         GENIUS_ACCESS_TOKEN = config.geniusClientId;
         return GENIUS_ACCESS_TOKEN;
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CLEANING FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════════
 
 /**
  * Clean song title for search
@@ -150,6 +186,85 @@ function cleanLyrics(lyrics) {
     return cleaned;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// MAIN FUNCTION
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Check if result should be skipped (scripts, annotations, tracklists)
+ * @param {Object} result - Search result
+ * @returns {boolean} True if should skip
+ */
+function shouldSkipResult(result) {
+    return (
+        result.url.includes("-script-") ||
+        result.url.includes("-annotated") ||
+        result.title.toLowerCase().includes("script") ||
+        result.title.toLowerCase().includes("tracklist")
+    );
+}
+
+/**
+ * Check if artist matches result
+ * @param {Object} result - Search result
+ * @param {string} artist - Artist name
+ * @returns {boolean} True if matches
+ */
+function isArtistMatch(result, artist) {
+    const resultArtist = result.primary_artist.name.toLowerCase();
+    const searchArtist = artist.toLowerCase();
+    return resultArtist.includes(searchArtist) || searchArtist.includes(resultArtist);
+}
+
+/**
+ * Find best matching result from search hits
+ * @param {Array} hits - Search hits
+ * @param {string} artist - Artist name
+ * @returns {Object|null} Best match or null
+ */
+function findBestMatch(hits, artist) {
+    for (const hit of hits) {
+        const result = hit.result;
+        if (shouldSkipResult(result)) continue;
+        if (isArtistMatch(result, artist)) return result;
+    }
+    return hits[0]?.result || null;
+}
+
+/**
+ * Extract lyrics from page HTML
+ * @param {Object} $ - Cheerio instance
+ * @returns {string} Extracted lyrics
+ */
+function extractLyricsFromPage($) {
+    const selectors = [
+        '[class*="Lyrics__Container"]',
+        '[data-lyrics-container="true"]',
+        ".lyrics",
+        '[class*="lyrics"]',
+    ];
+
+    let lyrics = "";
+
+    for (const selector of selectors) {
+        $(selector).each((_i, elem) => {
+            const html = $(elem).html();
+            if (html) {
+                const textWithBreaks = html
+                    .replace(/<br\s*\/?>/gi, "\n")
+                    .replace(/<\/div>/gi, "\n")
+                    .replace(/<div[^>]*>/gi, "");
+
+                const decoded = $("<div>").html(textWithBreaks).text();
+                lyrics += decoded.trim() + "\n\n";
+            }
+        });
+        if (lyrics) break;
+    }
+
+    return lyrics;
+}
+
 /**
  * Fetch lyrics from Genius
  * @param {string} songTitle - Song title
@@ -158,6 +273,8 @@ function cleanLyrics(lyrics) {
  */
 async function fetchLyrics(songTitle, artist) {
     try {
+        log("debug", `Fetching lyrics for: ${songTitle} by ${artist}`);
+        
         const accessToken = await getGeniusAccessToken();
         const cleanTitle = cleanSongTitle(songTitle);
         const searchQuery = `${cleanTitle} ${artist}`;
@@ -165,84 +282,47 @@ async function fetchLyrics(songTitle, artist) {
         const searchUrl = `https://api.genius.com/search?q=${encodeURIComponent(searchQuery)}`;
         const searchResponse = await axios.get(searchUrl, {
             headers: { Authorization: `Bearer ${accessToken}` },
-            timeout: 10000,
+            timeout: API_TIMEOUT,
         });
 
         if (!searchResponse.data.response.hits.length) {
+            log("debug", `No lyrics found for: ${searchQuery}`);
             return null;
         }
 
-        // Find best match
-        let bestMatch = null;
-        for (const hit of searchResponse.data.response.hits) {
-            const result = hit.result;
-            if (
-                result.url.includes("-script-") ||
-                result.url.includes("-annotated") ||
-                result.title.toLowerCase().includes("script") ||
-                result.title.toLowerCase().includes("tracklist")
-            ) {
-                continue;
-            }
-
-            const artistMatch =
-                result.primary_artist.name.toLowerCase().includes(artist.toLowerCase()) ||
-                artist.toLowerCase().includes(result.primary_artist.name.toLowerCase());
-
-            if (artistMatch) {
-                bestMatch = result;
-                break;
-            }
-        }
-
+        const bestMatch = findBestMatch(searchResponse.data.response.hits, artist);
         if (!bestMatch) {
-            bestMatch = searchResponse.data.response.hits[0].result;
+            log("debug", `No suitable match found for: ${searchQuery}`);
+            return null;
         }
 
         // Fetch lyrics page
         const pageResponse = await axios.get(bestMatch.url, {
-            timeout: 10000,
+            timeout: API_TIMEOUT,
             headers: {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
             },
         });
 
         const $ = cheerio.load(pageResponse.data);
-        let lyrics = "";
-
-        const selectors = [
-            '[class*="Lyrics__Container"]',
-            '[data-lyrics-container="true"]',
-            ".lyrics",
-            '[class*="lyrics"]',
-        ];
-
-        for (const selector of selectors) {
-            $(selector).each((_i, elem) => {
-                const html = $(elem).html();
-                if (html) {
-                    const textWithBreaks = html
-                        .replace(/<br\s*\/?>/gi, "\n")
-                        .replace(/<\/div>/gi, "\n")
-                        .replace(/<div[^>]*>/gi, "");
-
-                    const decoded = $("<div>").html(textWithBreaks).text();
-                    lyrics += decoded.trim() + "\n\n";
-                }
-            });
-            if (lyrics) break;
-        }
+        const lyrics = extractLyricsFromPage($);
 
         if (!lyrics) {
+            log("debug", `Failed to extract lyrics from page: ${bestMatch.url}`);
             return null;
         }
 
+        log("info", `Lyrics fetched for: ${songTitle}`);
         return cleanLyrics(lyrics);
     } catch (error) {
-        console.error("Error fetching lyrics:", error.message);
+        log("error", `Error fetching lyrics: ${error.message}`);
         return null;
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// EXPORTS
+// ═══════════════════════════════════════════════════════════════════════════════
 
 module.exports = {
     fetchLyrics,

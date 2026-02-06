@@ -30,7 +30,7 @@ module.exports = {
     },
 
     async execute({ api, event, args, config }) {
-        const { threadID, messageReply, mentions } = event;
+        const { threadID, messageReply, mentions, messageID } = event;
         const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : "";
         const commandName = this.config.name;
 
@@ -41,7 +41,8 @@ module.exports = {
                     `• ${actualPrefix}${commandName} -a @user : Block user\n` +
                     `• ${actualPrefix}${commandName} -r @user : Unblock user\n` +
                     `• ${actualPrefix}${commandName} -l       : List blocked users`,
-                threadID
+                threadID,
+                messageID
             );
         }
 
@@ -63,7 +64,7 @@ module.exports = {
                 msg += "None\n";
             }
 
-            return api.sendMessage(msg, threadID);
+            return api.sendMessage(msg, threadID, null, messageID);
         }
 
         // Get target user
@@ -85,12 +86,12 @@ module.exports = {
         }
 
         if (!targetID) {
-            return api.sendMessage("❌ Please reply to a user or mention them.", threadID);
+            return api.sendMessage("❌ Please reply to a user or mention them.", threadID, null, messageID);
         }
 
         // Prevent blocking admins
         if (config.isAdmin(targetID)) {
-            return api.sendMessage("🛡️ You cannot block a Bot Admin.", threadID);
+            return api.sendMessage("🛡️ You cannot block a Bot Admin.", threadID, null, messageID);
         }
 
         // Action: Block User
@@ -99,10 +100,12 @@ module.exports = {
             if (success) {
                 return api.sendMessage(
                     `🚫 Successfully blocked ${targetName} from using the bot.`,
-                    threadID
+                    threadID,
+                    null,
+                    messageID
                 );
             } else {
-                return api.sendMessage(`⚠️ User is already blocked.`, threadID);
+                return api.sendMessage(`⚠️ User is already blocked.`, threadID, null, messageID);
             }
         }
 
@@ -115,9 +118,9 @@ module.exports = {
         ) {
             const success = config.unblockUser(targetID);
             if (success) {
-                return api.sendMessage(`✅ Successfully unblocked ${targetName}.`, threadID);
+                return api.sendMessage(`✅ Successfully unblocked ${targetName}.`, threadID, null, messageID);
             } else {
-                return api.sendMessage(`⚠️ User is not blocked.`, threadID);
+                return api.sendMessage(`⚠️ User is not blocked.`, threadID, null, messageID);
             }
         } else {
             return api.sendMessage(
@@ -126,7 +129,8 @@ module.exports = {
                     `• ${actualPrefix}${commandName} -a @user : Block user\n` +
                     `• ${actualPrefix}${commandName} -r @user : Unblock user\n` +
                     `• ${actualPrefix}${commandName} -l       : List blocked users`,
-                threadID
+                threadID,
+                messageID
             );
         }
     },

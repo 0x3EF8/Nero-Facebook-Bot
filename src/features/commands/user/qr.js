@@ -18,7 +18,7 @@ const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
 const { createCanvas, loadImage } = require("canvas");
-const { getTempDirSync, deleteTempFile } = require("../../../utils/paths");
+const { getTempDirSync } = require("../../../utils/paths");
 
 /**
  * Check if the input looks like a person's name
@@ -309,6 +309,7 @@ module.exports = {
             return api.sendMessage(
                 `❌ Failed to generate QR codes: ${error.message}`,
                 threadID,
+                null,
                 messageID
             );
         } finally {
@@ -320,7 +321,7 @@ module.exports = {
                         try {
                             fs.unlinkSync(file);
                         } catch (_e) {
-                            api.sendMessage("❌ Failed to generate QR code", threadID, messageID);
+                            api.sendMessage("❌ Failed to generate QR code", threadID, null, messageID);
                         }
                     }
                 });

@@ -21,6 +21,7 @@ A modular, multi-account Facebook Messenger chatbot framework featuring human-li
 - **Modular Architecture** - Easily add commands and events
 - **Anti-Spam Protection** - Rate limiting and spam detection
 - **Comprehensive Logging** - Colored console output with file logging support
+- **Text-to-Speech (TTS)** - Send voice messages with cute AI voices (Microsoft Edge Neural TTS)
 
 ---
 
@@ -50,7 +51,6 @@ nero/
 │       ├── info.js          # Bot information
 │       ├── newgc.js         # Create new group chat
 │       ├── ping.js          # Latency check
-│       ├── poll.js          # Create polls
 │       ├── stalk.js         # User profile lookup
 │       ├── uid.js           # Get Facebook UID
 │       └── uptime.js        # Bot uptime
@@ -440,7 +440,43 @@ This ensures the bot automatically starts when your server/computer restarts.
 
 ---
 
-## 📄 License
+## � Text-to-Speech (TTS)
+
+Nero supports voice messages using Microsoft Edge's Neural TTS voices.
+
+### Setup
+
+```bash
+# Install Python edge-tts package
+npm run tts:install
+# Or: pip install edge-tts
+```
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `nero tts enable` | Enable TTS globally (all chats get voice messages) |
+| `nero tts disable` | Disable TTS globally |
+| `nero tts status` | Check current TTS status |
+| `nero tts voice <name>` | Change voice (ANA, ARIA, JENNY, NANAMI, etc.) |
+
+### Available Voices
+
+| Voice | Language | Description |
+|-------|----------|-------------|
+| `ANA` | English (US) | Cute child voice (default) |
+| `ARIA` | English (US) | Natural female voice |
+| `JENNY` | English (US) | Friendly female voice |
+| `NANAMI` | Japanese | Anime-style voice |
+| `SUNHI` | Korean | K-pop style voice |
+| `XIAOXIAO` | Chinese | Cute Chinese voice |
+| `ROSA` | Filipino | Filipino female voice |
+| `BLESSICA` | Filipino | Filipino female voice |
+
+---
+
+## �📄 License
 
 MIT License - See [LICENSE](LICENSE) for details.
 

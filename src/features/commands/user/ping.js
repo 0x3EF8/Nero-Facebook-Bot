@@ -77,6 +77,7 @@ module.exports = {
      */
     async execute({ api, event }) {
         const threadID = event.threadID;
+        const messageID = event.messageID;
 
         // Measure API latency with a lightweight operation
         const startTime = Date.now();
@@ -100,7 +101,7 @@ module.exports = {
             `🕐 Uptime: ${uptimeStr}\n` +
             `💾 Memory: ${memUsedMB} MB`;
 
-        // Send the result directly
-        await api.sendMessage(response, threadID);
+        // Send the result as a reply to the original message
+        await api.sendMessage(response, threadID, null, messageID);
     },
 };

@@ -54,6 +54,7 @@ module.exports = {
      */
     async execute({ api, event, args, prefix, config, commandHandler, isAdmin }) {
         const threadID = event.threadID;
+        const messageID = event.messageID;
         const displayPrefix = prefix || config.bot.prefix || "";
 
         // If a specific command is requested
@@ -105,7 +106,7 @@ module.exports = {
                 details += "\n👥 **Group Only:** Yes";
             }
 
-            return api.sendMessage(details, threadID);
+            return api.sendMessage(details, threadID, null, messageID);
         }
 
         // Show all commands grouped by category
@@ -157,6 +158,6 @@ module.exports = {
         helpMessage += `📊 ${stats.totalCommands} commands available\n`;
         helpMessage += `💡 Type \`${displayPrefix}help <command>\` for details`;
 
-        api.sendMessage(helpMessage, threadID);
+        api.sendMessage(helpMessage, threadID, null, messageID);
     },
 };

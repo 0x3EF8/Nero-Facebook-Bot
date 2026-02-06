@@ -4,16 +4,15 @@
  * ║               Search and Download YouTube Videos (Beta AI Port)               ║
  * ╚═══════════════════════════════════════════════════════════════════════════════╝
  *
- * This command uses youtubei.js to search and download videos, ported from Beta AI.
- * Includes retry strategies.
+ * This command uses youtubei.js to search and download videos with multi-client fallback.
  *
  * @author 0x3EF8
- * @version 2.1.0
+ * @version 3.0.0
  */
 
 "use strict";
 
-const { Innertube, Utils } = require("youtubei.js");
+const { Innertube, Utils, Platform } = require("youtubei.js");
 const fs = require("fs");
 const path = require("path");
 const chalk = require("chalk");
@@ -22,13 +21,104 @@ const chalk = require("chalk");
 const { withRetry } = require("../../../utils/retry");
 const { getTempDirSync, scheduleDelete } = require("../../../utils/paths");
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// JAVASCRIPT EVALUATOR FOR URL DECIPHERING
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Custom JavaScript evaluator for deciphering YouTube URLs
+ */
+Platform.shim.eval = (data, env) => {
+    const properties = [];
+    if (env.n) properties.push(`n: exportedVars.nFunction("${env.n}")`);
+    if (env.sig) properties.push(`sig: exportedVars.sigFunction("${env.sig}")`);
+    const code = `${data.output}\nreturn { ${properties.join(', ')} }`;
+    try { return new Function(code)(); } catch { return {}; }
+};
+
+/**
+ * Download video with multi-client fallback
+ * @param {string} videoId - Video ID
+ * @param {string} outputPath - Output file path
+ * @returns {Promise<boolean>} Success status
+ */
+async function downloadVideoWithFallback(videoId, outputPath) {
+    // Client options to try (in order of preference for video)
+    // IOS first - confirmed working best for downloads
+    const clientOptions = [
+        { client: "IOS" },          // BEST - confirmed working
+        { client: "ANDROID" },      // Good alternative
+        { client: "TV_EMBEDDED" },  // Embedded player
+        { client: "WEB" },          // Web fallback
+        {},
+    ];
+
+    // Quality options for each client
+    const qualityOptions = [
+        { type: "video+audio", quality: "360p", format: "mp4" },
+        { type: "video+audio", quality: "480p", format: "mp4" },
+        { type: "video+audio", quality: "bestefficiency", format: "mp4" },
+        { type: "video+audio", quality: "720p", format: "mp4" },
+    ];
+
+    for (const clientOpt of clientOptions) {
+        const clientName = clientOpt.client || "DEFAULT";
+        
+        try {
+            const youtube = await Innertube.create({
+                generate_session_locally: true,
+                retrieve_player: true,
+            });
+
+            for (const qualityOpt of qualityOptions) {
+                try {
+                    const downloadOpts = { ...qualityOpt, ...clientOpt };
+                    console.log(chalk.gray(`  Trying: ${clientName} / ${qualityOpt.quality}`));
+
+                    const stream = await youtube.download(videoId, downloadOpts);
+                    const fileStream = fs.createWriteStream(outputPath);
+
+                    for await (const chunk of Utils.streamToIterable(stream)) {
+                        fileStream.write(chunk);
+                    }
+
+                    fileStream.end();
+                    await new Promise((resolve, reject) => {
+                        fileStream.on("finish", resolve);
+                        fileStream.on("error", reject);
+                    });
+
+                    if (fs.existsSync(outputPath)) {
+                        const stats = fs.statSync(outputPath);
+                        if (stats.size > 50000) { // At least 50KB for video
+                            console.log(chalk.green(`  ✓ Success: ${clientName} / ${qualityOpt.quality}`));
+                            return true;
+                        }
+                        fs.unlinkSync(outputPath);
+                    }
+                } catch (err) {
+                    if (fs.existsSync(outputPath)) {
+                        try { fs.unlinkSync(outputPath); } catch { /* ignore */ }
+                    }
+                }
+            }
+        } catch (err) {
+            console.log(chalk.yellow(`  ⚠ Client ${clientName} failed`));
+        }
+    }
+
+    return false;
+}
+
 // Helper function for video download
 async function attemptVideoDownload(api, threadID, messageID, query, downloadDir) {
     let videoPath = null;
-    let youtube = null;
 
     try {
-        youtube = await Innertube.create({ generate_session_locally: true });
+        const youtube = await Innertube.create({ 
+            generate_session_locally: true,
+            retrieve_player: true,
+        });
 
         const search = await withRetry(() => youtube.search(query), {
             maxRetries: 2,
@@ -39,14 +129,18 @@ async function attemptVideoDownload(api, threadID, messageID, query, downloadDir
         const allVideos = search.results.filter((item) => item.type === "Video").slice(0, 15);
         if (allVideos.length === 0) return false;
 
-        // Find video within duration limit (10 minutes)
+        // Find video within duration limit using search result duration
         let selectedVideo = null;
         for (const video of allVideos) {
             try {
-                const info = await youtube.getInfo(video.id);
-                const dur = info.basic_info.duration;
-                if (dur > 0 && dur <= 600) {
-                    // Max 10 mins
+                const durationText = video.duration?.text || "";
+                const parts = durationText.split(":").map(Number);
+                let dur = 0;
+                
+                if (parts.length === 2) dur = parts[0] * 60 + parts[1];
+                else if (parts.length === 3) dur = parts[0] * 3600 + parts[1] * 60 + parts[2];
+
+                if (dur >= 5 && dur <= 600) {
                     selectedVideo = video;
                     break;
                 }
@@ -55,7 +149,9 @@ async function attemptVideoDownload(api, threadID, messageID, query, downloadDir
             }
         }
 
-        if (!selectedVideo) return false;
+        if (!selectedVideo) {
+            selectedVideo = allVideos[0];
+        }
 
         const videoTitle = selectedVideo.title.text;
         const channelName = selectedVideo.author?.name || "Unknown";
@@ -66,34 +162,8 @@ async function attemptVideoDownload(api, threadID, messageID, query, downloadDir
         const sanitizedTitle = videoTitle.replace(/[/\\?%*:|"<>]/g, "-").slice(0, 50);
         videoPath = path.join(downloadDir, `${Date.now()}-${sanitizedTitle}.mp4`);
 
-        // Download loop
-        let downloadSuccess = false;
-        const qualityOptions = [
-            { type: "video+audio", quality: "360p", format: "mp4" },
-            { type: "video+audio", quality: "bestefficiency", format: "mp4" },
-        ];
-
-        for (const options of qualityOptions) {
-            try {
-                const stream = await youtube.download(selectedVideo.id, options);
-                const fileStream = fs.createWriteStream(videoPath);
-                for await (const chunk of Utils.streamToIterable(stream)) fileStream.write(chunk);
-                fileStream.end();
-                await new Promise((resolve) => {
-                    fileStream.on("finish", resolve);
-                });
-                downloadSuccess = true;
-                break;
-            } catch {
-                if (fs.existsSync(videoPath)) {
-                    try {
-                        fs.unlinkSync(videoPath);
-                    } catch {
-                        /* ignore */
-                    }
-                }
-            }
-        }
+        // Download with multi-client fallback
+        const downloadSuccess = await downloadVideoWithFallback(selectedVideo.id, videoPath);
 
         if (!downloadSuccess) return false;
 

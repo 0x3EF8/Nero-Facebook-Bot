@@ -35,12 +35,13 @@ module.exports = {
      */
     async execute({ api, event, args, config, logger: _logger }) {
         const threadID = event.threadID;
+        const messageID = event.messageID;
         const senderID = event.senderID;
         const isGroup = event.isGroup;
 
-        // Check if we have mentions
-        const mentions = event.mentions || {};
-        const mentionedIDs = Object.keys(mentions);
+        // Check if we have metadata mentions
+        let mentions = { ...(event.mentions || {}) };
+        let mentionedIDs = Object.keys(mentions);
 
         // Parse arguments
         let groupName = null;
@@ -50,62 +51,76 @@ module.exports = {
         let excludedNames = [];
         let argsLower = args.map((a) => a.toLowerCase());
 
-        // Check for "all" flag - add all members from current group
+        // 1. Check for "all" flag - add all members from current group
         if (argsLower.includes("all")) {
             addAllMembers = true;
-            // Remove "all" from args
-            args = args.filter((_, i) => argsLower[i] !== "all");
-            argsLower = args.map((a) => a.toLowerCase());
         }
 
-        // Check for "expt" (except) flag - exclude mentioned users
+        // 2. Check for "expt" (except) flag
         if (
             argsLower.includes("expt") ||
             argsLower.includes("except") ||
             argsLower.includes("exc")
         ) {
             excludeMembers = true;
-            // Remove "expt/except/exc" from args
-            args = args.filter((_, i) => !["expt", "except", "exc"].includes(argsLower[i]));
-            argsLower = args.map((a) => a.toLowerCase());
-
-            // When using expt, mentioned users are the ones to EXCLUDE
-            excludedIDs = [...mentionedIDs];
-            excludedNames = Object.values(mentions).map((name) => name.replace("@", ""));
         }
 
-        // Check if "gn" flag exists for group name
+        // 3. Robust Group Name Parsing (gn flag)
         const gnIndex = argsLower.indexOf("gn");
         if (gnIndex !== -1) {
-            // Get everything after "gn" until a mention or end
-            const argsAfterGn = args.slice(gnIndex + 1).join(" ");
-
-            if (mentionedIDs.length > 0) {
-                // Find the first mention's text in the message
-                const firstMentionText = Object.values(mentions)[0];
-                const mentionIndex = argsAfterGn.indexOf(firstMentionText);
-
-                if (mentionIndex > 0) {
-                    groupName = argsAfterGn.substring(0, mentionIndex).trim();
-                } else if (mentionIndex === -1) {
-                    groupName = argsAfterGn.trim();
-                }
-            } else {
-                groupName = argsAfterGn.trim();
+            let nameParts = [];
+            for (let i = gnIndex + 1; i < args.length; i++) {
+                const arg = args[i];
+                const argL = arg.toLowerCase();
+                // Stop if we hit a mention or another flag
+                if (arg.startsWith("@") || ["expt", "except", "exc", "all"].includes(argL)) break;
+                nameParts.push(arg);
+            }
+            if (nameParts.length > 0) {
+                groupName = nameParts.join(" ").trim();
             }
         }
 
-        // If no group name from "gn", check if first arg looks like a name (not a mention)
-        if (!groupName && args.length > 0 && !args[0].startsWith("@") && argsLower[0] !== "gn") {
-            // Use first arg(s) before any mention as group name
-            const argsText = args.join(" ");
-            if (mentionedIDs.length > 0) {
-                const firstMentionText = Object.values(mentions)[0];
-                const mentionIndex = argsText.indexOf(firstMentionText);
-                if (mentionIndex > 0) {
-                    groupName = argsText.substring(0, mentionIndex).trim();
+        // 4. Fallback: Resolve textual mentions if metadata is missing (The "Fix")
+        // This handles cases where the user types @Name but the platform doesn't send it as a mention object
+        if (mentionedIDs.length === 0 && !addAllMembers && isGroup) {
+            const hasAtSymbol = args.some(a => a.includes("@"));
+            if (hasAtSymbol) {
+                try {
+                    // Fetch group members to match names
+                    const threadInfo = await api.getThreadInfo(threadID);
+                    if (threadInfo && threadInfo.participantIDs) {
+                        const userInfo = await api.getUserInfo(threadInfo.participantIDs);
+                        const fullText = args.join(" ").toLowerCase();
+                        
+                        for (const id in userInfo) {
+                            const name = userInfo[id].name.toLowerCase();
+                            const firstName = name.split(" ")[0];
+                            
+                            // Check for various ways a name might be typed with or without @
+                            if (fullText.includes("@" + name.replace(/\s/g, "")) || 
+                                fullText.includes("@" + name) ||
+                                (firstName.length > 2 && fullText.includes("@" + firstName))) {
+                                if (!mentionedIDs.includes(id) && id !== api.getCurrentUserID()) {
+                                    mentionedIDs.push(id);
+                                    mentions[id] = userInfo[id].name;
+                                }
+                            }
+                        }
+                    }
+                } catch (err) {
+                    // Fallback failed, continue with whatever we have
                 }
             }
+        }
+
+        // If using exclude mode, move found mentions to excluded list
+        if (excludeMembers) {
+            excludedIDs = [...mentionedIDs];
+            excludedNames = Object.values(mentions).map((name) => name.replace("@", ""));
+            // Clear mentions so they aren't added as participants later
+            mentionedIDs = [];
+            mentions = {};
         }
 
         let participantIDs = [];
@@ -122,7 +137,8 @@ module.exports = {
                         `• ${actualPrefix}${commandName} all - Add all current members\n` +
                         `• ${actualPrefix}${commandName} all gn NewGroup - With group name\n` +
                         `• ${actualPrefix}${commandName} all gn NewGroup expt @user - Exclude users`,
-                    threadID
+                    threadID,
+                    messageID
                 );
             }
 
@@ -136,7 +152,8 @@ module.exports = {
                 if (!threadInfo || !threadInfo.participantIDs) {
                     return api.sendMessage(
                         `❌ Could not get group members!\n\n` + `Please try again later.`,
-                        threadID
+                        threadID,
+                        messageID
                     );
                 }
 
@@ -173,7 +190,8 @@ module.exports = {
             } catch (error) {
                 return api.sendMessage(
                     `❌ Failed to get group members!\n\n` + `Error: ${error.message || error}`,
-                    threadID
+                    threadID,
+                    messageID
                 );
             }
         } else {
@@ -193,7 +211,8 @@ module.exports = {
                         `• "gn" = group name\n` +
                         `• "all" = add all members from current group\n` +
                         `• "expt" = except/exclude mentioned users (use with "all")`,
-                    threadID
+                    threadID,
+                    messageID
                 );
             }
 
@@ -211,7 +230,8 @@ module.exports = {
             return api.sendMessage(
                 `❌ Need at least 2 participants to create a group!\n\n` +
                     `${addAllMembers ? "The current group needs more members." : "Mention more users to add them."}`,
-                threadID
+                threadID,
+                messageID
             );
         }
 
@@ -220,7 +240,8 @@ module.exports = {
             if (!api.createNewGroup) {
                 return api.sendMessage(
                     `❌ Group creation is not available in this API version.`,
-                    threadID
+                    threadID,
+                    messageID
                 );
             }
 
@@ -233,7 +254,7 @@ module.exports = {
                 creatingMsg += `\n🚫 Excluding: ${excludedNames.join(", ")}`;
             }
 
-            await api.sendMessage(creatingMsg, threadID);
+            await api.sendMessage(creatingMsg, threadID, null, messageID);
 
             // Create the group
             const result = await api.createNewGroup(participantIDs, groupName);
@@ -291,7 +312,7 @@ module.exports = {
 
                 response += `\n💬 The group has been created! Check your messages.`;
 
-                await api.sendMessage(response, threadID);
+                await api.sendMessage(response, threadID, null, messageID);
 
                 // Send a welcome message to the new group
                 const welcomeMsg =
@@ -307,14 +328,16 @@ module.exports = {
             } else {
                 await api.sendMessage(
                     `❌ Failed to create group!\n\n` + `Please try again later.`,
-                    threadID
+                    threadID,
+                    messageID
                 );
             }
         } catch (error) {
             await api.sendMessage(
                 `❌ Failed to create group!\n\n` +
                     `Error: ${error.message || error.error || error}`,
-                threadID
+                threadID,
+                messageID
             );
         }
     },

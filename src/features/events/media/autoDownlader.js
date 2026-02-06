@@ -83,11 +83,26 @@ module.exports = {
             logger,
         };
 
-        try {
-            await dlCommand.execute(mockContext);
-            logger.success("AutoDownloader", "Delegation complete.");
-        } catch (error) {
-            logger.error("AutoDownloader", "Command delegation failed: " + error.message);
+        // Retry logic - keep trying until successful or max retries reached
+        const maxRetries = 5;
+        const baseDelay = 2000; // 2 seconds
+
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                await dlCommand.execute(mockContext);
+                logger.success("AutoDownloader", `Download successful on attempt ${attempt}`);
+                return; // Success, exit the function
+            } catch (error) {
+                logger.warn("AutoDownloader", `Attempt ${attempt}/${maxRetries} failed: ${error.message}`);
+                
+                if (attempt < maxRetries) {
+                    const delay = baseDelay * attempt; // Progressive delay: 2s, 4s, 6s
+                    logger.info("AutoDownloader", `Retrying in ${delay / 1000}s...`);
+                    await new Promise(resolve => { setTimeout(resolve, delay); });
+                } else {
+                    logger.error("AutoDownloader", `All ${maxRetries} attempts failed for: ${url}`);
+                }
+            }
         }
     },
 };

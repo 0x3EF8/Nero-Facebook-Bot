@@ -4,15 +4,15 @@
  * ║               Search and Download YouTube Music (Beta AI Port)                ║
  * ╚═══════════════════════════════════════════════════════════════════════════════╝
  *
- * This command uses youtubei.js to search and download music, ported from Beta AI.
+ * This command uses youtubei.js to search and download music with multi-client fallback.
  *
  * @author 0x3EF8
- * @version 2.2.0
+ * @version 3.0.0
  */
 
 "use strict";
 
-const { Innertube, Utils } = require("youtubei.js");
+const { Innertube, Utils, Platform } = require("youtubei.js");
 const fs = require("fs");
 const path = require("path");
 const chalk = require("chalk");
@@ -20,6 +20,96 @@ const chalk = require("chalk");
 // Import utilities
 const { withRetry } = require("../../../utils/retry");
 const { getTempDirSync, scheduleDelete } = require("../../../utils/paths");
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// JAVASCRIPT EVALUATOR FOR URL DECIPHERING
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Custom JavaScript evaluator for deciphering YouTube URLs
+ */
+Platform.shim.eval = (data, env) => {
+    const properties = [];
+    if (env.n) properties.push(`n: exportedVars.nFunction("${env.n}")`);
+    if (env.sig) properties.push(`sig: exportedVars.sigFunction("${env.sig}")`);
+    const code = `${data.output}\nreturn { ${properties.join(', ')} }`;
+    try { return new Function(code)(); } catch { return {}; }
+};
+
+/**
+ * Download audio with multi-client fallback
+ * @param {string} videoId - Video ID
+ * @param {string} outputPath - Output file path
+ * @returns {Promise<boolean>} Success status
+ */
+async function downloadAudioWithFallback(videoId, outputPath) {
+    // Client options to try (in order of preference for audio)
+    // IOS first - confirmed working best for downloads
+    const clientOptions = [
+        { client: "IOS" },          // BEST - confirmed working
+        { client: "ANDROID" },      // Good alternative
+        { client: "TV_EMBEDDED" },  // Embedded player
+        { client: "YTMUSIC" },      // Music client
+        { client: "WEB" },          // Web fallback
+        {},
+    ];
+
+    // Quality options for each client
+    const qualityOptions = [
+        { type: "audio", quality: "best" },
+        { type: "audio", quality: "bestefficiency" },
+        { type: "video+audio", quality: "bestefficiency", format: "mp4" },
+        { type: "video+audio", quality: "360p", format: "mp4" },
+    ];
+
+    for (const clientOpt of clientOptions) {
+        const clientName = clientOpt.client || "DEFAULT";
+        
+        try {
+            const youtube = await Innertube.create({
+                generate_session_locally: true,
+                retrieve_player: true,
+            });
+
+            for (const qualityOpt of qualityOptions) {
+                try {
+                    const downloadOpts = { ...qualityOpt, ...clientOpt };
+                    console.log(chalk.gray(`  Trying: ${clientName} / ${qualityOpt.quality}`));
+
+                    const stream = await youtube.download(videoId, downloadOpts);
+                    const fileStream = fs.createWriteStream(outputPath);
+
+                    for await (const chunk of Utils.streamToIterable(stream)) {
+                        fileStream.write(chunk);
+                    }
+
+                    fileStream.end();
+                    await new Promise((resolve, reject) => {
+                        fileStream.on("finish", resolve);
+                        fileStream.on("error", reject);
+                    });
+
+                    if (fs.existsSync(outputPath)) {
+                        const stats = fs.statSync(outputPath);
+                        if (stats.size > 5000) {
+                            console.log(chalk.green(`  ✓ Success: ${clientName} / ${qualityOpt.quality}`));
+                            return true;
+                        }
+                        fs.unlinkSync(outputPath);
+                    }
+                } catch (err) {
+                    if (fs.existsSync(outputPath)) {
+                        try { fs.unlinkSync(outputPath); } catch { /* ignore */ }
+                    }
+                }
+            }
+        } catch (err) {
+            console.log(chalk.yellow(`  ⚠ Client ${clientName} failed`));
+        }
+    }
+
+    return false;
+}
 
 module.exports = {
     config: {
@@ -62,6 +152,7 @@ module.exports = {
 
             const youtube = await Innertube.create({
                 generate_session_locally: true,
+                retrieve_player: true,
             });
 
             // Search with retry
@@ -85,19 +176,26 @@ module.exports = {
                 );
             }
 
-            // Find video within duration limit
+            // Find video within duration limit using search result duration
             let selectedVideo = null;
             let videoTitle = "";
             let channelName = "";
+            let duration = "Unknown";
 
             for (const video of allVideos) {
                 try {
-                    const info = await youtube.getInfo(video.id);
-                    // Check duration: must be between 30s and 600s (10 mins)
-                    if (info.basic_info.duration <= 600 && info.basic_info.duration > 30) {
+                    const durationText = video.duration?.text || "";
+                    const parts = durationText.split(":").map(Number);
+                    let dur = 0;
+                    
+                    if (parts.length === 2) dur = parts[0] * 60 + parts[1];
+                    else if (parts.length === 3) dur = parts[0] * 3600 + parts[1] * 60 + parts[2];
+
+                    if (dur >= 10 && dur <= 600) {
                         selectedVideo = video;
-                        videoTitle = selectedVideo.title.text;
-                        channelName = selectedVideo.author?.name || "Unknown";
+                        videoTitle = video.title.text;
+                        channelName = video.author?.name || "Unknown";
+                        duration = durationText;
                         console.log(chalk.green(`✓ Found: ${videoTitle}`));
                         break;
                     }
@@ -110,9 +208,8 @@ module.exports = {
                 selectedVideo = allVideos[0];
                 videoTitle = selectedVideo.title.text;
                 channelName = selectedVideo.author?.name || "Unknown";
+                duration = selectedVideo.duration?.text || "Unknown";
             }
-
-            const duration = selectedVideo.duration?.text || "Unknown";
 
             console.log(chalk.cyan(`🎵 Downloading: ${videoTitle}`));
             api.setMessageReaction("⬇️", messageID, () => {}, true);
@@ -120,43 +217,11 @@ module.exports = {
             const sanitizedTitle = videoTitle.replace(/[/\\?%*:|"<>]/g, "-").slice(0, 100);
             audioPath = path.join(downloadDir, `${Date.now()}-${sanitizedTitle}.mp3`);
 
-            // Download audio
-            let downloadSuccess = false;
-            const qualityOptions = [
-                { type: "audio", quality: "best" },
-                { type: "audio", quality: "bestefficiency" },
-                { type: "video+audio", quality: "bestefficiency", format: "mp4" },
-            ];
-
-            for (const options of qualityOptions) {
-                try {
-                    const stream = await youtube.download(selectedVideo.id, options);
-                    const fileStream = fs.createWriteStream(audioPath);
-
-                    for await (const chunk of Utils.streamToIterable(stream)) {
-                        fileStream.write(chunk);
-                    }
-
-                    fileStream.end();
-                    await new Promise((resolve) => {
-                        fileStream.on("finish", resolve);
-                    });
-                    downloadSuccess = true;
-                    break;
-                } catch {
-                    if (fs.existsSync(audioPath)) {
-                        try {
-                            fs.unlinkSync(audioPath);
-                        } catch {
-                            /* ignore */
-                        }
-                    }
-                    continue;
-                }
-            }
+            // Download with multi-client fallback
+            const downloadSuccess = await downloadAudioWithFallback(selectedVideo.id, audioPath);
 
             if (!downloadSuccess) {
-                throw new Error("Download failed with all quality options");
+                throw new Error("Download failed with all clients and quality options");
             }
 
             const stats = fs.statSync(audioPath);

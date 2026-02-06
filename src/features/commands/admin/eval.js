@@ -136,7 +136,7 @@ module.exports = {
                 `⏱️ Execution time: ${executionTime}ms\n\n` +
                 `📤 Output:\n${formattedResult}`;
 
-            api.sendMessage(response, threadID, messageID);
+            api.sendMessage(response, threadID, null, messageID);
 
             logger.success("Eval", `Code executed in ${executionTime}ms`);
         } catch (error) {
@@ -146,7 +146,7 @@ module.exports = {
                 `📝 Message: ${error.message}\n\n` +
                 `📍 Stack:\n${error.stack ? error.stack.substring(0, 500) : "No stack trace"}`;
 
-            api.sendMessage(errorMessage, threadID, messageID);
+            api.sendMessage(errorMessage, threadID, null, messageID);
 
             logger.error("Eval", `Execution failed: ${error.message}`);
         }

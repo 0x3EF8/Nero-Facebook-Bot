@@ -217,14 +217,14 @@ ${actualPrefix}${commandName} ${filterArg} confirm
             const threads = await fetchThreads(api, filterArg);
 
             if (threads.length === 0) {
-                return api.sendMessage("📭 No threads found to delete.", threadID, messageID);
+                return api.sendMessage("📭 No threads found to delete.", threadID, null, messageID);
             }
 
             // Filter out current thread
             const targetThreads = threads.filter((t) => t.threadID !== threadID);
 
             if (targetThreads.length === 0) {
-                return api.sendMessage("📭 No other threads to delete.", threadID, messageID);
+                return api.sendMessage("📭 No other threads to delete.", threadID, null, messageID);
             }
 
             // Send status
@@ -292,7 +292,7 @@ ${actualPrefix}${commandName} ${filterArg} confirm
 
             logger?.success?.("Clean", `Completed: ${successCount} deleted, ${failCount} failed`);
 
-            return api.sendMessage(resultMessage, threadID, messageID);
+            return api.sendMessage(resultMessage, threadID, null, messageID);
         } catch (error) {
             activeCleans.delete(senderID);
             logger?.error?.("Clean", `Error: ${error.message}`);
@@ -300,6 +300,7 @@ ${actualPrefix}${commandName} ${filterArg} confirm
             return api.sendMessage(
                 `❌ Cleanup failed!\n\nError: ${error.message}`,
                 threadID,
+                null,
                 messageID
             );
         }
@@ -320,7 +321,7 @@ ${actualPrefix}${commandName} ${filterArg} confirm
             const threads = await fetchThreads(api, validFilter);
 
             if (threads.length === 0) {
-                return api.sendMessage("📭 No threads found.", threadID, messageID);
+                return api.sendMessage("📭 No threads found.", threadID, null, messageID);
             }
 
             // Filter out current thread
@@ -354,11 +355,12 @@ ${actualPrefix}${commandName} ${filterArg} confirm
 
             list += `\n⚠️ Total to delete: ${deletable.length}`;
 
-            return api.sendMessage(list, threadID, messageID);
+            return api.sendMessage(list, threadID, null, messageID);
         } catch (error) {
             return api.sendMessage(
                 `❌ Failed to fetch threads: ${error.message}`,
                 threadID,
+                null,
                 messageID
             );
         }

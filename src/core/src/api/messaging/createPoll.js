@@ -72,78 +72,128 @@ module.exports = function (defaultFuncs, api, ctx) {
             return returnPromise;
         }
 
-        if (!ctx.mqttClient) {
-            const error = new Error("Not connected to MQTT. Please ensure listenMqtt is running.");
-            _callback(error);
-            return returnPromise;
-        }
-
         // Format options for the API
         const formattedOptions = options.map((opt) => {
             if (typeof opt === "string") {
-                return { text: opt, selected: false };
+                return { text: opt, viewer_has_voted: false };
             }
             return {
                 text: opt.text || opt,
-                selected: opt.selected || false,
+                viewer_has_voted: opt.selected || false,
             };
         });
 
         try {
-            ctx.wsReqNumber = (ctx.wsReqNumber || 0) + 1;
-            ctx.wsTaskNumber = (ctx.wsTaskNumber || 0) + 1;
-
-            const queryPayload = {
-                question_text: question,
-                thread_key: threadID,
-                options: formattedOptions,
-                sync_group: 1,
-            };
-
-            const query = {
-                failure_count: null,
-                label: "163",
-                payload: JSON.stringify(queryPayload),
-                queue_name: "poll_creation",
-                task_id: ctx.wsTaskNumber,
-            };
-
-            const context = {
-                app_id: ctx.appID,
-                payload: {
-                    epoch_id: parseInt(utils.generateOfflineThreadingID()),
-                    tasks: [query],
-                    version_id: "8768858626531631",
-                },
-                request_id: ctx.wsReqNumber,
-                type: 3,
-            };
-            context.payload = JSON.stringify(context.payload);
-
-            ctx.mqttClient.publish(
-                "/ls_req",
-                JSON.stringify(context),
-                { qos: 0, retain: false },
-                (err) => {
-                    if (err) {
-                        _callback(err);
-                        return;
-                    }
-
-                    const result = {
-                        success: true,
-                        threadID: threadID,
-                        question: question,
+            // Use GraphQL mutation for poll creation
+            const form = {
+                fb_dtsg: ctx.fb_dtsg,
+                jazoest: ctx.ttstamp,
+                doc_id: "6140498822679791", // Poll creation doc_id
+                variables: JSON.stringify({
+                    input: {
+                        client_mutation_id: Math.round(Math.random() * 1024).toString(),
+                        actor_id: ctx.userID,
+                        thread_id: threadID,
+                        question_text: question,
                         options: formattedOptions,
-                        message: `Poll "${question}" created with ${formattedOptions.length} options.`,
-                    };
+                    },
+                }),
+            };
 
-                    _callback(null, result);
-                }
-            );
-        } catch (err) {
-            utils.error("createPoll", err);
-            _callback(err);
+            const resData = await defaultFuncs
+                .post("https://www.facebook.com/api/graphql/", ctx.jar, form)
+                .then(utils.parseAndCheckLogin(ctx.jar, defaultFuncs));
+
+            if (!resData) {
+                throw new Error("Empty response from poll creation API");
+            }
+
+            // Check for errors in response
+            if (resData.errors || resData.error) {
+                const errorMessage = resData.errors?.[0]?.message || resData.error?.message || "Poll creation failed";
+                throw new Error(errorMessage);
+            }
+
+            const result = {
+                success: true,
+                threadID: threadID,
+                question: question,
+                options: formattedOptions,
+                message: `Poll "${question}" created with ${formattedOptions.length} options.`,
+            };
+
+            _callback(null, result);
+        } catch (_err) {
+            // Fallback: Try MQTT method
+            console.log("[Poll] GraphQL failed, trying MQTT fallback...");
+            
+            if (!ctx.mqttClient) {
+                const error = new Error("Not connected to MQTT. Please ensure listenMqtt is running.");
+                _callback(error);
+                return returnPromise;
+            }
+
+            try {
+                ctx.wsReqNumber = (ctx.wsReqNumber || 0) + 1;
+                ctx.wsTaskNumber = (ctx.wsTaskNumber || 0) + 1;
+
+                const mqttOptions = formattedOptions.map(opt => ({
+                    text: opt.text,
+                    selected: opt.viewer_has_voted || false,
+                }));
+
+                const queryPayload = {
+                    question_text: question,
+                    thread_key: threadID,
+                    options: mqttOptions,
+                    sync_group: 1,
+                };
+
+                const query = {
+                    failure_count: null,
+                    label: "163",
+                    payload: JSON.stringify(queryPayload),
+                    queue_name: "poll_creation",
+                    task_id: ctx.wsTaskNumber,
+                };
+
+                const context = {
+                    app_id: ctx.appID,
+                    payload: {
+                        epoch_id: parseInt(utils.generateOfflineThreadingID()),
+                        tasks: [query],
+                        version_id: "8768858626531631",
+                    },
+                    request_id: ctx.wsReqNumber,
+                    type: 3,
+                };
+                context.payload = JSON.stringify(context.payload);
+
+                ctx.mqttClient.publish(
+                    "/ls_req",
+                    JSON.stringify(context),
+                    { qos: 0, retain: false },
+                    (publishErr) => {
+                        if (publishErr) {
+                            _callback(publishErr);
+                            return;
+                        }
+
+                        const result = {
+                            success: true,
+                            threadID: threadID,
+                            question: question,
+                            options: mqttOptions,
+                            message: `Poll "${question}" created with ${mqttOptions.length} options.`,
+                        };
+
+                        _callback(null, result);
+                    }
+                );
+            } catch (mqttErr) {
+                utils.error("createPoll", mqttErr);
+                _callback(mqttErr);
+            }
         }
 
         return returnPromise;

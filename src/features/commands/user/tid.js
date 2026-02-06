@@ -49,12 +49,13 @@ module.exports = {
                 `👥 Type: ${isGroup ? "Group Chat" : "Direct Message"}\n` +
                 `👤 Participants: ${participantCount}`;
 
-            await api.sendMessage(response, threadID, messageID);
+            await api.sendMessage(response, threadID, null, messageID);
         } catch {
             // Fallback - just show the ID if getThreadInfo fails
             await api.sendMessage(
                 `🆔 Thread ID:\n${threadID}`,
                 threadID,
+                null,
                 messageID
             );
         }

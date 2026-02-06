@@ -400,32 +400,66 @@ async function refreshDtsgToken(ctx, http) {
             }
         }
 
-        // Method 2: Regex fallback for DTSG token
+        // Method 2: Regex fallback for DTSG token - multiple patterns
         if (!newDtsg) {
-            const dtsgMatch = html.match(/"token":"([^"]+)"/);
-            if (dtsgMatch && dtsgMatch[1]) {
-                newDtsg = dtsgMatch[1];
+            const patterns = [
+                /"token":"([^"]+)"/,
+                /\["DTSGInitialData",\[\],\{"token":"([^"]+)"/,
+                /"DTSGInitialData":\{"token":"([^"]+)"/,
+                /name="fb_dtsg"\s*value="([^"]+)"/,
+                /\{"name":"fb_dtsg","value":"([^"]+)"/,
+                /"fb_dtsg":"([^"]+)"/,
+                /fb_dtsg=([^&"]+)/,
+                /__spin_r":(\d+),"__spin_b":"([^"]+)","__spin_t":\d+,"fb_dtsg":"([^"]+)"/,
+            ];
+            
+            for (const pattern of patterns) {
+                const match = html.match(pattern);
+                if (match) {
+                    // Get the last capture group (token is usually in last group)
+                    newDtsg = match[match.length - 1];
+                    if (newDtsg && newDtsg.length > 10) break;
+                    newDtsg = null;
+                }
             }
         }
 
-        // Method 3: Try DTSGInitialData pattern
+        // Method 3: Try DTSGInitialData pattern with broader matching
         if (!newDtsg) {
-            const dtsgInitMatch = html.match(/DTSGInitialData[^}]*"token":"([^"]+)"/);
+            const dtsgInitMatch = html.match(/DTSGInitialData[^}]*token['":\s]+['"]([^'"]+)['"]/);
             if (dtsgInitMatch && dtsgInitMatch[1]) {
                 newDtsg = dtsgInitMatch[1];
             }
         }
 
-        // Method 4: Try form field pattern
+        // Method 4: Try searching in __comet_req patterns
         if (!newDtsg) {
-            const formMatch = html.match(/name="fb_dtsg"\s*value="([^"]+)"/);
-            if (formMatch && formMatch[1]) {
-                newDtsg = formMatch[1];
+            const cometMatch = html.match(/__comet_req=\d+.*?dtsg.*?token.*?([A-Za-z0-9_-]{20,})/);
+            if (cometMatch && cometMatch[1]) {
+                newDtsg = cometMatch[1];
+            }
+        }
+
+        // Method 5: Try extracting from inline scripts with require pattern
+        if (!newDtsg) {
+            const requireMatch = html.match(/require\s*\(\s*["']DTSGInitialData["']\s*\)\s*\.token\s*=\s*["']([^"']+)["']/);
+            if (requireMatch && requireMatch[1]) {
+                newDtsg = requireMatch[1];
+            }
+        }
+
+        // Method 6: Look for token in data-btmanifest or similar data attributes  
+        if (!newDtsg) {
+            const dataMatch = html.match(/data-[^=]*=["'][^"']*token["':\s]+["']?([A-Za-z0-9:_-]{20,})["']?/i);
+            if (dataMatch && dataMatch[1]) {
+                newDtsg = dataMatch[1];
             }
         }
 
         if (!newDtsg) {
-            debug.error("DTSG", "Could not extract new DTSG token from page");
+            // Not critical - the existing token might still be valid
+            debug.warn("DTSG", "Could not extract new DTSG token from page (Facebook may have changed their structure)");
+            debug.debug("DTSG", "Continuing with existing token - most features should still work");
             return false;
         }
 
@@ -468,11 +502,11 @@ async function refreshDtsgToken(ctx, http) {
  * @returns {string|null} DTSG token if found
  */
 function findDtsgInObject(obj, depth = 0) {
-    if (depth > 10) return null; // Prevent infinite recursion
+    if (depth > 15) return null; // Prevent infinite recursion
     if (!obj || typeof obj !== "object") return null;
 
-    // Direct token property
-    if (obj.token && typeof obj.token === "string" && obj.token.length > 10) {
+    // Direct token property - validate it looks like a DTSG token
+    if (obj.token && typeof obj.token === "string" && obj.token.length > 10 && /^[A-Za-z0-9:_-]+$/.test(obj.token)) {
         return obj.token;
     }
 
@@ -481,11 +515,22 @@ function findDtsgInObject(obj, depth = 0) {
         return obj.DTSGInitialData.token;
     }
 
-    // Check require arrays (Facebook's module system)
+    // Check for fb_dtsg direct property
+    if (obj.fb_dtsg && typeof obj.fb_dtsg === "string" && obj.fb_dtsg.length > 10) {
+        return obj.fb_dtsg;
+    }
+
+    // Check for require arrays (Facebook's module system)
     if (Array.isArray(obj)) {
         for (const item of obj) {
-            if (Array.isArray(item) && item[0] === "DTSGInitialData" && item[2]?.token) {
-                return item[2].token;
+            // Pattern: ["DTSGInitialData", [], {"token": "..."}]
+            if (Array.isArray(item) && item[0] === "DTSGInitialData") {
+                if (item[2]?.token) return item[2].token;
+                if (item[3]?.token) return item[3].token;
+            }
+            // Pattern: ["DTSG", "setToken", [], ["token_value"]]
+            if (Array.isArray(item) && item[0] === "DTSG" && item[1] === "setToken") {
+                if (Array.isArray(item[3]) && item[3][0]) return item[3][0];
             }
             const found = findDtsgInObject(item, depth + 1);
             if (found) return found;
@@ -494,6 +539,8 @@ function findDtsgInObject(obj, depth = 0) {
 
     // Recurse into object properties
     for (const key of Object.keys(obj)) {
+        // Skip large arrays and known non-token keys for performance
+        if (key === "styles" || key === "css" || key === "html" || key === "text") continue;
         const found = findDtsgInObject(obj[key], depth + 1);
         if (found) return found;
     }

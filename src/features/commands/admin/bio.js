@@ -119,7 +119,7 @@ module.exports = {
                 successMessage += `📝 Bio has been cleared.`;
             }
 
-            return api.sendMessage(successMessage, threadID, messageID);
+            return api.sendMessage(successMessage, threadID, null, messageID);
         } catch (error) {
             // Unsend status
             if (statusMsg?.messageID) {
@@ -135,6 +135,7 @@ module.exports = {
             return api.sendMessage(
                 `❌ Failed to update bio!\n\n` + `Error: ${error.message || "Unknown error"}`,
                 threadID,
+                null,
                 messageID
             );
         }

@@ -362,7 +362,7 @@ class BackgroundHandler {
             // Track in global stats
             statsTracker.recordBackgroundTask(task.name, true, duration);
 
-            logger.debug("BackgroundHandler", `Executed task: ${task.name} (${duration}ms)`);
+            // logger.debug("BackgroundHandler", `Executed task: ${task.name} (${duration}ms)`);
         } catch (error) {
             task.errorCount++;
             this.stats.errors++;

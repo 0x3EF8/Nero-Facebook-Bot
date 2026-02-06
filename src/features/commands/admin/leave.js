@@ -25,10 +25,10 @@ module.exports = {
     },
 
     async execute({ api, event, logger }) {
-        const { threadID } = event;
+        const { threadID, messageID } = event;
 
         try {
-            await api.sendMessage("👋 Goodbye! Leaving the group now...", threadID);
+            await api.sendMessage("👋 Goodbye! Leaving the group now...", threadID, null, messageID);
 
             // Wait a moment for the message to be sent
             await new Promise((resolve) => {
@@ -45,7 +45,7 @@ module.exports = {
             }
         } catch (error) {
             logger.error("Leave Command", error);
-            api.sendMessage(`❌ Failed to leave group: ${error.message}`, threadID);
+            api.sendMessage(`❌ Failed to leave group: ${error.message}`, threadID, null, messageID);
         }
     },
 };

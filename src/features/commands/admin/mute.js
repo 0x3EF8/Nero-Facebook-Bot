@@ -31,7 +31,7 @@ module.exports = {
     },
 
     async execute({ api, event, args, config, logger, _prefix }) {
-        const { threadID } = event;
+        const { threadID, messageID } = event;
         // The original `prefix` variable is now `_prefix` as per the instruction.
         // If `_prefix` is passed directly, we use it. Otherwise, fall back to config.
         // If `_prefix` is passed directly, we use it. Otherwise, fall back to config.
@@ -43,12 +43,12 @@ module.exports = {
                 // Currently muted -> Unmute
                 config.unblockThread(threadID);
                 logger.info("Mute Command", `Unmuted thread ${threadID}`);
-                return api.sendMessage("🔔 Bot unmuted! Everyone can use commands now.", threadID);
+                return api.sendMessage("🔔 Bot unmuted! Everyone can use commands now.", threadID, null, messageID);
             } else {
                 // Currently unmuted -> Mute
                 config.blockThread(threadID);
                 logger.info("Mute Command", `Muted thread ${threadID}`);
-                return api.sendMessage("🔕 Bot muted! Only Admins can use commands now.", threadID);
+                return api.sendMessage("🔕 Bot muted! Only Admins can use commands now.", threadID, null, messageID);
             }
         }
 
@@ -59,15 +59,15 @@ module.exports = {
         // ═══════════════════════════════════════════════════════════════════
         if (action === "-a" || action === "on" || action === "activate") {
             if (config.isThreadBlocked(threadID)) {
-                return api.sendMessage("⚠️ The bot is already muted in this group.", threadID);
+                return api.sendMessage("⚠️ The bot is already muted in this group.", threadID, null, messageID);
             }
 
             const success = config.blockThread(threadID);
             if (success) {
                 logger.info("Mute Command", `Muted thread ${threadID}`);
-                return api.sendMessage("🔕 Bot muted! Only Admins can use commands now.", threadID);
+                return api.sendMessage("🔕 Bot muted! Only Admins can use commands now.", threadID, null, messageID);
             } else {
-                return api.sendMessage("❌ Failed to mute the bot.", threadID);
+                return api.sendMessage("❌ Failed to mute the bot.", threadID, null, messageID);
             }
         }
 
@@ -76,15 +76,15 @@ module.exports = {
         // ═══════════════════════════════════════════════════════════════════
         else if (action === "-d" || action === "off" || action === "deactivate") {
             if (!config.isThreadBlocked(threadID)) {
-                return api.sendMessage("⚠️ The bot is not muted in this group.", threadID);
+                return api.sendMessage("⚠️ The bot is not muted in this group.", threadID, null, messageID);
             }
 
             const success = config.unblockThread(threadID);
             if (success) {
                 logger.info("Mute Command", `Unmuted thread ${threadID}`);
-                return api.sendMessage("🔔 Bot unmuted! Everyone can use commands now.", threadID);
+                return api.sendMessage("🔔 Bot unmuted! Everyone can use commands now.", threadID, null, messageID);
             } else {
-                return api.sendMessage("❌ Failed to unmute the bot.", threadID);
+                return api.sendMessage("❌ Failed to unmute the bot.", threadID, null, messageID);
             }
         }
 
@@ -98,7 +98,7 @@ module.exports = {
             const blockedThreads = config.bot.blockedThreads || [];
 
             if (blockedThreads.length === 0) {
-                return api.sendMessage("📝 No groups are currently muted.", threadID);
+                return api.sendMessage("📝 No groups are currently muted.", threadID, null, messageID);
             }
 
             let msg = "🔕 **Muted Groups** 🔕\n\n";
@@ -117,7 +117,7 @@ module.exports = {
 ...and ${blockedThreads.length - limit} more.`;
             }
 
-            return api.sendMessage(msg, threadID);
+            return api.sendMessage(msg, threadID, null, messageID);
         }
 
         // ═══════════════════════════════════════════════════════════════════
@@ -134,7 +134,8 @@ module.exports = {
                     `• ${actualPrefix}${commandName} -d : Deactivate mute (Bot speaks)\n` +
                     `• ${actualPrefix}${commandName} -l : List muted groups\n` +
                     `• ${actualPrefix}${commandName}    : Toggle status`,
-                threadID
+                threadID,
+                messageID
             );
         }
     },

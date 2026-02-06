@@ -232,7 +232,7 @@ module.exports = {
                 successMessage += `\n🔗 ${result.url}`;
             }
 
-            return api.sendMessage(successMessage, threadID, messageID);
+            return api.sendMessage(successMessage, threadID, null, messageID);
         } catch (error) {
             // Unsend "posting" status
             if (postingMsg?.messageID) {
@@ -248,6 +248,7 @@ module.exports = {
             return api.sendMessage(
                 `❌ Failed to create post!\n\n` + `Error: ${error.message || "Unknown error"}`,
                 threadID,
+                null,
                 messageID
             );
         }

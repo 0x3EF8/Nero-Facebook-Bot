@@ -66,10 +66,10 @@ module.exports = {
             const response =
                 `👤 User Information\n\n` + `📛 Name: ${name}\n` + `🔢 User ID: ${targetID}`;
 
-            await api.sendMessage(response, threadID, messageID);
+            await api.sendMessage(response, threadID, null, messageID);
         } catch {
             // Fallback - just show the ID
-            await api.sendMessage(`🔢 ${targetType} User ID:\n${targetID}`, threadID, messageID);
+            await api.sendMessage(`🔢 ${targetType} User ID:\n${targetID}`, threadID, null, messageID);
         }
     },
 };

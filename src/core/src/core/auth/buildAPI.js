@@ -45,11 +45,11 @@ function findConfig(netData, key) {
 }
 
 /**
- * Extracts user ID from cookies
+ * Extracts user ID and admin ID from cookies
  * @param {Object} jar - Cookie jar
  * @param {Function} fbLinkFunc - Function to generate FB URLs
  * @param {string} errorMsg - Error message if extraction fails
- * @returns {string} User ID
+ * @returns {Object} { userID, adminID } - userID is Page ID if operating as page, adminID is the c_user
  */
 function extractUserID(jar, fbLinkFunc, errorMsg) {
     const cookies = jar.getCookiesSync(fbLinkFunc());
@@ -60,10 +60,15 @@ function extractUserID(jar, fbLinkFunc, errorMsg) {
         throw new Error(errorMsg);
     }
 
-    return (
-        secondaryProfile?.cookieString().split("=")[1] ||
-        primaryProfile.cookieString().split("=")[1]
-    );
+    const cUser = primaryProfile?.cookieString().split("=")[1];
+    const iUser = secondaryProfile?.cookieString().split("=")[1];
+    
+    // If i_user exists and is different from c_user, we're operating as a Page
+    // i_user = Page ID, c_user = Admin user ID
+    const userID = iUser || cUser;
+    const adminID = (iUser && iUser !== cUser) ? cUser : null;
+    
+    return { userID, adminID };
 }
 
 /**
@@ -80,9 +85,31 @@ function extractUserID(jar, fbLinkFunc, errorMsg) {
 async function buildAPI(html, jar, netData, globalOptions, fbLinkFunc, errorRetrievingMsg) {
     utils.debug("VALIDATING SESSION & EXTRACTING USER CREDENTIALS...");
 
-    // Extract user ID
-    const userID = extractUserID(jar, fbLinkFunc, errorRetrievingMsg);
+    // Extract user ID and admin ID (for Page accounts)
+    const { userID, adminID } = extractUserID(jar, fbLinkFunc, errorRetrievingMsg);
     utils.info(`USER ID ACQUIRED → ${userID}`);
+    
+    // If adminID exists, this is a Page account
+    if (adminID) {
+        utils.info(`PAGE MODE DETECTED → Admin ID: ${adminID}, Page ID: ${userID}`);
+    }
+
+    // Check if this is a Page account by looking for Page-specific data
+    const currentUserData = findConfig(netData, "CurrentUserInitialData");
+    const isPage = adminID || currentUserData?.IS_BUSINESS_PERSON_ACCOUNT || 
+                   currentUserData?.IS_EMPLOYEE || 
+                   currentUserData?.HAS_SECONDARY_BUSINESS_PERSON;
+    
+    // Try to detect Page ID from various sources
+    let pageID = adminID ? userID : null;  // If adminID exists, userID IS the pageID
+    const pageData = findConfig(netData, "PagesCometLiteAssetLoaderConfig") ||
+                     findConfig(netData, "CometActorGatingConfig") ||
+                     findConfig(netData, "MessengerPagePresenceConfig");
+    
+    if (!pageID && (pageData?.actorID || pageData?.pageID)) {
+        pageID = pageData.actorID || pageData.pageID;
+        utils.info(`PAGE MODE DETECTED → Page ID: ${pageID}`);
+    }
 
     // Extract DTSG token
     utils.debug("EXTRACTING DTSG SECURITY TOKENS FROM PAGE DATA...");
@@ -108,7 +135,7 @@ async function buildAPI(html, jar, netData, globalOptions, fbLinkFunc, errorRetr
     const mqttConfigData = findConfig(netData, "MqttWebConfig");
     const mqttAppID = mqttConfigData?.appID;
 
-    const currentUserData = findConfig(netData, "CurrentUserInitialData");
+    // currentUserData already declared above for page detection
     const userAppID = currentUserData?.APP_ID;
 
     const primaryAppID = userAppID || mqttAppID;
@@ -134,6 +161,9 @@ async function buildAPI(html, jar, netData, globalOptions, fbLinkFunc, errorRetr
     // Build context object
     const ctx = {
         userID,
+        adminID,  // Admin user ID if operating as a Page (for self-listen filtering)
+        pageID,  // Page ID if operating as a Page
+        isPage: !!pageID,  // Flag indicating if this is a Page account
         jar,
         clientID,
         appID: primaryAppID,
@@ -155,6 +185,12 @@ async function buildAPI(html, jar, netData, globalOptions, fbLinkFunc, errorRetr
         firstListen: true,
         ...dtsgResult,
     };
+
+    // If we detected a page ID, also set it in globalOptions for sendMessage compatibility
+    if (pageID) {
+        globalOptions.pageID = pageID;
+        globalOptions.adminID = adminID;  // Store admin ID for reference
+    }
 
     // Build default functions
     const defaultFuncs = utils.makeDefaults(html, userID, ctx);

@@ -6,18 +6,49 @@
  *
  * @module services/weather
  * @author 0x3EF8
- * @version 1.0.0
+ * @version 2.0.0
  */
 
 "use strict";
 
 const axios = require("axios");
-const chalk = require("chalk");
 const { withRetry } = require("../../../../../utils/retry");
 const config = require("../../../../../config/config");
+const { REACTIONS, DEBUG } = require("../core/constants");
 
-// Weather code descriptions with emojis
-const WEATHER_CODES = {
+// ═══════════════════════════════════════════════════════════════════════════════
+// INTERNAL LOGGER
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const PREFIX = "[Weather]";
+
+/**
+ * Internal logger for weather service
+ * @param {string} level - Log level
+ * @param {string} message - Log message
+ */
+function log(level, message) {
+    if (!DEBUG && level === "debug") return;
+    const timestamp = new Date().toISOString();
+    console[level === "error" ? "error" : "log"](`${timestamp} ${PREFIX} ${message}`);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const API_TIMEOUT = 15000;
+const GEOCODE_TIMEOUT = 10000;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// WEATHER CODES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Weather code descriptions with emojis
+ * @type {Object.<number, string>}
+ */
+const WEATHER_CODES = Object.freeze({
     0: "☀️ Clear sky",
     1: "🌤️ Mainly clear",
     2: "⛅ Partly cloudy",
@@ -39,7 +70,21 @@ const WEATHER_CODES = {
     95: "⛈️ Thunderstorm",
     96: "⛈️ Thunderstorm with slight hail",
     99: "⛈️ Thunderstorm with heavy hail",
-};
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// HELPER FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Set reaction on message
+ * @param {Object} api - Facebook API
+ * @param {string} messageID - Message ID
+ * @param {string} emoji - Reaction emoji
+ */
+function react(api, messageID, emoji) {
+    api.setMessageReaction(emoji, messageID, () => {}, true);
+}
 
 /**
  * Get wind direction from degrees
@@ -70,6 +115,23 @@ function getWindDirection(degrees) {
 }
 
 /**
+ * Check if error is retryable
+ * @param {Error} error - Error object
+ * @returns {boolean} True if retryable
+ */
+function isRetryableError(error) {
+    return (
+        error.code === "ECONNRESET" ||
+        error.code === "ETIMEDOUT" ||
+        error.response?.status >= 500
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MAIN FUNCTION
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
  * Get weather information for a location
  * @param {Object} api - Facebook API instance
  * @param {string} threadID - Thread identifier
@@ -79,7 +141,8 @@ function getWindDirection(degrees) {
  */
 async function getWeather(api, threadID, messageID, location) {
     try {
-        api.setMessageReaction("🔍", messageID, () => {}, true);
+        react(api, messageID, REACTIONS.searching);
+        log("info", `Fetching weather for: ${location}`);
 
         const searchMsg = await api.sendMessage(
             `🔍 Searching weather for: "${location}"...`,
@@ -88,18 +151,19 @@ async function getWeather(api, threadID, messageID, location) {
 
         // Get coordinates
         const geocodeUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&language=en&format=json`;
-        const geocodeResponse = await withRetry(() => axios.get(geocodeUrl, { timeout: 10000 }), {
-            maxRetries: 3,
-            initialDelay: 1000,
-            shouldRetry: (error) =>
-                error.code === "ECONNRESET" ||
-                error.code === "ETIMEDOUT" ||
-                error.response?.status >= 500,
-        });
+        const geocodeResponse = await withRetry(
+            () => axios.get(geocodeUrl, { timeout: GEOCODE_TIMEOUT }),
+            {
+                maxRetries: 3,
+                initialDelay: 1000,
+                shouldRetry: isRetryableError,
+            }
+        );
 
         if (!geocodeResponse.data.results || geocodeResponse.data.results.length === 0) {
-            api.setMessageReaction("❌", messageID, () => {}, true);
-            return api.sendMessage(`❌ Location "${location}" not found.`, threadID, messageID);
+            react(api, messageID, REACTIONS.error);
+            log("warn", `Location not found: ${location}`);
+            return api.sendMessage(`❌ Location "${location}" not found.`, threadID, null, messageID);
         }
 
         const place = geocodeResponse.data.results[0];
@@ -109,18 +173,18 @@ async function getWeather(api, threadID, messageID, location) {
             `✅ Found: ${placeName}\n\n⬇️ Getting weather data...`,
             searchMsg.messageID
         );
-        api.setMessageReaction("🌤️", messageID, () => {}, true);
+        react(api, messageID, REACTIONS.processing);
 
         // Get weather data
         const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${place.latitude}&longitude=${place.longitude}&current=temperature_2m,relativehumidity_2m,apparent_temperature,is_day,precipitation,rain,showers,snowfall,weathercode,cloudcover,pressure_msl,surface_pressure,windspeed_10m,winddirection_10m,windgusts_10m&daily=weathercode,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max,precipitation_sum,precipitation_hours,precipitation_probability_max,windspeed_10m_max,windgusts_10m_max,winddirection_10m_dominant&hourly=temperature_2m,relativehumidity_2m,precipitation_probability,precipitation,rain,showers,snowfall,weathercode,cloudcover,visibility,windspeed_10m,winddirection_10m&timezone=${config.bot.timeZone}&forecast_days=3`;
-        const weatherResponse = await withRetry(() => axios.get(weatherUrl, { timeout: 15000 }), {
-            maxRetries: 3,
-            initialDelay: 1000,
-            shouldRetry: (error) =>
-                error.code === "ECONNRESET" ||
-                error.code === "ETIMEDOUT" ||
-                error.response?.status >= 500,
-        });
+        const weatherResponse = await withRetry(
+            () => axios.get(weatherUrl, { timeout: API_TIMEOUT }),
+            {
+                maxRetries: 3,
+                initialDelay: 1000,
+                shouldRetry: isRetryableError,
+            }
+        );
 
         const current = weatherResponse.data.current;
         const daily = weatherResponse.data.daily;
@@ -211,21 +275,25 @@ ${forecast24h.join("\n")}
 📆 3-DAY FORECAST
 ${forecast3day.join("\n")}`;
 
-        await api.sendMessage(weatherMessage, threadID);
-        console.log(chalk.green(`✓ Weather sent for: ${placeName}`));
-        api.setMessageReaction("✅", messageID, () => {}, true);
+        await api.sendMessage(weatherMessage, threadID, null, messageID);
+        log("info", `Weather sent for: ${placeName}`);
+        react(api, messageID, REACTIONS.success);
     } catch (error) {
-        console.error(chalk.red(`✗ Weather error: ${error.message}`));
-        api.setMessageReaction("❌", messageID, () => {}, true);
+        log("error", `Weather error: ${error.message}`);
+        react(api, messageID, REACTIONS.error);
 
         let errorMessage = "❌ Error getting weather data. Please try again.";
         if (error.message?.includes("timeout")) {
             errorMessage = "❌ Weather service timeout. Please try again later.";
         }
 
-        return api.sendMessage(errorMessage, threadID, messageID);
+        return api.sendMessage(errorMessage, threadID, null, messageID);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// EXPORTS
+// ═══════════════════════════════════════════════════════════════════════════════
 
 module.exports = {
     getWeather,

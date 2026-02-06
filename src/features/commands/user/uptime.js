@@ -104,6 +104,6 @@ module.exports = {
 ` +
             `🚀 Started: ${startTimeStr}`;
 
-        api.sendMessage(response, threadID, messageID);
+        api.sendMessage(response, threadID, null, messageID);
     },
 };

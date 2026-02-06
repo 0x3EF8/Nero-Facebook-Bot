@@ -38,13 +38,13 @@ module.exports = {
         try {
             const limit = parseInt(args[0]) || 50;
 
-            api.sendMessage("⏳ Fetching group list...", threadID, messageID);
+            api.sendMessage("⏳ Fetching group list...", threadID, null, messageID);
 
             // Fetch threads from inbox
             const threads = await api.getThreadList(limit, null, ["INBOX"]);
 
             if (!threads || threads.length === 0) {
-                return api.sendMessage("📭 No active threads found.", threadID, messageID);
+                return api.sendMessage("📭 No active threads found.", threadID, null, messageID);
             }
 
             // Filter only group chats
@@ -54,6 +54,7 @@ module.exports = {
                 return api.sendMessage(
                     "👥 No group chats found in the last " + limit + " threads.",
                     threadID,
+                    null,
                     messageID
                 );
             }
@@ -72,12 +73,13 @@ module.exports = {
 
             // If message is too long, it might fail. Break it down if needed,
             // but for 50 groups it should be fine.
-            return api.sendMessage(msg, threadID, messageID);
+            return api.sendMessage(msg, threadID, null, messageID);
         } catch (error) {
             logger.error("ThreadsCommand", `Error: ${error.message}`);
             return api.sendMessage(
                 `❌ Failed to fetch threads: ${error.message}`,
                 threadID,
+                null,
                 messageID
             );
         }

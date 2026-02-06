@@ -123,10 +123,10 @@ async function listenMqtt(defaultFuncs, api, ctx, globalCallback, reconnectFn) {
             protocolVersion: 13,
             binaryType: "arraybuffer",
         },
-        keepalive: 10 + Math.floor(Math.random() * 5), // ✅ Add jitter: 10-15s (more human-like)
+        keepalive: 20 + Math.floor(Math.random() * 10), // 20-30s keepalive (more tolerant)
         reschedulePings: true,
         connectTimeout: 60000,
-        reconnectPeriod: 5000, // ✅ Changed from 1s to 5s (less aggressive)
+        reconnectPeriod: 0, // Disable built-in reconnect, we handle it manually
     };
 
     if (ctx.globalOptions.proxy) {
@@ -180,6 +180,26 @@ async function listenMqtt(defaultFuncs, api, ctx, globalCallback, reconnectFn) {
         mqttClient.end();
         if (ctx.globalOptions.autoReconnect && reconnectFn) reconnectFn();
         else globalCallback({ type: "stop_listen", error: "Connection refused" });
+    });
+
+    // Handle keepalive timeout and connection close - auto reconnect
+    mqttClient.on("close", () => {
+        utils.warn("MQTT", "Connection closed");
+        utils.logMqttEvent("close", { message: "Connection closed" });
+        if (ctx.globalOptions.autoReconnect && reconnectFn) {
+            utils.log("MQTT", "Auto-reconnecting in 3 seconds...");
+            setTimeout(() => reconnectFn(), 3000);
+        }
+    });
+
+    mqttClient.on("offline", () => {
+        utils.warn("MQTT", "Client went offline");
+        utils.logMqttEvent("offline", { message: "Client offline" });
+    });
+
+    mqttClient.on("reconnect", () => {
+        utils.log("MQTT", "Attempting to reconnect...");
+        utils.logMqttEvent("reconnect", { message: "Reconnecting" });
     });
 
     mqttClient.on("connect", async () => {

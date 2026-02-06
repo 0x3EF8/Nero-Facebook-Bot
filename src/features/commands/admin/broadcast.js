@@ -184,13 +184,14 @@ module.exports = {
             const att = event.messageReply.attachments[0]; // Take first attachment
             if (att.type === "photo" || att.type === "video" || att.type === "animated_image") {
                 try {
-                    api.sendMessage("⏳ Downloading attachment...", threadID);
+                    api.sendMessage("⏳ Downloading attachment...", threadID, null, messageID);
                     attachmentType = att.type === "video" ? "video" : "photo";
                     attachmentPath = await downloadAttachment(att.url, attachmentType);
                 } catch (err) {
                     return api.sendMessage(
                         `❌ Error downloading attachment: ${err.message}`,
-                        threadID
+                        threadID,
+                        messageID
                     );
                 }
             }
@@ -323,14 +324,14 @@ module.exports = {
             } else {
                 const threads = await fetchThreads(api, filter);
                 if (threads.length === 0) {
-                    return api.sendMessage(`📭 No ${filterText} found.`, threadID);
+                    return api.sendMessage(`📭 No ${filterText} found.`, threadID, null, messageID);
                 }
                 // Filter out current thread to avoid echo
                 targetThreads = threads.filter((t) => t.threadID !== threadID);
             }
 
             if (targetThreads.length === 0) {
-                return api.sendMessage("📭 No targets found.", threadID);
+                return api.sendMessage("📭 No targets found.", threadID, null, messageID);
             }
 
             // Send confirmation
@@ -420,14 +421,14 @@ module.exports = {
                 }
             }
 
-            return api.sendMessage(resultMessage, threadID, messageID);
+            return api.sendMessage(resultMessage, threadID, null, messageID);
         } catch (error) {
             activeBroadcasts.delete(senderID);
             // Cleanup on error too
             if (attachmentPath && fs.existsSync(attachmentPath)) fs.unlinkSync(attachmentPath);
 
             logger?.error?.("Broadcast", `Error: ${error.message}`);
-            return api.sendMessage(`❌ Failed: ${error.message}`, threadID, messageID);
+            return api.sendMessage(`❌ Failed: ${error.message}`, threadID, null, messageID);
         }
     },
 
@@ -448,7 +449,7 @@ module.exports = {
             );
 
             if (threads.length === 0) {
-                return api.sendMessage("📭 No threads found.", threadID, messageID);
+                return api.sendMessage("📭 No threads found.", threadID, null, messageID);
             }
 
             let list = `📋 **Thread List** (${threads.length})\n\n`;
@@ -479,11 +480,12 @@ module.exports = {
                 }
             }
 
-            return api.sendMessage(list, threadID, messageID);
+            return api.sendMessage(list, threadID, null, messageID);
         } catch (error) {
             return api.sendMessage(
                 `❌ Failed to fetch threads: ${error.message}`,
                 threadID,
+                null,
                 messageID
             );
         }

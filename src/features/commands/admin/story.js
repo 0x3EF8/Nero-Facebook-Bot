@@ -239,7 +239,7 @@ module.exports = {
                         successMessage += `\n🔗 Story ID: ${result.storyID}`;
                     }
 
-                    return api.sendMessage(successMessage, threadID, messageID);
+                    return api.sendMessage(successMessage, threadID, null, messageID);
                 } catch (error) {
                     // Unsend "creating" status
                     if (creatingMsg?.messageID) {
@@ -256,6 +256,7 @@ module.exports = {
                         `❌ Failed to create photo story!\n\n` +
                             `Error: ${error.message || "Unknown error"}`,
                         threadID,
+                        null,
                         messageID
                     );
                 }
@@ -297,7 +298,7 @@ module.exports = {
                 successMessage += `\n🔗 Story ID: ${result.storyID}`;
             }
 
-            return api.sendMessage(successMessage, threadID, messageID);
+            return api.sendMessage(successMessage, threadID, null, messageID);
         } catch (error) {
             // Unsend "creating" status
             if (creatingMsg?.messageID) {

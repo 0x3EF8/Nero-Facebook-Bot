@@ -6,27 +6,62 @@
  *
  * @module core/gemini
  * @author 0x3EF8
- * @version 1.2.0
+ * @version 2.0.0
+ *
+ * Features:
+ * - Multi-key rotation with round-robin strategy
+ * - Automatic failure detection and cooldown
+ * - Two-pass retry mechanism for maximum reliability
+ * - Usage statistics tracking
  */
 
 "use strict";
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const chalk = require("chalk");
 const config = require("../../../../../config/config");
-const { MODEL_CONFIG } = require("./constants");
+const { MODEL_CONFIG, DEBUG } = require("./constants");
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// INTERNAL LOGGER
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Internal logger for Gemini module
+ * @private
+ */
+const log = {
+    info: (msg) => DEBUG && console.log(`[Gemini] ℹ ${msg}`),
+    success: (msg) => DEBUG && console.log(`[Gemini] ✓ ${msg}`),
+    warn: (msg) => DEBUG && console.warn(`[Gemini] ⚠ ${msg}`),
+    error: (msg) => console.error(`[Gemini] ✗ ${msg}`),
+};
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // API KEY MANAGEMENT
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/** @type {Map<string, {failedAt: number, failCount: number, reason: string}>} */
+/**
+ * @typedef {Object} KeyFailureData
+ * @property {number} failedAt - Timestamp of failure
+ * @property {number} failCount - Number of consecutive failures
+ * @property {string} reason - Failure reason
+ */
+
+/** @type {Map<string, KeyFailureData>} */
 const failedKeys = new Map();
 
 /** @type {number} */
 let currentKeyIndex = 0;
 
-/** @type {{requests: number, success: number, failures: number, lastRequest: number}} */
+/**
+ * @typedef {Object} GeminiStats
+ * @property {number} requests - Total requests made
+ * @property {number} success - Successful requests
+ * @property {number} failures - Failed requests
+ * @property {number} lastRequest - Timestamp of last request
+ */
+
+/** @type {GeminiStats} */
 const stats = {
     requests: 0,
     success: 0,
@@ -35,8 +70,8 @@ const stats = {
 };
 
 /**
- * Get all configured API keys (main + backups)
- * @returns {string[]} Array of API keys
+ * Get all configured API keys (primary + backups)
+ * @returns {string[]} Array of valid API keys
  */
 function getAllKeys() {
     const primaryKey = config.apiKeys?.gemini;
@@ -45,48 +80,11 @@ function getAllKeys() {
 }
 
 /**
- * Get the next API key using round-robin rotation
- * @returns {string|null} Available API key or null
- */
-function getNextApiKey() {
-    const allKeys = getAllKeys();
-
-    if (allKeys.length === 0) {
-        console.log(chalk.red("✗ No Gemini API keys configured!"));
-        return null;
-    }
-
-    const now = Date.now();
-
-    // Clean up expired failures
-    for (const [key, data] of failedKeys.entries()) {
-        if (now - data.failedAt > MODEL_CONFIG.keyCooldown) {
-            failedKeys.delete(key);
-        }
-    }
-
-    // Find available key (round-robin)
-    let attempts = 0;
-    while (attempts < allKeys.length) {
-        const key = allKeys[currentKeyIndex];
-        const failData = failedKeys.get(key);
-
-        currentKeyIndex = (currentKeyIndex + 1) % allKeys.length;
-        attempts++;
-
-        if (!failData || now - failData.failedAt > MODEL_CONFIG.keyCooldown) {
-            const keyType = getKeyType(key, allKeys);
-            console.log(chalk.cyan(`► Using ${keyType} key: ${key.substring(0, 12)}...`));
-            return key;
-        }
-    }
-
-    // All keys on cooldown - use oldest failed key
-    return getOldestFailedKey(allKeys);
-}
-
-/**
- * Get key type label
+ * Get the key type label for logging
+ * @param {string} key - API key
+ * @param {string[]} allKeys - Array of all keys
+ * @returns {string} Key type label (PRIMARY or BACKUP-N)
+ * @private
  */
 function getKeyType(key, allKeys) {
     const index = allKeys.indexOf(key);
@@ -94,7 +92,23 @@ function getKeyType(key, allKeys) {
 }
 
 /**
- * Get the key that failed longest ago
+ * Clean up expired key failures from cache
+ * @private
+ */
+function cleanExpiredFailures() {
+    const now = Date.now();
+    for (const [key, data] of failedKeys.entries()) {
+        if (now - data.failedAt > MODEL_CONFIG.keyCooldown) {
+            failedKeys.delete(key);
+        }
+    }
+}
+
+/**
+ * Get the key that failed longest ago (for recovery)
+ * @param {string[]} allKeys - Array of all keys
+ * @returns {string} Oldest failed key
+ * @private
  */
 function getOldestFailedKey(allKeys) {
     let oldestKey = allKeys[0];
@@ -108,17 +122,49 @@ function getOldestFailedKey(allKeys) {
         }
     }
 
-    console.log(chalk.yellow(`⚠ All keys on cooldown, retrying: ${oldestKey.substring(0, 12)}...`));
+    log.warn(`All keys on cooldown, retrying oldest: ${oldestKey.substring(0, 12)}...`);
     return oldestKey;
+}
+
+/**
+ * Get the next available API key using round-robin rotation
+ * @returns {string|null} Available API key or null if none configured
+ */
+function getNextApiKey() {
+    const allKeys = getAllKeys();
+
+    if (allKeys.length === 0) {
+        log.error("No Gemini API keys configured!");
+        return null;
+    }
+
+    cleanExpiredFailures();
+
+    // Find available key using round-robin
+    for (let attempts = 0; attempts < allKeys.length; attempts++) {
+        const key = allKeys[currentKeyIndex];
+        const failData = failedKeys.get(key);
+
+        currentKeyIndex = (currentKeyIndex + 1) % allKeys.length;
+
+        if (!failData || Date.now() - failData.failedAt > MODEL_CONFIG.keyCooldown) {
+            log.info(`Using ${getKeyType(key, allKeys)} key: ${key.substring(0, 12)}...`);
+            return key;
+        }
+    }
+
+    // All keys on cooldown - use oldest failed key
+    return getOldestFailedKey(allKeys);
 }
 
 /**
  * Mark an API key as failed
  * @param {string} apiKey - The failed key
- * @param {string} reason - Failure reason
+ * @param {string} [reason="unknown"] - Failure reason
  */
 function markKeyFailed(apiKey, reason = "unknown") {
     const existing = failedKeys.get(apiKey) || { failCount: 0 };
+
     failedKeys.set(apiKey, {
         failedAt: Date.now(),
         failCount: existing.failCount + 1,
@@ -126,36 +172,58 @@ function markKeyFailed(apiKey, reason = "unknown") {
     });
 
     const allKeys = getAllKeys();
-    const keyType = getKeyType(apiKey, allKeys);
-    console.log(chalk.yellow(`⚠ ${keyType} key failed (${reason}), rotating...`));
+    log.warn(`${getKeyType(apiKey, allKeys)} key failed (${reason}), rotating...`);
 }
 
 /**
- * Reset all key failures
+ * Reset all key failures (useful for recovery)
  */
 function resetKeyFailures() {
     failedKeys.clear();
     currentKeyIndex = 0;
+    log.info("All key failures reset");
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ERROR CLASSIFICATION
 // ═══════════════════════════════════════════════════════════════════════════════
 
+/** @type {RegExp} Pattern for retryable errors */
+const RETRYABLE_PATTERN = /429|quota|rate|Too Many|ECONNRESET|ETIMEDOUT|network|503|500/i;
+
+/** @type {RegExp} Pattern for permanent key errors */
+const KEY_ERROR_PATTERN = /leaked|invalid|API key not valid|403/i;
+
 /**
- * Check if error is retryable
+ * Check if error is retryable (rate limits, network issues)
+ * @param {Error} error - Error to classify
+ * @returns {boolean} True if error is retryable
+ * @private
  */
 function isRetryable(error) {
     const msg = error.message || String(error);
-    return /429|quota|rate|Too Many|ECONNRESET|ETIMEDOUT|network|503|500/i.test(msg);
+    return RETRYABLE_PATTERN.test(msg);
 }
 
 /**
- * Check if error is a permanent key error
+ * Check if error indicates a permanent key issue
+ * @param {Error} error - Error to classify
+ * @returns {boolean} True if error is a key error
+ * @private
  */
 function isKeyError(error) {
     const msg = error.message || String(error);
-    return /leaked|invalid|API key not valid|403/i.test(msg);
+    return KEY_ERROR_PATTERN.test(msg);
+}
+
+/**
+ * Sleep helper for delay between retries
+ * @param {number} ms - Milliseconds to sleep
+ * @returns {Promise<void>}
+ * @private
+ */
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -163,43 +231,39 @@ function isKeyError(error) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Generate content with aggressive API key rotation (Multi-pass)
+ * Generate content with aggressive API key rotation (Multi-pass strategy)
+ *
+ * Strategy: Try every key, then try every key AGAIN (2 full passes)
+ * This maximizes chances of success when keys have intermittent issues.
+ *
  * @param {string} prompt - The prompt text
- * @param {Array} imageParts - Optional image parts
- * @param {number} _maxRetries - Ignored (uses key count based logic)
- * @returns {Promise<Object>} Generation result
+ * @param {Array} [imageParts=[]] - Optional image parts for multimodal
+ * @returns {Promise<Object>} Generation result from Gemini
+ * @throws {Error} If all keys fail after 2 passes
  */
-async function generate(prompt, imageParts = [], _maxRetries = 3) {
+async function generate(prompt, imageParts = []) {
     const allKeys = getAllKeys();
 
     if (allKeys.length === 0) {
-        throw new Error("No Gemini API keys available - check your .env file");
+        throw new Error("No Gemini API keys available - check your configuration");
     }
 
     stats.requests++;
     stats.lastRequest = Date.now();
 
     let lastError = null;
-
-    // Strategy: Try every key, then try every key AGAIN (2 full passes)
-    const maxAttempts = allKeys.length * 2;
+    const maxAttempts = allKeys.length * 2; // Two full passes
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
-        // Round-robin index based on attempt number
         const keyIndex = attempt % allKeys.length;
         const apiKey = allKeys[keyIndex];
         const isRetryPass = attempt >= allKeys.length;
+        const keyType = keyIndex === 0 ? "PRIMARY" : `BACKUP-${keyIndex}`;
+        const passLabel = isRetryPass ? " (retry pass)" : "";
+
+        log.info(`Attempt ${attempt + 1}/${maxAttempts} using ${keyType} key${passLabel}...`);
 
         try {
-            // Log which key we are trying
-            const keyType = keyIndex === 0 ? "PRIMARY" : `BACKUP-${keyIndex}`;
-            const passLabel = isRetryPass ? "(RETRY PASS)" : "";
-            console.log(
-                chalk.cyan(
-                    `► Attempt ${attempt + 1}/${maxAttempts} using ${keyType} key ${passLabel}...`
-                )
-            );
-
             const genAI = new GoogleGenerativeAI(apiKey);
             const model = genAI.getGenerativeModel({ model: MODEL_CONFIG.name });
 
@@ -210,13 +274,10 @@ async function generate(prompt, imageParts = [], _maxRetries = 3) {
 
             stats.success++;
 
-            // If we succeeded on a retry pass or backup, log it clearly
             if (keyIndex > 0 || isRetryPass) {
-                console.log(
-                    chalk.green(`✓ Success using ${keyType} key on attempt ${attempt + 1}!`)
-                );
+                log.success(`Success using ${keyType} key on attempt ${attempt + 1}!`);
             } else {
-                console.log(chalk.green(`✓ Gemini response received`));
+                log.success("Response received");
             }
 
             return result;
@@ -224,38 +285,26 @@ async function generate(prompt, imageParts = [], _maxRetries = 3) {
             lastError = error;
             stats.failures++;
 
-            // Classify failure
-            let reason = "other";
-            if (isKeyError(error)) reason = "key_error";
-            else if (isRetryable(error)) reason = "rate_limit";
+            // Classify failure reason
+            const reason = isKeyError(error) ? "key_error" : isRetryable(error) ? "rate_limit" : "other";
 
             markKeyFailed(apiKey, reason);
+            log.warn(`Key failed (${reason}). Moving to next key...`);
 
-            console.log(chalk.yellow(`⚠ Key failed (${reason}). Moving to next key...`));
-
-            // Small delay between attempts, longer delay between passes
-            const delay = isRetryPass ? 2000 : 500;
+            // Delay between attempts (longer between passes)
             if (attempt < maxAttempts - 1) {
-                await sleep(delay);
+                await sleep(isRetryPass ? 2000 : 500);
             }
         }
     }
 
-    console.log(chalk.red(`✗ All keys failed after ${maxAttempts} attempts (2 full passes)`));
+    log.error(`All keys failed after ${maxAttempts} attempts (2 full passes)`);
     throw lastError;
 }
 
 /**
- * Sleep helper
- */
-function sleep(ms) {
-    return new Promise((resolve) => {
-        setTimeout(resolve, ms);
-    });
-}
-
-/**
- * Create a model proxy for compatibility
+ * Create a model proxy for compatibility with existing code
+ * @returns {Object} Proxy object with generateContent method
  */
 function createModelProxy() {
     return {
@@ -275,12 +324,15 @@ function createModelProxy() {
 
 /**
  * Get API usage statistics
+ * @returns {Object} Statistics object
  */
 function getStats() {
+    const successRate =
+        stats.requests > 0 ? ((stats.success / stats.requests) * 100).toFixed(1) + "%" : "N/A";
+
     return {
         ...stats,
-        successRate:
-            stats.requests > 0 ? ((stats.success / stats.requests) * 100).toFixed(1) + "%" : "N/A",
+        successRate,
         activeKeys: getAllKeys().length,
         failedKeys: failedKeys.size,
     };
@@ -292,12 +344,17 @@ function getStats() {
 
 module.exports = {
     gemini: {
+        // Core functions
         generate,
         createModelProxy,
+
+        // Key management
         getNextApiKey,
         markKeyFailed,
         resetKeyFailures,
         getAllKeys,
+
+        // Statistics
         getStats,
     },
 };

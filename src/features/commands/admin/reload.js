@@ -93,11 +93,12 @@ module.exports = {
 
             if (success) {
                 logger.success("Reload", `Command "${name}" reloaded by ${event.senderID}`);
-                return api.sendMessage(`✅ Command "${name}" reloaded!`, threadID, messageID);
+                return api.sendMessage(`✅ Command "${name}" reloaded!`, threadID, null, messageID);
             } else {
                 return api.sendMessage(
                     `❌ Failed to reload command "${name}".`,
                     threadID,
+                    null,
                     messageID
                 );
             }
@@ -109,9 +110,9 @@ module.exports = {
 
             if (success) {
                 logger.success("Reload", `Event "${name}" reloaded by ${event.senderID}`);
-                return api.sendMessage(`✅ Event "${name}" reloaded!`, threadID, messageID);
+                return api.sendMessage(`✅ Event "${name}" reloaded!`, threadID, null, messageID);
             } else {
-                return api.sendMessage(`❌ Failed to reload event "${name}".`, threadID, messageID);
+                return api.sendMessage(`❌ Failed to reload event "${name}".`, threadID, null, messageID);
             }
         }
 
@@ -185,6 +186,6 @@ module.exports = {
         }
 
         // Not found anywhere
-        return api.sendMessage(`❌ "${name}" not found as command or event.`, threadID, messageID);
+        return api.sendMessage(`❌ "${name}" not found as command or event.`, threadID, null, messageID);
     },
 };

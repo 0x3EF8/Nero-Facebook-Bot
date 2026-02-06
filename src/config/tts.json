@@ -1,0 +1,8 @@
+{
+  "enabled": true,
+  "defaultVoice": "ana",
+  "rate": "+0%",
+  "pitch": "+0Hz",
+  "mode": "both",
+  "smartVoice": true
+}

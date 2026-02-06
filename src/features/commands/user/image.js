@@ -16,7 +16,7 @@ const axios = require("axios");
 const cheerio = require("cheerio");
 const fs = require("fs");
 const path = require("path");
-const { getTempDirSync, scheduleDelete } = require("../../../utils/paths");
+const { getTempDirSync } = require("../../../utils/paths");
 
 module.exports = {
     config: {
@@ -93,7 +93,7 @@ module.exports = {
 
             if (imageUrls.length === 0) {
                 api.setMessageReaction("❌", messageID, () => { }, true);
-                return api.sendMessage("❌ No images found.", threadID, messageID);
+                return api.sendMessage("❌ No images found.", threadID, null, messageID);
             }
 
             // Shuffle results to give variety
@@ -150,6 +150,7 @@ module.exports = {
                 return api.sendMessage(
                     "❌ Failed to download images. Please try again.",
                     threadID,
+                    null,
                     messageID
                 );
             }
@@ -179,7 +180,7 @@ module.exports = {
         } catch (error) {
             console.error("[Image] Error:", error.message);
             api.setMessageReaction("❌", messageID, () => { }, true);
-            return api.sendMessage(`❌ An error occurred: ${error.message}`, threadID, messageID);
+            return api.sendMessage(`❌ An error occurred: ${error.message}`, threadID, null, messageID);
         }
     },
 };

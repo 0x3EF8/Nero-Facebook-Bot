@@ -36,19 +36,22 @@ module.exports = {
      */
     async execute({ api, event, args, config, logger }) {
         const threadID = event.threadID;
+        const messageID = event.messageID;
         const senderID = event.senderID;
         const isGroup = event.isGroup;
 
         // Must be in a group
         if (!isGroup) {
-            return api.sendMessage(`❌ This command only works in group chats!`, threadID);
+            return api.sendMessage(`❌ This command only works in group chats!`, threadID, null, messageID);
         }
 
         // Check if gcmember API exists
         if (!api.gcmember) {
             return api.sendMessage(
                 `❌ Member removal is not available in this API version.`,
-                threadID
+                threadID,
+                null,
+                messageID
             );
         }
 
@@ -62,7 +65,8 @@ module.exports = {
                 return api.sendMessage(
                     `❌ I need to be an admin to kick members!\n\n` +
                         `Please make me an admin first, then try again.`,
-                    threadID
+                    threadID,
+                    messageID
                 );
             }
         } catch (error) {
@@ -177,12 +181,12 @@ module.exports = {
 
             // Don't allow kicking the bot
             if (replyUserID === botID) {
-                return api.sendMessage(`❌ You can't kick me! 😅`, threadID);
+                return api.sendMessage(`❌ You can't kick me! 😅`, threadID, null, messageID);
             }
 
             // Don't allow kicking yourself
             if (replyUserID === senderID) {
-                return api.sendMessage(`❌ You can't kick yourself!`, threadID);
+                return api.sendMessage(`❌ You can't kick yourself!`, threadID, null, messageID);
             }
 
             usersToKick = [replyUserID];
@@ -258,7 +262,7 @@ module.exports = {
 
                     if (othersLeft.length === 0) {
                         // Only sender and bot left - leave the group
-                        await api.sendMessage(`👋 No other members in group. Leaving...`, threadID);
+                        await api.sendMessage(`👋 No other members in group. Leaving...`, threadID, null, messageID);
                         await new Promise((resolve) => {
                             setTimeout(resolve, 1000);
                         });
@@ -276,7 +280,9 @@ module.exports = {
             return api.sendMessage(
                 `❌ No users to kick!\n\n` +
                     `${removeAllMembers ? "All members are excluded or it's just you and the bot." : "Please mention users to kick."}`,
-                threadID
+                threadID,
+                null,
+                messageID
             );
         }
 
@@ -286,7 +292,7 @@ module.exports = {
             confirmMsg += `🛡️ Keeping: ${excludedNames.join(", ")}\n`;
         }
 
-        await api.sendMessage(confirmMsg, threadID);
+        await api.sendMessage(confirmMsg, threadID, null, messageID);
 
         // Kick users one by one (API limitation)
         let successCount = 0;
@@ -368,7 +374,7 @@ module.exports = {
             });
         }
 
-        await api.sendMessage(resultMsg, threadID);
+        await api.sendMessage(resultMsg, threadID, null, messageID);
 
         // If we used "all" flag, check if only sender and bot are left, then leave automatically
         if (removeAllMembers) {

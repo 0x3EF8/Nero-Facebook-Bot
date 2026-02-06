@@ -599,18 +599,79 @@ async function extractCookies() {
             return;
         }
 
-        // Get cookies from Facebook
-        const cookies = await chrome.cookies.getAll({
-            domain: "facebook.com",
-        });
+        // Get cookies from Facebook and Messenger domains
+        const [fbCookies, messengerCookies] = await Promise.all([
+            chrome.cookies.getAll({ domain: ".facebook.com" }),
+            chrome.cookies.getAll({ domain: ".messenger.com" })
+        ]);
 
-        const desired = ["datr", "sb", "ps_l", "ps_n", "wd", "c_user", "xs", "fr"];
+        // Combine and deduplicate cookies (prefer facebook.com)
+        const cookieMap = new Map();
+        
+        // Add all Facebook cookies first
+        for (const cookie of fbCookies) {
+            cookieMap.set(cookie.name, cookie);
+        }
+        
+        // Add Messenger cookies only if not already present
+        for (const cookie of messengerCookies) {
+            if (!cookieMap.has(cookie.name)) {
+                cookieMap.set(cookie.name, cookie);
+            }
+        }
+        
+        const cookies = Array.from(cookieMap.values());
+
+        // Essential cookies for bot authentication (in priority order)
+        const essentialCookies = ["c_user", "xs", "datr", "sb", "fr"];
+        // Additional useful cookies
+        const additionalCookies = ["ps_l", "ps_n", "wd", "locale", "presence", "usida", "spin", "m_page_voice", "fbl_st", "fbl_ci"];
+        
         const extracted = [];
         const extractionTimestamp = new Date().toISOString();
 
-        for (const name of desired) {
+        // First extract essential cookies
+        for (const name of essentialCookies) {
             const cookie = cookies.find((c) => c.name === name);
             if (cookie) {
+                extracted.push({
+                    key: cookie.name,
+                    value: cookie.value,
+                    domain: cookie.domain.replace(/^\./, ""),
+                    path: cookie.path,
+                    secure: cookie.secure,
+                    httpOnly: cookie.httpOnly,
+                    sameSite: cookie.sameSite,
+                    extractedAt: extractionTimestamp,
+                });
+            }
+        }
+
+        // Then extract additional cookies
+        for (const name of additionalCookies) {
+            const cookie = cookies.find((c) => c.name === name);
+            if (cookie) {
+                extracted.push({
+                    key: cookie.name,
+                    value: cookie.value,
+                    domain: cookie.domain.replace(/^\./, ""),
+                    path: cookie.path,
+                    secure: cookie.secure,
+                    httpOnly: cookie.httpOnly,
+                    sameSite: cookie.sameSite,
+                    extractedAt: extractionTimestamp,
+                });
+            }
+        }
+
+        // Also extract any remaining cookies that might be useful (but not duplicates)
+        const extractedNames = new Set(extracted.map(c => c.key));
+        for (const cookie of cookies) {
+            if (!extractedNames.has(cookie.name) && cookie.value && cookie.value.length > 0) {
+                // Skip obvious non-essential cookies
+                if (cookie.name.startsWith("_") || cookie.name.includes("pixel") || cookie.name.includes("tracking")) {
+                    continue;
+                }
                 extracted.push({
                     key: cookie.name,
                     value: cookie.value,

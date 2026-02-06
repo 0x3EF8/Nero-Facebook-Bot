@@ -103,6 +103,6 @@ ADMINISTRATION
 Admins: ${config.bot.admins.length}
 Super Admins: ${config.bot.superAdmins.length}`;
 
-        api.sendMessage(infoMessage, threadID, messageID);
+        api.sendMessage(infoMessage, threadID, null, messageID);
     },
 };

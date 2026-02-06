@@ -189,21 +189,15 @@ function scheduleDelete(filePath, delayMs = 5000) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 module.exports = {
-    // Base paths
-    getProjectRoot,
-    getDataDir,
+    // Base paths (used externally)
     getTempDir,
-    getAccountsDir,
-    getLogsDir,
     
     // Directory management
     ensureDir,
     getTempDirSync,
-    getDataDirSync,
     
     // Temp file utilities
     getTempFilePath,
-    getTempFilePathWithName,
     cleanupTempFiles,
     deleteTempFile,
     scheduleDelete,

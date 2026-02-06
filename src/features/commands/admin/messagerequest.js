@@ -133,6 +133,7 @@ module.exports = {
      */
     async execute({ api, event, args, config }) {
         const threadID = event.threadID;
+        const messageID = event.messageID;
         const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : "";
         const commandName = this.config.name;
 
@@ -145,7 +146,8 @@ module.exports = {
                     return api.sendMessage(
                         `📭 No pending message requests!\n\n` +
                             `All caught up! There are no message requests waiting for approval.`,
-                        threadID
+                        threadID,
+                        messageID
                     );
                 }
 
@@ -157,11 +159,12 @@ module.exports = {
 
                 response += `📖 **Usage:** ${actualPrefix}${commandName} <accept/decline/list> <number/all>`;
 
-                return api.sendMessage(response, threadID);
+                return api.sendMessage(response, threadID, null, messageID);
             } catch (error) {
                 return api.sendMessage(
                     `❌ Failed to fetch message requests!\n\n` + `Error: ${error.message || error}`,
-                    threadID
+                    threadID,
+                    messageID
                 );
             }
         }
@@ -174,7 +177,7 @@ module.exports = {
                 const pendingRequests = await getPendingRequests(api);
 
                 if (pendingRequests.length === 0) {
-                    return api.sendMessage(`📭 No pending message requests!`, threadID);
+                    return api.sendMessage(`📭 No pending message requests!`, threadID, null, messageID);
                 }
 
                 let response = `📬 **Pending Message Requests** (${pendingRequests.length})\n\n`;
@@ -183,11 +186,12 @@ module.exports = {
                     response += formatThreadInfo(thread, index + 1) + "\n\n";
                 });
 
-                return api.sendMessage(response, threadID);
+                return api.sendMessage(response, threadID, null, messageID);
             } catch (error) {
                 return api.sendMessage(
                     `❌ Failed to fetch message requests!\n\n` + `Error: ${error.message || error}`,
-                    threadID
+                    threadID,
+                    messageID
                 );
             }
         }
@@ -220,7 +224,7 @@ module.exports = {
         }
 
         if (pendingRequests.length === 0) {
-            return api.sendMessage(`📭 No pending message requests to ${action}!`, threadID);
+            return api.sendMessage(`📭 No pending message requests to ${action}!`, threadID, null, messageID);
         }
 
         let targetThreadIDs = [];
@@ -337,12 +341,14 @@ module.exports = {
                 response += `\n\n📨 Welcome messages sent to accepted threads!`;
             }
 
-            await api.sendMessage(response, threadID);
+            await api.sendMessage(response, threadID, null, messageID);
         } catch (error) {
             await api.sendMessage(
                 `❌ Failed to ${action} message request(s)!\n\n` +
                     `Error: ${error.message || error}`,
-                threadID
+                threadID,
+                null,
+                messageID
             );
         }
     },

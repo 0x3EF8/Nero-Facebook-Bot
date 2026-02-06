@@ -96,7 +96,7 @@ module.exports = {
 
             // Add Subcommand (-a)
             if (action === "-a" || action === "add") {
-                const newUser = args[1]?.toLowerCase();
+                let newUser = args[1]?.toLowerCase();
                 if (!newUser) {
                     return api.sendMessage(
                         "❌ Please provide a TikTok username to add.",
@@ -104,6 +104,9 @@ module.exports = {
                         messageID
                     );
                 }
+
+                // Remove @ prefix if present
+                newUser = newUser.replace(/^@/, "");
 
                 if (targetUsers.includes(newUser)) {
                     return api.sendMessage(
@@ -189,43 +192,51 @@ module.exports = {
         api.setMessageReaction("🎲", messageID, () => {}, true);
 
         try {
-            // 1. Pick a random user from the list
-            const randomUser = targetUsers[Math.floor(Math.random() * targetUsers.length)];
+            // 1. Pick a random user from the list (clean @ prefix if present)
+            let randomUser = targetUsers[Math.floor(Math.random() * targetUsers.length)];
+            randomUser = randomUser.replace(/^@/, "").toLowerCase();
             console.log(`[Shoti] Selected target: ${randomUser} (Attempt ${retries + 1})`);
 
-            // 2. Search for videos by this user using TikWM Search API
-            const response = await axios.post(
-                "https://www.tikwm.com/api/feed/search",
-                {
-                    keywords: randomUser,
-                    count: 12,
-                    cursor: 0,
-                    web: 1,
-                    hd: 1,
-                },
-                {
-                    headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8" },
-                }
+            // 2. Fast fetch - use parallel requests for speed
+            const cursors = [0, 20, 40, 60, 80, 100];
+            const requests = cursors.map(cursor =>
+                axios.post(
+                    "https://www.tikwm.com/api/feed/search",
+                    {
+                        keywords: randomUser,
+                        count: 50,
+                        cursor: cursor,
+                        web: 1,
+                        hd: 1,
+                    },
+                    {
+                        headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8" },
+                        timeout: 8000,
+                    }
+                ).catch(() => null)
             );
 
+            const responses = await Promise.all(requests);
+            
+            // 3. Collect ONLY videos from the exact user (strict matching)
             let videos = [];
-            if (response.data?.data?.videos) {
-                const allVideos = response.data.data.videos;
-
-                // Strict Filter: Ensure video is actually from the target user
-                videos = allVideos.filter(
-                    (v) =>
-                        v.author &&
-                        v.author.unique_id &&
-                        v.author.unique_id.toLowerCase() === randomUser.toLowerCase()
-                );
+            for (const response of responses) {
+                if (response?.data?.data?.videos) {
+                    const filtered = response.data.data.videos.filter(
+                        (v) =>
+                            v.author?.unique_id?.toLowerCase() === randomUser
+                    );
+                    videos.push(...filtered);
+                }
             }
 
-            // If no videos found for this specific user, retry with a DIFFERENT user
+            // Remove duplicates by video_id
+            videos = [...new Map(videos.map(v => [v.video_id, v])).values()];
+            console.log(`[Shoti] Found ${videos.length} unique videos from @${randomUser}`);
+
+            // If no videos found for this user, try a different user from the list
             if (videos.length === 0) {
-                console.log(
-                    `[Shoti] No videos found matching '${randomUser}' exactly, retrying with new user...`
-                );
+                console.log(`[Shoti] No videos found for '${randomUser}', trying different user...`);
                 return this.execute({ api, event, args, config }, retries + 1);
             }
 
@@ -284,7 +295,7 @@ module.exports = {
                     attachment: videoStream.data,
                 };
 
-                await api.sendMessage(msg, threadID, messageID);
+                await api.sendMessage(msg, threadID, null, messageID);
             } catch (sendError) {
                 if (
                     sendError.message.includes("metadata") ||
@@ -304,7 +315,7 @@ module.exports = {
             }
 
             api.setMessageReaction("❌", messageID, () => {}, true);
-            return api.sendMessage(`❌ Error: ${error.message}`, threadID, messageID);
+            return api.sendMessage(`❌ Error: ${error.message}`, threadID, null, messageID);
         }
     },
 };

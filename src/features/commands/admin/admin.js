@@ -30,7 +30,7 @@ module.exports = {
     },
 
     async execute({ api, event, args, config, _senderID }) {
-        const { threadID, messageReply, mentions } = event;
+        const { threadID, messageReply, mentions, messageID } = event;
         const actualPrefix = config.bot.prefixEnabled ? config.bot.prefix : "";
         const commandName = this.config.name;
 
@@ -41,7 +41,8 @@ module.exports = {
                     `• ${actualPrefix}${commandName} -a @user : Add admin\n` +
                     `• ${actualPrefix}${commandName} -r @user : Remove admin\n` +
                     `• ${actualPrefix}${commandName} -l       : List admins`,
-                threadID
+                threadID,
+                messageID
             );
         }
 
@@ -68,7 +69,7 @@ module.exports = {
                 msg += "None\n";
             }
 
-            return api.sendMessage(msg, threadID);
+            return api.sendMessage(msg, threadID, null, messageID);
         }
 
         // Get target user
@@ -100,37 +101,39 @@ module.exports = {
         }
 
         if (!targetID) {
-            return api.sendMessage("❌ Please reply to a user or mention them.", threadID);
+            return api.sendMessage("❌ Please reply to a user or mention them.", threadID, null, messageID);
         }
 
         // Action: Add Admin
         if (action === "-a" || action === "add") {
             if (config.isSuperAdmin(targetID)) {
-                return api.sendMessage("⚠️ User is already a Super Admin.", threadID);
+                return api.sendMessage("⚠️ User is already a Super Admin.", threadID, null, messageID);
             }
 
             const success = config.addAdmin(targetID);
             if (success) {
-                return api.sendMessage(`✅ Successfully added ${targetName} as Admin!`, threadID);
+                return api.sendMessage(`✅ Successfully added ${targetName} as Admin!`, threadID, null, messageID);
             } else {
-                return api.sendMessage(`⚠️ User is already an Admin.`, threadID);
+                return api.sendMessage(`⚠️ User is already an Admin.`, threadID, null, messageID);
             }
         }
 
         // Action: Remove Admin
         else if (action === "-r" || action === "remove" || action === "del") {
             if (config.isSuperAdmin(targetID)) {
-                return api.sendMessage("❌ You cannot remove a Super Admin.", threadID);
+                return api.sendMessage("❌ You cannot remove a Super Admin.", threadID, null, messageID);
             }
 
             const success = config.removeAdmin(targetID);
             if (success) {
                 return api.sendMessage(
                     `✅ Successfully removed ${targetName} from Admins.`,
-                    threadID
+                    threadID,
+                    null,
+                    messageID
                 );
             } else {
-                return api.sendMessage(`⚠️ User is not an Admin.`, threadID);
+                return api.sendMessage(`⚠️ User is not an Admin.`, threadID, null, messageID);
             }
         } else {
             return api.sendMessage(
@@ -139,7 +142,9 @@ module.exports = {
                     `• ${actualPrefix}${commandName} -a @user : Add admin\n` +
                     `• ${actualPrefix}${commandName} -r @user : Remove admin\n` +
                     `• ${actualPrefix}${commandName} -l       : List admins`,
-                threadID
+                threadID,
+                null,
+                messageID
             );
         }
     },

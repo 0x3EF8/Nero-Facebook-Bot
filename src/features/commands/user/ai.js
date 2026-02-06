@@ -72,13 +72,14 @@ Instructions:
                 return api.sendMessage(
                     "❌ The AI returned an empty response. Please try again.",
                     threadID,
+                    null,
                     messageID
                 );
             }
 
             // Send response
             api.setMessageReaction("✅", messageID, () => {}, true);
-            return api.sendMessage(responseText.trim(), threadID, messageID);
+            return api.sendMessage(responseText.trim(), threadID, null, messageID);
         } catch (error) {
             console.error("AI Command Error:", error);
             api.setMessageReaction("❌", messageID, () => {}, true);
@@ -88,7 +89,7 @@ Instructions:
                 errorMessage = "❌ AI usage limit reached. Please try again later.";
             }
 
-            return api.sendMessage(errorMessage, threadID, messageID);
+            return api.sendMessage(errorMessage, threadID, null, messageID);
         }
     },
 };

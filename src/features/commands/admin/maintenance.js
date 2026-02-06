@@ -86,7 +86,7 @@ module.exports = {
             response += `• ${actualPrefix}${commandName} time <minutes>\n`;
             response += `• ${actualPrefix}${commandName} reset`;
 
-            return api.sendMessage(response, threadID, messageID);
+            return api.sendMessage(response, threadID, null, messageID);
         }
 
         const action = args[0].toLowerCase();
@@ -111,7 +111,7 @@ module.exports = {
                     response += `⏱️ ETA: ${maintenanceManager.formatDuration(time * 60 * 1000)}`;
                 }
 
-                return api.sendMessage(response, threadID, messageID);
+                return api.sendMessage(response, threadID, null, messageID);
             }
 
             case "off":
@@ -123,6 +123,7 @@ module.exports = {
                 return api.sendMessage(
                     `✅ Maintenance mode disabled!\n\nThe bot is now fully operational.`,
                     threadID,
+                    null,
                     messageID
                 );
             }
@@ -146,7 +147,7 @@ module.exports = {
                     response += `Users Notified: ${status.notifiedCount}`;
                 }
 
-                return api.sendMessage(response, threadID, messageID);
+                return api.sendMessage(response, threadID, null, messageID);
             }
 
             case "reason": {

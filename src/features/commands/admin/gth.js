@@ -91,7 +91,7 @@ module.exports = {
 
                 if (!threads || threads.length === 0) {
                     api.setMessageReaction("❌", messageID, () => {}, true);
-                    return api.sendMessage("📭 Inbox is empty.", threadID, messageID);
+                    return api.sendMessage("📭 Inbox is empty.", threadID, null, messageID);
                 }
 
                 let msg = `📬 **Recent Inbox Threads**\n\n`;
@@ -111,7 +111,7 @@ ${config.bot.prefix}gth <number>
  to view history.`;
 
                 api.setMessageReaction("✅", messageID, () => {}, true);
-                return api.sendMessage(msg, threadID, messageID);
+                return api.sendMessage(msg, threadID, null, messageID);
             }
 
             // Mode 2: View History (With argument)
@@ -217,7 +217,7 @@ ${config.bot.prefix}gth <number>
             historyMsg += `\n------------------------------------------`;
 
             api.setMessageReaction("✅", messageID, () => {}, true);
-            return api.sendMessage(historyMsg, threadID, messageID);
+            return api.sendMessage(historyMsg, threadID, null, messageID);
         } catch (error) {
             console.error(error);
             api.setMessageReaction("❌", messageID, () => {}, true);
