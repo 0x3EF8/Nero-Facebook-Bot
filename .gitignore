@@ -70,3 +70,4 @@ data/temp/
 *.tmp
 *.temp
 .npm/
+.zip
